@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import misterAntTennaSprite from './assets/mister-ant-tenna.png';
 import misterAntTennaBattleSprite from './assets/tenna-battle.gif';
 import misterAntTennaCrouchSprite from './assets/tenna-crouch.png';
@@ -12,6 +12,10 @@ import misterAntTennaProjectileSprite from './assets/tenna-star-projectile.png';
 import misterAntTennaShootSprite from './assets/tenna-shoot.png';
 import misterAntTennaDefeatSprite from './assets/tenna-defeat-strip.png';
 import misterAntTennaAirSpecialSprite from './assets/tenna-air-special.png';
+import misterAntTennaVictoryOneSprite from './assets/tenna-victory-1.gif';
+import misterAntTennaVictoryTwoSprite from './assets/tenna-victory-2.gif';
+import misterAntTennaVictoryThreeSprite from './assets/tenna-victory-3.gif';
+import misterAntTennaVictoryFourSprite from './assets/tenna-victory-4.gif';
 import queenSprite from './assets/queen.png';
 import queenBattleSprite from './assets/queen-battle.png';
 import queenWalkSprite from './assets/queen-walk-strip.png';
@@ -26,7 +30,44 @@ import queenProjectileSprite from './assets/queen-projectile.png';
 import queenKnockdownSprite from './assets/queen-knockdown.png';
 import queenKnockdownPoseSprite from './assets/queen-knockdown-pose.png';
 import queenHealSprite from './assets/queen-heal.png';
+import queenVictorySprite from './assets/queen-victory-strip.png';
+import queenVictoryBackdropSprite from './assets/queen-victory-backdrop-strip.png';
+import roaringKnightPortraitSprite from './assets/roaring-knight-portrait.png';
+import roaringKnightSprite from './assets/roaring-knight.png';
+import roaringKnightIdleSprite from './assets/roaring-knight-idle.gif';
 import healPlusFiveSprite from './assets/heal-plus-five.png';
+import selectSound from './assets/snd_select.wav';
+import fightStartSound from './assets/snd_boost.wav';
+import queenVictorySound from './assets/queen-intro.ogg';
+import tennaAirWaveSound from './assets/snd_scytheburst.wav';
+import queenHealSound from './assets/snd_power.wav';
+import queenCupThrowSound from './assets/snd_b.wav';
+import projectileHitSound from './assets/snd_bomb.wav';
+import attackUppercutSound from './assets/snd_criticalswing.wav';
+import attackSweepSound from './assets/snd_grab.wav';
+import attackKickSound from './assets/snd_heavyswing.wav';
+import attackPunchSound from './assets/snd_impact.wav';
+import queenPunchSound from './assets/snd_laz_c.wav';
+import queenKickSound from './assets/snd_rudebuster_hit.wav';
+import tennaVictoryThreeSound from './assets/crowd-laughter-deltarune.mp3';
+import tennaStarSpecialSound from './assets/snd_tensionhorn.wav';
+import doorHoverSound from './assets/snd_spearappear.wav';
+import doorClickSound from './assets/audio_appearance.wav';
+import announcerBeginsOneSound from './assets/announcer-begins-1sec.wav';
+import announcerBeginsTwoSound from './assets/announcer-begins-2sec.wav';
+import announcerBeginsThreeSound from './assets/announcer-begins-3sec.wav';
+import couchCliffsMusic from './assets/battle.ogg';
+import darkSanctuariesMusic from './assets/ch4_battle.ogg';
+import coldPlaceMusic from './assets/knight.ogg';
+import queenMansionMusic from './assets/queen_boss.ogg';
+import tennaStageMusic from './assets/tenna_battle_old.ogg';
+import deltafightTitleBg from './assets/deltafight-title-bg.png';
+import settingsIcon from './assets/settings-icon.png';
+import stageTennaArena from './assets/arena-tenna-stage.png';
+import stageCouchCliffs from './assets/stage-couch-cliffs.webp';
+import stageColdPlace from './assets/stage-cold-place.png';
+import stageDarkSanctuaries from './assets/stage-dark-sanctuaries.png';
+import stageQueensMansion from './assets/stage-queens-mansion.webp';
 
 type Fighter = {
   id: string;
@@ -49,9 +90,10 @@ type Fighter = {
   airSpecialSprite?: string;
   healSprite?: string;
   defeatSprite?: string;
+  victorySprites?: string[];
 };
 
-type Screen = 'menu' | 'select' | 'arena' | 'victory';
+type Screen = 'title' | 'menu' | 'select' | 'stage' | 'arena' | 'victory';
 type Attack = 'idle' | 'punch' | 'kick';
 type HitLevel = 'high' | 'mid' | 'low';
 type HitEffect = 'none' | 'sweep' | 'uppercut';
@@ -61,6 +103,7 @@ type Facing = 'left' | 'right';
 type Position = { x: number; y: number };
 type ProjectileLane = 'low' | 'high';
 type ProjectileKind = 'tenna-star' | 'queen-wave' | 'queen-heal-wave';
+type RoundCurtainPhase = 'idle' | 'closing' | 'opening';
 type Projectile = {
   id: number;
   x: number;
@@ -75,10 +118,38 @@ type HealPopup = {
   x: number;
   y: number;
 };
+type KnightAfterimage = {
+  id: number;
+  side: FighterSide;
+  x: number;
+  y: number;
+  facing: Facing;
+};
 type OpponentStatus = 'idle' | 'knockdown' | 'launched' | 'healing';
 type SelectTarget = 'player' | 'opponent';
 type Difficulty = 'easy' | 'normal' | 'hard';
 type PlayerSpecialMove = 'tenna-ground' | 'tenna-air' | 'queen-ground' | 'queen-heal';
+type AttackSoundId =
+  | 'attackPunch'
+  | 'attackKick'
+  | 'attackUppercut'
+  | 'attackSweep'
+  | 'queenPunch'
+  | 'queenKick';
+type BufferedSoundId =
+  | 'select'
+  | 'fightStart'
+  | 'tennaAirWave'
+  | 'queenHeal'
+  | 'queenCupThrow'
+  | 'projectileHit'
+  | 'tennaStarSpecial'
+  | 'doorHover'
+  | 'doorClick'
+  | 'countdown1'
+  | 'countdown2'
+  | 'countdown3'
+  | AttackSoundId;
 
 type FighterOrbStyle = CSSProperties & {
   '--fighter-color': string;
@@ -90,10 +161,19 @@ type ArenaFighterStyle = FighterOrbStyle & {
   bottom: string;
 };
 
+type Stage = {
+  id: string;
+  name: string;
+  image: string;
+  position: string;
+  size: string;
+  fighterLift?: number;
+};
+
 const fighters: Fighter[] = [
   {
     id: 'mister-ant-tenna',
-    name: 'Мистер Ант Тенна',
+    name: 'Mr Ant Tenna',
     title: 'Antenna Champion',
     realm: 'Signal Arena',
     color: '#d22d68',
@@ -110,6 +190,12 @@ const fighters: Fighter[] = [
     specialSprite: misterAntTennaShootSprite,
     airSpecialSprite: misterAntTennaAirSpecialSprite,
     defeatSprite: misterAntTennaDefeatSprite,
+    victorySprites: [
+      misterAntTennaVictoryOneSprite,
+      misterAntTennaVictoryTwoSprite,
+      misterAntTennaVictoryThreeSprite,
+      misterAntTennaVictoryFourSprite,
+    ],
   },
   {
     id: 'volt',
@@ -145,7 +231,7 @@ const fighters: Fighter[] = [
   },
   {
     id: 'queen',
-    name: 'Королева',
+    name: 'Queen',
     title: 'Cyber Monarch',
     realm: 'Cyber City',
     color: '#6fd2ff',
@@ -163,8 +249,75 @@ const fighters: Fighter[] = [
     knockdownSprite: queenKnockdownPoseSprite,
     healSprite: queenHealSprite,
     defeatSprite: queenKnockdownSprite,
+    victorySprites: [queenVictorySprite, queenVictoryBackdropSprite],
+  },
+  {
+    id: 'roaring-knight',
+    name: 'Roaring Knight',
+    title: 'Dark Fountain',
+    realm: 'The Roaring',
+    color: '#f8f8ff',
+    shadow: '#121218',
+    sprite: roaringKnightPortraitSprite,
+    battleSprite: roaringKnightIdleSprite,
   },
 ];
+
+const stages: Stage[] = [
+  {
+    id: 'tenna-stage',
+    name: 'Tenna Stage',
+    image: stageTennaArena,
+    position: 'center calc(100% + 18px)',
+    size: '118% 100%',
+  },
+  {
+    id: 'couch-cliffs',
+    name: 'Couch Cliffs',
+    image: stageCouchCliffs,
+    position: 'center calc(50% + 34px)',
+    size: 'cover',
+  },
+  {
+    id: 'cold-place',
+    name: 'Cold Place',
+    image: stageColdPlace,
+    position: 'center center',
+    size: 'cover',
+  },
+  {
+    id: 'dark-sanctuaries',
+    name: 'Dark Sanctuaries',
+    image: stageDarkSanctuaries,
+    position: 'center center',
+    size: 'cover',
+  },
+  {
+    id: 'queens-mansion',
+    name: "Queen's Mansion",
+    image: stageQueensMansion,
+    position: 'center calc(50% + 34px)',
+    size: 'cover',
+    fighterLift: 46,
+  },
+];
+
+const attackSoundVolumes: Record<AttackSoundId, number> = {
+  attackPunch: 0.78,
+  attackKick: 0.82,
+  attackUppercut: 0.9,
+  attackSweep: 0.82,
+  queenPunch: 0.82,
+  queenKick: 0.88,
+};
+
+const stageMusic: Partial<Record<string, string>> = {
+  'tenna-stage': tennaStageMusic,
+  'couch-cliffs': couchCliffsMusic,
+  'cold-place': coldPlaceMusic,
+  'dark-sanctuaries': darkSanctuariesMusic,
+  'queens-mansion': queenMansionMusic,
+};
 
 function getStandingPunchHitLevel(fighter: Fighter): HitLevel {
   return fighter.id === 'queen' ? 'mid' : 'high';
@@ -204,7 +357,10 @@ const TENNA_AIR_SPECIAL_RANGE = 46;
 const TENNA_AIR_SPECIAL_VERTICAL_RANGE = 190;
 const TENNA_AIR_SPECIAL_KNOCKBACK = 3.25;
 const FATALITY_WINDOW_MS = 3500;
-const ROUND_TRANSITION_MS = 3000;
+const ROUND_CURTAIN_DROP_DELAY_MS = 3000;
+const ROUND_CURTAIN_CLOSED_MS = 2000;
+const ROUND_CURTAIN_OPEN_MS = 900;
+const ROUND_COUNTDOWN_STEP_MS = 1000;
 const PROJECTILE_DAMAGE = 8;
 const QUEEN_PROJECTILE_DAMAGE = 13;
 const PROJECTILE_KNOCKBACK_VELOCITY = 1.25;
@@ -220,6 +376,8 @@ const CROUCH_UPPERCUT_RECOVERY_MS = 1000;
 const UPPERCUT_KNOCKBACK = 2.25;
 const SWEEP_KNOCKDOWN_MS = 2000;
 const UPPERCUT_LANDING_KNOCKDOWN_MS = 1000;
+const KNOCKDOWN_RECOVERY_MS = 360;
+const WALK_SPEED = 0.2;
 const AI_CONFIG: Record<
   Difficulty,
   {
@@ -236,7 +394,7 @@ const AI_CONFIG: Record<
 > = {
   easy: {
     label: 'Easy',
-    moveSpeed: 0.1,
+    moveSpeed: WALK_SPEED,
     thinkMs: 900,
     attackChance: 0.38,
     blockChance: 0.18,
@@ -247,7 +405,7 @@ const AI_CONFIG: Record<
   },
   normal: {
     label: 'Normal',
-    moveSpeed: 0.15,
+    moveSpeed: WALK_SPEED,
     thinkMs: 650,
     attackChance: 0.58,
     blockChance: 0.36,
@@ -258,7 +416,7 @@ const AI_CONFIG: Record<
   },
   hard: {
     label: 'Hard',
-    moveSpeed: 0.2,
+    moveSpeed: WALK_SPEED,
     thinkMs: 430,
     attackChance: 0.78,
     blockChance: 0.58,
@@ -270,18 +428,27 @@ const AI_CONFIG: Record<
 };
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('menu');
+  const [screen, setScreen] = useState<Screen>('title');
+  const [showTitleInfo, setShowTitleInfo] = useState(false);
+  const [doorTransitionMode, setDoorTransitionMode] = useState<ArenaMode | null>(null);
+  const [isScreenRevealing, setIsScreenRevealing] = useState(false);
   const [selectedFighterId, setSelectedFighterId] = useState(fighters[0].id);
   const [selectedOpponentId, setSelectedOpponentId] = useState(fighters[4].id);
   const [selectTarget, setSelectTarget] = useState<SelectTarget>('player');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('normal');
+  const [selectedStageId, setSelectedStageId] = useState(stages[0].id);
   const [arenaMode, setArenaMode] = useState<ArenaMode>('fight');
   const [lockedFighter, setLockedFighter] = useState<Fighter | null>(null);
   const [lockedOpponent, setLockedOpponent] = useState<Fighter | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [effectsVolume, setEffectsVolume] = useState(0.85);
+  const [musicVolume, setMusicVolume] = useState(0.55);
   const [playerPosition, setPlayerPosition] = useState(START_POSITION);
   const [opponentPosition, setOpponentPosition] = useState(OPPONENT_POSITION);
   const [playerStatus, setPlayerStatus] = useState<OpponentStatus>('idle');
   const [opponentStatus, setOpponentStatus] = useState<OpponentStatus>('idle');
+  const [playerRecovering, setPlayerRecovering] = useState(false);
+  const [opponentRecovering, setOpponentRecovering] = useState(false);
   const [attack, setAttack] = useState<Attack>('idle');
   const [opponentAttack, setOpponentAttack] = useState<Attack>('idle');
   const [opponentBlocking, setOpponentBlocking] = useState(false);
@@ -297,12 +464,16 @@ export default function App() {
   const [opponentHealth, setOpponentHealth] = useState(MAX_HEALTH);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [healPopups, setHealPopups] = useState<HealPopup[]>([]);
+  const [knightAfterimages, setKnightAfterimages] = useState<KnightAfterimage[]>([]);
   const [winnerSide, setWinnerSide] = useState<FighterSide>('left');
   const [playerDamageFlash, setPlayerDamageFlash] = useState(false);
   const [opponentDamageFlash, setOpponentDamageFlash] = useState(false);
   const [roundNumber, setRoundNumber] = useState(1);
   const [playerRoundWins, setPlayerRoundWins] = useState(0);
   const [opponentRoundWins, setOpponentRoundWins] = useState(0);
+  const [roundWinnerPoseSprite, setRoundWinnerPoseSprite] = useState<string | null>(null);
+  const [roundCurtainPhase, setRoundCurtainPhase] = useState<RoundCurtainPhase>('idle');
+  const [roundCountdown, setRoundCountdown] = useState(3);
 
   const attackTimer = useRef<number | null>(null);
   const opponentAttackTimer = useRef<number | null>(null);
@@ -311,8 +482,16 @@ export default function App() {
   const playerStatusTimer = useRef<number | null>(null);
   const playerDamageFlashTimer = useRef<number | null>(null);
   const opponentDamageFlashTimer = useRef<number | null>(null);
+  const playerRecoveryTimer = useRef<number | null>(null);
+  const opponentRecoveryTimer = useRef<number | null>(null);
   const opponentCrouchTimer = useRef<number | null>(null);
   const victoryTimer = useRef<number | null>(null);
+  const roundTransitionTimer = useRef<number | null>(null);
+  const roundCurtainTimer = useRef<number | null>(null);
+  const countdownTimer = useRef<number | null>(null);
+  const doorTransitionTimer = useRef<number | null>(null);
+  const screenRevealTimer = useRef<number | null>(null);
+  const knightAfterimageTimer = useRef<number | null>(null);
   const attackReadyAt = useRef(0);
   const opponentAttackReadyAt = useRef(0);
   const specialReadyAt = useRef(0);
@@ -357,19 +536,364 @@ export default function App() {
   const projectilesRef = useRef<Projectile[]>([]);
   const projectileIdRef = useRef(1);
   const healPopupIdRef = useRef(1);
+  const knightAfterimageIdRef = useRef(1);
   const roundResolvedRef = useRef(false);
+  const roundCountdownRef = useRef(3);
   const animationFrame = useRef<number | null>(null);
+  const selectSoundRef = useRef<HTMLAudioElement | null>(null);
+  const fightStartSoundRef = useRef<HTMLAudioElement | null>(null);
+  const tennaAirWaveSoundRef = useRef<HTMLAudioElement | null>(null);
+  const queenHealSoundRef = useRef<HTMLAudioElement | null>(null);
+  const queenCupThrowSoundRef = useRef<HTMLAudioElement | null>(null);
+  const projectileHitSoundRef = useRef<HTMLAudioElement | null>(null);
+  const tennaStarSpecialSoundRef = useRef<HTMLAudioElement | null>(null);
+  const doorHoverSoundRef = useRef<HTMLAudioElement | null>(null);
+  const doorClickSoundRef = useRef<HTMLAudioElement | null>(null);
+  const stageMusicRef = useRef<HTMLAudioElement | null>(null);
+  const attackSoundRefs = useRef<Record<AttackSoundId, HTMLAudioElement | null>>({
+    attackPunch: null,
+    attackKick: null,
+    attackUppercut: null,
+    attackSweep: null,
+    queenPunch: null,
+    queenKick: null,
+  });
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const soundBuffersRef = useRef<Partial<Record<BufferedSoundId, AudioBuffer>>>({});
+  const countdownSoundRefs = useRef<Record<1 | 2 | 3, HTMLAudioElement | null>>({
+    1: null,
+    2: null,
+    3: null,
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    const createFallbackAudio = (src: string, volume: number) => {
+      const audio = new Audio(src);
+      audio.volume = volume;
+      audio.preload = 'auto';
+      audio.load();
+      return audio;
+    };
+
+    selectSoundRef.current = createFallbackAudio(selectSound, 0.75);
+    fightStartSoundRef.current = createFallbackAudio(fightStartSound, 0.8);
+    tennaAirWaveSoundRef.current = createFallbackAudio(tennaAirWaveSound, 0.9);
+    queenHealSoundRef.current = createFallbackAudio(queenHealSound, 0.85);
+    queenCupThrowSoundRef.current = createFallbackAudio(queenCupThrowSound, 0.85);
+    projectileHitSoundRef.current = createFallbackAudio(projectileHitSound, 0.85);
+    tennaStarSpecialSoundRef.current = createFallbackAudio(tennaStarSpecialSound, 0.9);
+    doorHoverSoundRef.current = createFallbackAudio(doorHoverSound, 0.75);
+    doorClickSoundRef.current = createFallbackAudio(doorClickSound, 0.85);
+    attackSoundRefs.current = {
+      attackPunch: createFallbackAudio(attackPunchSound, attackSoundVolumes.attackPunch),
+      attackKick: createFallbackAudio(attackKickSound, attackSoundVolumes.attackKick),
+      attackUppercut: createFallbackAudio(attackUppercutSound, attackSoundVolumes.attackUppercut),
+      attackSweep: createFallbackAudio(attackSweepSound, attackSoundVolumes.attackSweep),
+      queenPunch: createFallbackAudio(queenPunchSound, attackSoundVolumes.queenPunch),
+      queenKick: createFallbackAudio(queenKickSound, attackSoundVolumes.queenKick),
+    };
+    countdownSoundRefs.current = {
+      1: createFallbackAudio(announcerBeginsOneSound, 0.9),
+      2: createFallbackAudio(announcerBeginsTwoSound, 0.9),
+      3: createFallbackAudio(announcerBeginsThreeSound, 0.9),
+    };
+    const AudioContextConstructor =
+      window.AudioContext ??
+      (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+    if (AudioContextConstructor) {
+      const audioContext = new AudioContextConstructor();
+      audioContextRef.current = audioContext;
+      const soundUrls: Record<BufferedSoundId, string> = {
+        select: selectSound,
+        fightStart: fightStartSound,
+        tennaAirWave: tennaAirWaveSound,
+        queenHeal: queenHealSound,
+        queenCupThrow: queenCupThrowSound,
+        projectileHit: projectileHitSound,
+        tennaStarSpecial: tennaStarSpecialSound,
+        doorHover: doorHoverSound,
+        doorClick: doorClickSound,
+        countdown1: announcerBeginsOneSound,
+        countdown2: announcerBeginsTwoSound,
+        countdown3: announcerBeginsThreeSound,
+        attackPunch: attackPunchSound,
+        attackKick: attackKickSound,
+        attackUppercut: attackUppercutSound,
+        attackSweep: attackSweepSound,
+        queenPunch: queenPunchSound,
+        queenKick: queenKickSound,
+      };
+
+      Object.entries(soundUrls).forEach(([id, url]) => {
+        void fetch(url)
+          .then((response) => response.arrayBuffer())
+          .then((arrayBuffer) => audioContext.decodeAudioData(arrayBuffer))
+          .then((buffer) => {
+            if (isMounted) {
+              soundBuffersRef.current[id as BufferedSoundId] = buffer;
+            }
+          })
+          .catch(() => {
+            // Fallback HTMLAudioElement will still play if decoding fails.
+          });
+      });
+    }
+
+    const playSelectSound = (event: MouseEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      const button = target.closest('button');
+
+      if (!button || button.disabled || button.classList.contains('mode-door')) {
+        return;
+      }
+
+      playBufferedSound('select', selectSoundRef.current, 0.75);
+    };
+
+    document.addEventListener('click', playSelectSound, true);
+
+    return () => {
+      isMounted = false;
+      document.removeEventListener('click', playSelectSound, true);
+      selectSoundRef.current = null;
+      fightStartSoundRef.current = null;
+      tennaAirWaveSoundRef.current = null;
+      queenHealSoundRef.current = null;
+      queenCupThrowSoundRef.current = null;
+      projectileHitSoundRef.current = null;
+      tennaStarSpecialSoundRef.current = null;
+      doorHoverSoundRef.current = null;
+      doorClickSoundRef.current = null;
+      attackSoundRefs.current = {
+        attackPunch: null,
+        attackKick: null,
+        attackUppercut: null,
+        attackSweep: null,
+        queenPunch: null,
+        queenKick: null,
+      };
+      soundBuffersRef.current = {};
+      void audioContextRef.current?.close().catch(() => {});
+      audioContextRef.current = null;
+      countdownSoundRefs.current = { 1: null, 2: null, 3: null };
+    };
+  }, []);
+
+  function playBufferedSound(
+    id: BufferedSoundId,
+    fallback: HTMLAudioElement | null,
+    volume: number,
+    playbackRate = 1,
+  ) {
+    const audioContext = audioContextRef.current;
+    const buffer = soundBuffersRef.current[id];
+    const outputVolume = volume * effectsVolume;
+
+    if (audioContext && buffer) {
+      if (audioContext.state === 'suspended') {
+        void audioContext.resume().catch(() => {});
+      }
+
+      const source = audioContext.createBufferSource();
+      const gain = audioContext.createGain();
+      source.buffer = buffer;
+      source.playbackRate.value = playbackRate;
+      gain.gain.value = outputVolume;
+      source.connect(gain);
+      gain.connect(audioContext.destination);
+      source.start(0);
+      return;
+    }
+
+    if (!fallback) {
+      return;
+    }
+
+    fallback.currentTime = 0;
+    fallback.playbackRate = playbackRate;
+    fallback.volume = outputVolume;
+    void fallback.play().catch(() => {
+      // Browsers can still block audio until a user gesture unlocks playback.
+    });
+  }
+
+  function playFightStartSound() {
+    playBufferedSound('fightStart', fightStartSoundRef.current, 0.8);
+  }
+
+  function playTennaAirWaveSound() {
+    playBufferedSound('tennaAirWave', tennaAirWaveSoundRef.current, 0.9);
+  }
+
+  function playQueenHealSound() {
+    playBufferedSound('queenHeal', queenHealSoundRef.current, 0.85);
+  }
+
+  function playQueenCupThrowSound() {
+    playBufferedSound('queenCupThrow', queenCupThrowSoundRef.current, 0.85);
+  }
+
+  function playProjectileHitSound() {
+    playBufferedSound('projectileHit', projectileHitSoundRef.current, 0.85);
+  }
+
+  function playTennaStarSpecialSound() {
+    playBufferedSound('tennaStarSpecial', tennaStarSpecialSoundRef.current, 0.9);
+  }
+
+  function getAttackSoundId(fighter: Fighter, nextAttack: Exclude<Attack, 'idle'>, isCrouchAttack: boolean) {
+    if (fighter.id === 'mister-ant-tenna' && isCrouchAttack && nextAttack === 'kick') return 'attackKick';
+    if (fighter.id === 'mister-ant-tenna' && !isCrouchAttack && nextAttack === 'kick') return 'attackSweep';
+    if (isCrouchAttack && nextAttack === 'punch') return 'attackUppercut';
+    if (isCrouchAttack && nextAttack === 'kick') return 'attackSweep';
+    if (fighter.id === 'queen' && nextAttack === 'punch') return 'queenPunch';
+    if (fighter.id === 'queen' && nextAttack === 'kick') return 'queenKick';
+
+    return nextAttack === 'punch' ? 'attackPunch' : 'attackKick';
+  }
+
+  function playAttackSound(
+    fighter: Fighter,
+    nextAttack: Exclude<Attack, 'idle'>,
+    isCrouchAttack: boolean,
+  ) {
+    const soundId = getAttackSoundId(fighter, nextAttack, isCrouchAttack);
+    playBufferedSound(soundId, attackSoundRefs.current[soundId], attackSoundVolumes[soundId]);
+  }
+
+  function playDoorHoverSound() {
+    playBufferedSound('doorHover', doorHoverSoundRef.current, 0.75);
+  }
+
+  function openModeDoor(mode: ArenaMode) {
+    if (doorTransitionMode || doorTransitionTimer.current) return;
+
+    playBufferedSound('doorClick', doorClickSoundRef.current, 0.85);
+    setDoorTransitionMode(mode);
+    doorTransitionTimer.current = window.setTimeout(() => {
+      setDoorTransitionMode(null);
+      doorTransitionTimer.current = null;
+      openCharacterSelect(mode);
+      setIsScreenRevealing(true);
+      screenRevealTimer.current = window.setTimeout(() => {
+        setIsScreenRevealing(false);
+        screenRevealTimer.current = null;
+      }, 560);
+    }, 560);
+  }
 
   const selectedFighter =
     fighters.find((fighter) => fighter.id === selectedFighterId) ?? fighters[0];
   const selectedOpponent =
     fighters.find((fighter) => fighter.id === selectedOpponentId) ?? fighters[4];
+  const selectedStage = stages.find((stage) => stage.id === selectedStageId) ?? stages[0];
   const player = lockedFighter ?? selectedFighter;
   const opponent = lockedOpponent ?? selectedOpponent;
 
   useEffect(() => {
+    if (stageMusicRef.current) {
+      stageMusicRef.current.pause();
+      stageMusicRef.current.currentTime = 0;
+      stageMusicRef.current = null;
+    }
+
+    const musicSrc = screen === 'arena' ? stageMusic[selectedStage.id] : null;
+
+    if (!musicSrc) return undefined;
+
+    const music = new Audio(musicSrc);
+    music.loop = true;
+    music.volume = 0.28 * musicVolume;
+    music.preload = 'auto';
+    stageMusicRef.current = music;
+
+    void music.play().catch(() => {
+      // Background music can be blocked until the browser accepts user audio.
+    });
+
+    return () => {
+      music.pause();
+      music.currentTime = 0;
+      if (stageMusicRef.current === music) {
+        stageMusicRef.current = null;
+      }
+    };
+  }, [screen, selectedStage.id]);
+
+  useEffect(() => {
+    if (stageMusicRef.current) {
+      stageMusicRef.current.volume = 0.28 * musicVolume;
+    }
+  }, [musicVolume]);
+
+  useEffect(() => {
     positionRef.current = playerPosition;
   }, [playerPosition]);
+
+  useEffect(() => {
+    if (knightAfterimageTimer.current) {
+      window.clearInterval(knightAfterimageTimer.current);
+      knightAfterimageTimer.current = null;
+    }
+
+    setKnightAfterimages([]);
+
+    const hasKnight = player.id === 'roaring-knight' || opponent.id === 'roaring-knight';
+
+    if (screen !== 'arena' || !hasKnight) return undefined;
+
+    function spawnKnightAfterimage(side: FighterSide, position: Position, facing: Facing) {
+      const id = knightAfterimageIdRef.current;
+      knightAfterimageIdRef.current += 1;
+
+      setKnightAfterimages((current) => [
+        ...current.slice(-7),
+        {
+          id,
+          side,
+          x: position.x,
+          y: position.y,
+          facing,
+        },
+      ]);
+
+      window.setTimeout(() => {
+        setKnightAfterimages((current) => current.filter((afterimage) => afterimage.id !== id));
+      }, 2000);
+    }
+
+    knightAfterimageTimer.current = window.setInterval(() => {
+      if (player.id === 'roaring-knight') {
+        spawnKnightAfterimage(
+          'left',
+          positionRef.current,
+          positionRef.current.x <= opponentPositionRef.current.x ? 'right' : 'left',
+        );
+      }
+
+      if (opponent.id === 'roaring-knight') {
+        spawnKnightAfterimage(
+          'right',
+          opponentPositionRef.current,
+          opponentPositionRef.current.x <= positionRef.current.x ? 'right' : 'left',
+        );
+      }
+    }, 250);
+
+    return () => {
+      if (knightAfterimageTimer.current) {
+        window.clearInterval(knightAfterimageTimer.current);
+        knightAfterimageTimer.current = null;
+      }
+    };
+  }, [opponent.id, player.id, screen]);
 
   useEffect(() => {
     opponentHealthRef.current = opponentHealth;
@@ -382,6 +906,44 @@ export default function App() {
   useEffect(() => {
     opponentPositionRef.current = opponentPosition;
   }, [opponentPosition]);
+
+  useEffect(() => {
+    roundCountdownRef.current = roundCountdown;
+  }, [roundCountdown]);
+
+  useEffect(() => {
+    if (countdownTimer.current) {
+      window.clearTimeout(countdownTimer.current);
+      countdownTimer.current = null;
+    }
+
+    if (
+      screen !== 'arena' ||
+      roundCurtainPhase !== 'idle' ||
+      roundCountdown <= 0 ||
+      playerHealth <= 0 ||
+      opponentHealth <= 0
+    ) {
+      return undefined;
+    }
+
+    playBufferedSound(
+      `countdown${roundCountdown}` as BufferedSoundId,
+      countdownSoundRefs.current[roundCountdown as 1 | 2 | 3],
+      0.9,
+    );
+
+    countdownTimer.current = window.setTimeout(() => {
+      setRoundCountdown((countdown) => Math.max(0, countdown - 1));
+    }, ROUND_COUNTDOWN_STEP_MS);
+
+    return () => {
+      if (countdownTimer.current) {
+        window.clearTimeout(countdownTimer.current);
+        countdownTimer.current = null;
+      }
+    };
+  }, [opponentHealth, playerHealth, roundCountdown, roundCurtainPhase, screen]);
 
   function flashDamage(target: FighterSide) {
     if (target === 'left') {
@@ -418,6 +980,7 @@ export default function App() {
     };
 
     healPopupIdRef.current += 1;
+    playQueenHealSound();
     setHealPopups((popups) => [...popups, nextPopup]);
     window.setTimeout(() => {
       setHealPopups((popups) => popups.filter((popup) => popup.id !== nextPopup.id));
@@ -497,10 +1060,24 @@ export default function App() {
     opponentHealTimer.current = window.setTimeout(() => stopQueenHeal('right'), QUEEN_HEAL_DURATION_MS);
   }
 
+  function isPlayerLowProfile() {
+    return (
+      (pressedKeys.current.has('s') && positionRef.current.y === 0) ||
+      (player.id === 'queen' && playerStatusRef.current === 'healing')
+    );
+  }
+
+  function isOpponentLowProfile() {
+    return (
+      opponentCrouchingRef.current ||
+      (opponent.id === 'queen' && opponentStatusRef.current === 'healing')
+    );
+  }
+
   function damagePlayer(baseDamage: number, effect: HitEffect = 'none', hitLevel: HitLevel = 'mid') {
     if (playerStatusRef.current === 'knockdown') return false;
 
-    const playerIsCrouching = pressedKeys.current.has('s') && positionRef.current.y === 0;
+    const playerIsCrouching = isPlayerLowProfile();
     const playerIsAirborne = positionRef.current.y > 0;
     const isBlocking = isBlockingRef.current && playerStatusRef.current === 'idle';
     const isDodged =
@@ -530,7 +1107,7 @@ export default function App() {
       jumpVelocity.current = 0;
       updatePlayerStatus('knockdown');
       playerStatusTimer.current = window.setTimeout(() => {
-        updatePlayerStatus('idle');
+        recoverFromKnockdown('left');
       }, SWEEP_KNOCKDOWN_MS);
       return true;
     }
@@ -548,6 +1125,7 @@ export default function App() {
   function updatePlayerStatus(nextStatus: OpponentStatus) {
     playerStatusRef.current = nextStatus;
     setPlayerStatus(nextStatus);
+    if (nextStatus !== 'idle') setPlayerRecovering(false);
   }
 
   function updateOpponentAttack(nextAttack: Attack) {
@@ -568,23 +1146,46 @@ export default function App() {
   function updateOpponentStatus(nextStatus: OpponentStatus) {
     opponentStatusRef.current = nextStatus;
     setOpponentStatus(nextStatus);
+    if (nextStatus !== 'idle') setOpponentRecovering(false);
     if (nextStatus !== 'idle') updateOpponentCrouch(false);
+  }
+
+  function recoverFromKnockdown(target: FighterSide) {
+    if (target === 'left') {
+      updatePlayerStatus('idle');
+      setPlayerRecovering(true);
+      if (playerRecoveryTimer.current) window.clearTimeout(playerRecoveryTimer.current);
+      playerRecoveryTimer.current = window.setTimeout(() => {
+        setPlayerRecovering(false);
+        playerRecoveryTimer.current = null;
+      }, KNOCKDOWN_RECOVERY_MS);
+      return;
+    }
+
+    updateOpponentStatus('idle');
+    setOpponentRecovering(true);
+    if (opponentRecoveryTimer.current) window.clearTimeout(opponentRecoveryTimer.current);
+    opponentRecoveryTimer.current = window.setTimeout(() => {
+      setOpponentRecovering(false);
+      opponentRecoveryTimer.current = null;
+    }, KNOCKDOWN_RECOVERY_MS);
   }
 
   function damageOpponentHealth(baseDamage: number, hitLevel: HitLevel = 'mid') {
     if (opponentStatusRef.current === 'knockdown') return false;
 
+    const opponentIsCrouching = isOpponentLowProfile();
     const opponentIsAirborne = opponentPositionRef.current.y > 0;
     const isBlocking =
       opponentBlockingRef.current &&
       opponentStatusRef.current === 'idle' &&
       opponentAttackRef.current === 'idle';
     const isDodged =
-      (hitLevel === 'high' && opponentCrouchingRef.current && !isBlocking) ||
+      (hitLevel === 'high' && opponentIsCrouching && !isBlocking) ||
       (hitLevel === 'low' && opponentIsAirborne);
     const isBlocked =
       hitLevel === 'low'
-        ? isBlocking && opponentCrouchingRef.current
+        ? isBlocking && opponentIsCrouching
         : isBlocking;
 
     if (isDodged) return false;
@@ -729,8 +1330,19 @@ export default function App() {
     const roundWinner: FighterSide = opponentHealth <= 0 ? 'left' : 'right';
     const nextPlayerWins = playerRoundWins + (roundWinner === 'left' ? 1 : 0);
     const nextOpponentWins = opponentRoundWins + (roundWinner === 'right' ? 1 : 0);
+    const roundWinnerFighter = roundWinner === 'left' ? player : opponent;
+    const victorySprites = roundWinnerFighter.victorySprites ?? [];
+    const availableVictorySprites =
+      selectedStage.id === 'tenna-stage'
+        ? victorySprites
+        : victorySprites.filter((sprite) => sprite !== queenVictoryBackdropSprite);
 
     setWinnerSide(roundWinner);
+    setRoundWinnerPoseSprite(
+      availableVictorySprites.length > 0
+        ? availableVictorySprites[Math.floor(Math.random() * availableVictorySprites.length)]
+        : null,
+    );
     roundResolvedRef.current = true;
     if (roundWinner === 'left') {
       setPlayerRoundWins(nextPlayerWins);
@@ -739,15 +1351,27 @@ export default function App() {
     }
 
     if (victoryTimer.current) window.clearTimeout(victoryTimer.current);
+    if (roundTransitionTimer.current) window.clearTimeout(roundTransitionTimer.current);
+    if (roundCurtainTimer.current) window.clearTimeout(roundCurtainTimer.current);
     victoryTimer.current = window.setTimeout(() => {
       if (nextPlayerWins >= 2 || nextOpponentWins >= 2) {
         setScreen('victory');
         return;
       }
 
-      resetRound();
-      setRoundNumber((currentRound) => currentRound + 1);
-    }, nextPlayerWins >= 2 || nextOpponentWins >= 2 ? FATALITY_WINDOW_MS : ROUND_TRANSITION_MS);
+      setRoundCurtainPhase('closing');
+      roundTransitionTimer.current = window.setTimeout(() => {
+        resetRound();
+        setRoundNumber((currentRound) => currentRound + 1);
+        setRoundCurtainPhase('opening');
+
+        roundCurtainTimer.current = window.setTimeout(() => {
+          setRoundCurtainPhase('idle');
+          roundCurtainTimer.current = null;
+        }, ROUND_CURTAIN_OPEN_MS);
+        roundTransitionTimer.current = null;
+      }, ROUND_CURTAIN_CLOSED_MS);
+    }, nextPlayerWins >= 2 || nextOpponentWins >= 2 ? FATALITY_WINDOW_MS : ROUND_CURTAIN_DROP_DELAY_MS);
 
     return () => {
       if (victoryTimer.current) window.clearTimeout(victoryTimer.current);
@@ -789,7 +1413,7 @@ export default function App() {
           opponentJumpVelocity.current = 0;
           updateOpponentStatus('knockdown');
           opponentStatusTimer.current = window.setTimeout(() => {
-            updateOpponentStatus('idle');
+            recoverFromKnockdown('right');
           }, SWEEP_KNOCKDOWN_MS);
         }
 
@@ -818,18 +1442,20 @@ export default function App() {
       }
       attackReadyAt.current = now + ATTACK_COOLDOWN_MS;
 
+      const isCrouchAttack = pressedKeys.current.has('s') && positionRef.current.y === 0;
       attackRef.current = nextAttack;
       setAttack(nextAttack);
+      playAttackSound(player, nextAttack, isCrouchAttack);
       damageOpponent(nextAttack);
 
       if (attackTimer.current) window.clearTimeout(attackTimer.current);
-      const isCrouchUppercut = nextAttack === 'punch' && pressedKeys.current.has('s');
+      const isCrouchUppercut = nextAttack === 'punch' && isCrouchAttack;
       const attackDuration =
         isCrouchUppercut
           ? CROUCH_UPPERCUT_DURATION_MS + CROUCH_UPPERCUT_RECOVERY_MS
           : ATTACK_DURATION_MS[nextAttack];
 
-      setIsCrouchAttackLocked(isCrouchUppercut);
+      setIsCrouchAttackLocked(isCrouchAttack);
       attackTimer.current = window.setTimeout(() => {
         attackRef.current = 'idle';
         setIsCrouchAttackLocked(false);
@@ -873,6 +1499,10 @@ export default function App() {
       if (isQueenHeal) {
         startQueenHeal('left');
         return true;
+      }
+
+      if (isTennaGroundSpecial) {
+        playTennaStarSpecialSound();
       }
 
       lockSpecialShooter('left');
@@ -1003,6 +1633,7 @@ export default function App() {
       if (!handledKeys.includes(key)) return;
       event.preventDefault();
 
+      if (roundCountdownRef.current > 0 || roundResolvedRef.current) return;
       if (event.repeat) return;
 
       if (key === 'arrowup') {
@@ -1078,14 +1709,16 @@ export default function App() {
     function movePlayer() {
       const keys = pressedKeys.current;
       const isOnGround = positionRef.current.y === 0;
+      const isRoundLocked = roundCountdownRef.current > 0 || roundResolvedRef.current;
       const nextIsCrouching = keys.has('s') && isOnGround && playerStatusRef.current === 'idle';
       const movementLocked =
+        isRoundLocked ||
         nextIsCrouching ||
         isBlockingRef.current ||
         playerSpecialLockRef.current ||
         attackRef.current !== 'idle' ||
         playerStatusRef.current !== 'idle';
-      const speed = 0.2;
+      const speed = WALK_SPEED;
       const nextPosition = { ...positionRef.current };
 
       if (!movementLocked) {
@@ -1122,7 +1755,7 @@ export default function App() {
           if (playerStatusRef.current === 'launched') {
             updatePlayerStatus('knockdown');
             playerStatusTimer.current = window.setTimeout(() => {
-              updatePlayerStatus('idle');
+              recoverFromKnockdown('left');
             }, UPPERCUT_LANDING_KNOCKDOWN_MS);
           }
         }
@@ -1159,7 +1792,7 @@ export default function App() {
           if (opponentStatusRef.current === 'launched') {
             updateOpponentStatus('knockdown');
             opponentStatusTimer.current = window.setTimeout(() => {
-              updateOpponentStatus('idle');
+              recoverFromKnockdown('right');
             }, UPPERCUT_LANDING_KNOCKDOWN_MS);
           }
         }
@@ -1194,6 +1827,7 @@ export default function App() {
       }
 
       if (
+        !isRoundLocked &&
         arenaMode === 'fight' &&
         opponentStatusRef.current === 'idle' &&
         opponentAttackRef.current === 'idle' &&
@@ -1230,7 +1864,7 @@ export default function App() {
         }
       }
 
-      if (projectilesRef.current.length > 0) {
+      if (!isRoundLocked && projectilesRef.current.length > 0) {
         let didProjectileHit = false;
         const nextProjectiles = projectilesRef.current
           .map((projectile) => ({
@@ -1248,7 +1882,7 @@ export default function App() {
                 opponentStatusRef.current !== 'knockdown' &&
                 opponentStatusRef.current !== 'launched' &&
                 (!isLowProjectile || opponentPositionRef.current.y < 6) &&
-                (isLowProjectile || !opponentCrouchingRef.current) &&
+                (isLowProjectile || !isOpponentLowProfile()) &&
                 Math.abs(projectile.x - opponentPositionRef.current.x) <= 5.5;
 
               if (!opponentCanBeHit) return true;
@@ -1264,11 +1898,14 @@ export default function App() {
                   getProjectileKnockback(projectile.kind),
                 );
               }
+              playProjectileHitSound();
               didProjectileHit = true;
               return false;
             }
 
-            const playerIsCrouchingNow = keys.has('s') && positionRef.current.y === 0;
+            const playerIsCrouchingNow =
+              (keys.has('s') && positionRef.current.y === 0) ||
+              (player.id === 'queen' && playerStatusRef.current === 'healing');
             const isLowProjectile = projectile.lane === 'low';
             const playerCanBeHit =
               playerStatusRef.current !== 'knockdown' &&
@@ -1291,6 +1928,7 @@ export default function App() {
                 getProjectileKnockback(projectile.kind),
               );
             }
+            playProjectileHitSound();
             didProjectileHit = true;
             return false;
           });
@@ -1304,7 +1942,7 @@ export default function App() {
         }
       }
 
-      setIsCrouching(nextIsCrouching);
+      setIsCrouching(isRoundLocked ? false : nextIsCrouching);
       animationFrame.current = window.requestAnimationFrame(movePlayer);
     }
 
@@ -1363,11 +2001,17 @@ export default function App() {
         if (opponentStatusTimer.current) window.clearTimeout(opponentStatusTimer.current);
         if (playerDamageFlashTimer.current) window.clearTimeout(playerDamageFlashTimer.current);
         if (opponentDamageFlashTimer.current) window.clearTimeout(opponentDamageFlashTimer.current);
+        if (playerRecoveryTimer.current) window.clearTimeout(playerRecoveryTimer.current);
+        if (opponentRecoveryTimer.current) window.clearTimeout(opponentRecoveryTimer.current);
+        setPlayerRecovering(false);
+        setOpponentRecovering(false);
         if (animationFrame.current) window.cancelAnimationFrame(animationFrame.current);
       };
     }
 
     opponentAttackInterval.current = window.setInterval(() => {
+      if (roundCountdownRef.current > 0 || roundResolvedRef.current) return;
+
       const distance = Math.abs(opponentPositionRef.current.x - positionRef.current.x);
       const ai = AI_CONFIG[selectedDifficulty];
       const opponentOnGround = opponentPositionRef.current.y === 0;
@@ -1452,6 +2096,10 @@ export default function App() {
         const direction: -1 | 1 = positionRef.current.x <= opponentPositionRef.current.x ? -1 : 1;
         const isQueenSpecial = opponent.id === 'queen';
         const lane: ProjectileLane = isQueenSpecial ? 'high' : 'low';
+
+        if (!isQueenSpecial) {
+          playTennaStarSpecialSound();
+        }
 
         lockSpecialShooter('right');
 
@@ -1570,6 +2218,7 @@ export default function App() {
       updateOpponentCrouch(shouldUseCrouchAttack);
 
       updateOpponentAttack(nextAttack);
+      playAttackSound(opponent, nextAttack, shouldUseCrouchAttack);
       damagePlayer(attackDamage, attackEffect, hitLevel);
 
       if (opponentAttackTimer.current) window.clearTimeout(opponentAttackTimer.current);
@@ -1630,6 +2279,10 @@ export default function App() {
       if (opponentStatusTimer.current) window.clearTimeout(opponentStatusTimer.current);
       if (playerDamageFlashTimer.current) window.clearTimeout(playerDamageFlashTimer.current);
       if (opponentDamageFlashTimer.current) window.clearTimeout(opponentDamageFlashTimer.current);
+      if (playerRecoveryTimer.current) window.clearTimeout(playerRecoveryTimer.current);
+      if (opponentRecoveryTimer.current) window.clearTimeout(opponentRecoveryTimer.current);
+      setPlayerRecovering(false);
+      setOpponentRecovering(false);
       if (animationFrame.current) window.cancelAnimationFrame(animationFrame.current);
     };
   }, [arenaMode, screen, selectedDifficulty]);
@@ -1654,7 +2307,12 @@ export default function App() {
     if (opponentStatusTimer.current) window.clearTimeout(opponentStatusTimer.current);
     if (playerDamageFlashTimer.current) window.clearTimeout(playerDamageFlashTimer.current);
     if (opponentDamageFlashTimer.current) window.clearTimeout(opponentDamageFlashTimer.current);
+    if (playerRecoveryTimer.current) window.clearTimeout(playerRecoveryTimer.current);
+    if (opponentRecoveryTimer.current) window.clearTimeout(opponentRecoveryTimer.current);
     if (victoryTimer.current) window.clearTimeout(victoryTimer.current);
+    if (roundTransitionTimer.current) window.clearTimeout(roundTransitionTimer.current);
+    if (roundCurtainTimer.current) window.clearTimeout(roundCurtainTimer.current);
+    if (countdownTimer.current) window.clearTimeout(countdownTimer.current);
 
     setPlayerPosition(START_POSITION);
     setOpponentPosition(OPPONENT_POSITION);
@@ -1687,6 +2345,8 @@ export default function App() {
     opponentAttackRef.current = 'idle';
     updatePlayerStatus('idle');
     updateOpponentStatus('idle');
+    setPlayerRecovering(false);
+    setOpponentRecovering(false);
     isBlockingRef.current = false;
     updateOpponentBlock(false);
     updateOpponentCrouch(false);
@@ -1705,6 +2365,10 @@ export default function App() {
     setOpponentAirSpecialWave(false);
     setPlayerDamageFlash(false);
     setOpponentDamageFlash(false);
+    setRoundWinnerPoseSprite(null);
+    setRoundCurtainPhase('idle');
+    setRoundCountdown(3);
+    roundCountdownRef.current = 3;
   }
 
   function resetFight() {
@@ -1723,12 +2387,19 @@ export default function App() {
   function startFight() {
     setLockedFighter(selectedFighter);
     setLockedOpponent(selectedOpponent);
+    setScreen('stage');
+  }
+
+  function startFightOnStage(stageId: string) {
+    setSelectedStageId(stageId);
     resetFight();
+    playFightStartSound();
     setScreen('arena');
   }
 
   function rematch() {
     resetFight();
+    playFightStartSound();
     setScreen('arena');
   }
 
@@ -1747,12 +2418,72 @@ export default function App() {
     setScreen('menu');
   }
 
+  function openModeMenu() {
+    if (doorTransitionTimer.current) {
+      window.clearTimeout(doorTransitionTimer.current);
+      doorTransitionTimer.current = null;
+    }
+    if (screenRevealTimer.current) {
+      window.clearTimeout(screenRevealTimer.current);
+      screenRevealTimer.current = null;
+    }
+    setDoorTransitionMode(null);
+    setIsScreenRevealing(false);
+    setShowTitleInfo(false);
+    setScreen('menu');
+  }
+
+  const settingsOverlay = (
+    <div className="settings-widget">
+      <button
+        className="settings-toggle"
+        type="button"
+        aria-expanded={settingsOpen}
+        aria-label="Настройки"
+        onClick={() => setSettingsOpen((isOpen) => !isOpen)}
+      >
+        <img src={settingsIcon} alt="" aria-hidden="true" />
+      </button>
+      {settingsOpen && (
+        <div className="settings-panel" role="dialog" aria-label="Настройки звука">
+          <label className="settings-control">
+            <span>
+              Эффекты
+              <strong>{Math.round(effectsVolume * 100)}%</strong>
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={Math.round(effectsVolume * 100)}
+              onChange={(event) => setEffectsVolume(Number(event.currentTarget.value) / 100)}
+            />
+          </label>
+          <label className="settings-control">
+            <span>
+              Музыка
+              <strong>{Math.round(musicVolume * 100)}%</strong>
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={Math.round(musicVolume * 100)}
+              onChange={(event) => setMusicVolume(Number(event.currentTarget.value) / 100)}
+            />
+          </label>
+        </div>
+      )}
+    </div>
+  );
+
   if (screen === 'victory') {
     const winner = winnerSide === 'left' ? player : opponent;
     const winnerLabel = winnerSide === 'left' ? 'Игрок 1' : 'Игрок 2';
 
     return (
-      <main className="game-shell">
+      <main className="game-shell game-shell--menu-bg">
+        {settingsOverlay}
         <section className="victory-screen" aria-labelledby="victory-title">
           <p className="eyebrow">Finish</p>
           <h1 id="victory-title">{winnerLabel} победил</h1>
@@ -1775,13 +2506,101 @@ export default function App() {
     );
   }
 
+  if (screen === 'title') {
+    return (
+      <main className="game-shell game-shell--title">
+        {settingsOverlay}
+        <section className="title-menu" aria-labelledby="title-menu-heading">
+          <img
+            className="title-menu__backdrop"
+            src={deltafightTitleBg}
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="title-menu__content">
+            <h1 id="title-menu-heading" className="title-menu__logo">DeltaFight</h1>
+            <div className="title-menu__actions">
+              <button className="title-menu__button" onClick={openModeMenu} type="button">
+                Начать играть
+              </button>
+              <button
+                className="title-menu__button title-menu__button--ghost"
+                onClick={() => setShowTitleInfo((value) => !value)}
+                type="button"
+              >
+                Что это за игра
+              </button>
+            </div>
+            {showTitleInfo && (
+              <p className="title-menu__info">
+                DeltaFight - пиксельный файтинг с бойцами, спецприемами, раундами и тренировочным режимом.
+              </p>
+            )}
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (screen === 'stage') {
+    return (
+      <main className="game-shell game-shell--menu-bg">
+        {settingsOverlay}
+        <section className="stage-select-screen" aria-labelledby="stage-select-title">
+          <div className="select-header">
+            <span className="header-rule" />
+            <div>
+              <h1 id="stage-select-title">Выберите карту</h1>
+            </div>
+            <span className="header-rule" />
+          </div>
+
+          <div className="stage-grid" aria-label="Выбор карты">
+            {stages.map((stage) => (
+              <button
+                className={`stage-card${stage.id === selectedStage.id ? ' stage-card--selected' : ''}`}
+                key={stage.id}
+                onClick={() => startFightOnStage(stage.id)}
+                type="button"
+              >
+                <span
+                  className="stage-card__preview"
+                  style={{ backgroundImage: `url(${stage.image})` }}
+                  aria-hidden="true"
+                />
+                <span className="stage-card__name">{stage.name}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="stage-select-actions">
+            <button className="back-button" onClick={backToSelect} type="button">
+              Назад к бойцам
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (screen === 'arena') {
     const arenaWinnerSide = opponentHealth <= 0 ? 'left' : playerHealth <= 0 ? 'right' : null;
     const arenaWinner = arenaWinnerSide === 'left' ? player : opponent;
     const arenaWinnerLabel = arenaWinnerSide === 'left' ? 'Игрок 1' : 'Игрок 2';
+    const playerIsRoundWinner = arenaWinnerSide === 'left';
+    const opponentIsRoundWinner = arenaWinnerSide === 'right';
+    const playerVictorySprite =
+      playerIsRoundWinner && playerPosition.y === 0 ? roundWinnerPoseSprite : null;
+    const opponentVictorySprite =
+      opponentIsRoundWinner && opponentPosition.y === 0 ? roundWinnerPoseSprite : null;
+    const queenStageVictorySprite =
+      playerVictorySprite === queenVictoryBackdropSprite || opponentVictorySprite === queenVictoryBackdropSprite
+        ? queenVictoryBackdropSprite
+        : null;
 
     return (
-      <main className="game-shell">
+      <main className="game-shell game-shell--menu-bg">
+        {settingsOverlay}
         <section className="arena-screen" aria-label="Игровое поле">
           <div className="arena-hud">
             <FighterBadge fighter={player} label="P1" health={playerHealth} />
@@ -1795,13 +2614,33 @@ export default function App() {
             />
           </div>
 
-          <div className="arena-stage">
+          <div
+            className="arena-stage"
+            style={{
+              backgroundImage: `url(${selectedStage.image})`,
+              backgroundPosition: selectedStage.position,
+              backgroundSize: selectedStage.size,
+              '--stage-floor-lift': `${selectedStage.fighterLift ?? 0}px`,
+            } as CSSProperties}
+          >
             <div className="moon" aria-hidden="true" />
+            {queenStageVictorySprite && (
+              <span
+                className="arena-screen-victory arena-screen-victory--queen"
+                style={{ backgroundImage: `url(${queenStageVictorySprite})` }}
+                aria-hidden="true"
+              />
+            )}
             <div className="arena-floor" aria-hidden="true" />
-            {!arenaWinnerSide && (
+            {!arenaWinnerSide && roundCurtainPhase === 'idle' && roundCountdown <= 0 && (
               <div className="round-announcement" key={roundNumber} aria-live="polite">
                 <span>Round</span>
                 <strong>{roundNumber}</strong>
+              </div>
+            )}
+            {!arenaWinnerSide && roundCurtainPhase === 'idle' && roundCountdown > 0 && (
+              <div className="round-countdown" key={`countdown-${roundNumber}-${roundCountdown}`} aria-live="polite">
+                {roundCountdown}
               </div>
             )}
             {arenaWinnerSide && (
@@ -1810,6 +2649,12 @@ export default function App() {
                 <strong>{arenaWinnerLabel} победил</strong>
                 <span>Round {roundNumber}: {arenaWinner.name}</span>
               </div>
+            )}
+            {roundCurtainPhase !== 'idle' && (
+              <div
+                className={`round-curtain round-curtain--${roundCurtainPhase}`}
+                aria-hidden="true"
+              />
             )}
             {projectiles.map((projectile) => (
               projectile.kind === 'queen-heal-wave' ? (
@@ -1838,7 +2683,7 @@ export default function App() {
                   left: `${getArenaScreenX(
                     playerPosition.x + (playerPosition.x <= opponentPosition.x ? 8 : -8),
                   )}%`,
-                  bottom: `${128 + playerPosition.y}px`,
+                  bottom: `${128 + (selectedStage.fighterLift ?? 0) + playerPosition.y}px`,
                 }}
               />
             )}
@@ -1850,7 +2695,7 @@ export default function App() {
                   left: `${getArenaScreenX(
                     opponentPosition.x + (opponentPosition.x <= playerPosition.x ? 8 : -8),
                   )}%`,
-                  bottom: `${128 + opponentPosition.y}px`,
+                  bottom: `${128 + (selectedStage.fighterLift ?? 0) + opponentPosition.y}px`,
                 }}
               />
             )}
@@ -1863,7 +2708,20 @@ export default function App() {
                 key={popup.id}
                 style={{
                   left: `${getArenaScreenX(popup.x + (popup.side === 'left' ? -4 : 4))}%`,
-                  bottom: `${168 + popup.y}px`,
+                  bottom: `${168 + (selectedStage.fighterLift ?? 0) + popup.y}px`,
+                }}
+              />
+            ))}
+            {knightAfterimages.map((afterimage) => (
+              <img
+                className={`knight-afterimage knight-afterimage--${afterimage.side} knight-afterimage--face-${afterimage.facing}`}
+                src={roaringKnightSprite}
+                alt=""
+                aria-hidden="true"
+                key={afterimage.id}
+                style={{
+                  left: `${getArenaScreenX(afterimage.x)}%`,
+                  bottom: `${104 + (selectedStage.fighterLift ?? 0) + afterimage.y}px`,
                 }}
               />
             ))}
@@ -1879,6 +2737,12 @@ export default function App() {
               isShootingSpecial={playerSpecialShooting}
               isDefeated={playerHealth <= 0}
               isDamageFlashing={playerDamageFlash}
+              isRecovering={playerRecovering}
+              victorySprite={playerVictorySprite}
+              floorLift={selectedStage.fighterLift ?? 0}
+              onTennaAirSpecialSpriteStart={playTennaAirWaveSound}
+              onTennaStarSpecialSpriteStart={playTennaStarSpecialSound}
+              onQueenSpecialSpriteStart={playQueenCupThrowSound}
             />
             <StickFighter
               fighter={opponent}
@@ -1892,6 +2756,12 @@ export default function App() {
               isShootingSpecial={opponentSpecialShooting}
               isDefeated={opponentHealth <= 0}
               isDamageFlashing={opponentDamageFlash}
+              isRecovering={opponentRecovering}
+              victorySprite={opponentVictorySprite}
+              floorLift={selectedStage.fighterLift ?? 0}
+              onTennaAirSpecialSpriteStart={playTennaAirWaveSound}
+              onTennaStarSpecialSpriteStart={playTennaStarSpecialSound}
+              onQueenSpecialSpriteStart={playQueenCupThrowSound}
             />
           </div>
 
@@ -1913,25 +2783,47 @@ export default function App() {
 
   if (screen === 'menu') {
     return (
-      <main className="game-shell">
+      <main className={`game-shell game-shell--door-menu${doorTransitionMode ? ' game-shell--door-menu-fading' : ''}`}>
+        {settingsOverlay}
         <section className="main-menu" aria-labelledby="main-menu-title">
           <div className="select-header">
             <span className="header-rule" />
             <div>
-              <p className="eyebrow">Mr. Ant Tennas</p>
-              <h1 id="main-menu-title">Main Menu</h1>
+              <h1 id="main-menu-title">Выберите режим</h1>
             </div>
             <span className="header-rule" />
           </div>
 
-          <div className="mode-menu">
-            <button className="mode-card" onClick={() => openCharacterSelect('fight')} type="button">
-              <span className="mode-card__title">Fight</span>
-              <span className="mode-card__meta">CPU battle</span>
+          <div className="mode-menu mode-menu--doors">
+            <button
+              className="mode-door mode-door--campaign"
+              disabled={Boolean(doorTransitionMode)}
+              onClick={() => openModeDoor('fight')}
+              onMouseEnter={playDoorHoverSound}
+              type="button"
+            >
+              <span className="mode-door__panel" aria-hidden="true" />
+              <span className="mode-door__label">Кампания</span>
             </button>
-            <button className="mode-card mode-card--sandbox" onClick={() => openCharacterSelect('sandbox')} type="button">
-              <span className="mode-card__title">Sandbox</span>
-              <span className="mode-card__meta">Training dummy</span>
+            <button
+              className="mode-door mode-door--local"
+              disabled={Boolean(doorTransitionMode)}
+              onClick={() => openModeDoor('fight')}
+              onMouseEnter={playDoorHoverSound}
+              type="button"
+            >
+              <span className="mode-door__panel" aria-hidden="true" />
+              <span className="mode-door__label">Локальные бои</span>
+            </button>
+            <button
+              className="mode-door mode-door--training"
+              disabled={Boolean(doorTransitionMode)}
+              onClick={() => openModeDoor('sandbox')}
+              onMouseEnter={playDoorHoverSound}
+              type="button"
+            >
+              <span className="mode-door__panel" aria-hidden="true" />
+              <span className="mode-door__label">Тренировка</span>
             </button>
           </div>
         </section>
@@ -1940,7 +2832,8 @@ export default function App() {
   }
 
   return (
-    <main className="game-shell">
+    <main className={`game-shell game-shell--menu-bg${isScreenRevealing ? ' game-shell--screen-reveal' : ''}`}>
+      {settingsOverlay}
       <section className="select-screen" aria-labelledby="screen-title">
         <div className="select-header">
           <span className="header-rule" />
@@ -1954,8 +2847,46 @@ export default function App() {
         <div className="combatants">
           <FighterPanel fighter={selectedFighter} label="Игрок 1" side="left" />
 
-          <div className="versus" aria-hidden="true">
-            <span>VS</span>
+          <div className="versus">
+            <span aria-hidden="true">VS</span>
+            <div className="select-actions">
+              <div className="select-targets" aria-label="Select side">
+                <button
+                  className={`target-button${selectTarget === 'player' ? ' target-button--active' : ''}`}
+                  onClick={() => setSelectTarget('player')}
+                  type="button"
+                >
+                  P1
+                </button>
+                <button
+                  className={`target-button${selectTarget === 'opponent' ? ' target-button--active' : ''}`}
+                  onClick={() => setSelectTarget('opponent')}
+                  type="button"
+                >
+                  CPU
+                </button>
+              </div>
+              <div className="difficulty-select" aria-label="Difficulty">
+                {(['easy', 'normal', 'hard'] as Difficulty[]).map((difficulty) => (
+                  <button
+                    className={`difficulty-button${
+                      selectedDifficulty === difficulty ? ' difficulty-button--active' : ''
+                    }`}
+                    key={difficulty}
+                    onClick={() => setSelectedDifficulty(difficulty)}
+                    type="button"
+                  >
+                    {AI_CONFIG[difficulty].label}
+                  </button>
+                ))}
+              </div>
+              <button className="confirm-button" onClick={startFight} type="button">
+                В бой
+              </button>
+              <button className="sandbox-button" onClick={backToMainMenu} type="button">
+                Main Menu
+              </button>
+            </div>
           </div>
 
           <FighterPanel fighter={opponent} label="CPU" side="right" muted />
@@ -2058,9 +2989,6 @@ function FighterPanel({
         <FighterPortrait fighter={fighter} size="portrait" />
       </div>
       <div className="fighter-copy">
-        <p className="fighter-name">{fighter.name}</p>
-        <p className="fighter-title">{fighter.title}</p>
-        <p className="fighter-realm">{fighter.realm}</p>
       </div>
     </article>
   );
@@ -2134,6 +3062,12 @@ function StickFighter({
   isShootingSpecial = false,
   isDefeated = false,
   isDamageFlashing = false,
+  isRecovering = false,
+  victorySprite = null,
+  floorLift = 0,
+  onTennaAirSpecialSpriteStart,
+  onTennaStarSpecialSpriteStart,
+  onQueenSpecialSpriteStart,
 }: {
   fighter: Fighter;
   side: FighterSide;
@@ -2146,12 +3080,45 @@ function StickFighter({
   isShootingSpecial?: boolean;
   isDefeated?: boolean;
   isDamageFlashing?: boolean;
+  isRecovering?: boolean;
+  victorySprite?: string | null;
+  floorLift?: number;
+  onTennaAirSpecialSpriteStart?: () => void;
+  onTennaStarSpecialSpriteStart?: () => void;
+  onQueenSpecialSpriteStart?: () => void;
 }) {
   const previousXRef = useRef(position.x);
   const previousYRef = useRef(position.y);
   const walkTimer = useRef<number | null>(null);
+  const victoryPoseTimer = useRef<number | null>(null);
+  const victoryPoseWasDelayed = useRef(false);
+  const queenVictorySoundRef = useRef<HTMLAudioElement | null>(null);
+  const tennaVictoryThreeSoundRef = useRef<HTMLAudioElement | null>(null);
+  const playedQueenVictorySound = useRef(false);
+  const playedTennaVictoryThreeSound = useRef(false);
+  const playedAirSpecialSound = useRef(false);
+  const playedTennaStarSpecialSound = useRef(false);
+  const playedQueenSpecialSound = useRef(false);
   const [walkDirection, setWalkDirection] = useState<'idle' | 'forward' | 'backward'>('idle');
   const [jumpPhase, setJumpPhase] = useState<'rising' | 'falling'>('rising');
+  const [canShowVictoryPose, setCanShowVictoryPose] = useState(false);
+
+  useEffect(() => {
+    queenVictorySoundRef.current = new Audio(queenVictorySound);
+    queenVictorySoundRef.current.volume = 0.9;
+    queenVictorySoundRef.current.playbackRate = 3;
+    queenVictorySoundRef.current.preload = 'auto';
+    queenVictorySoundRef.current.load();
+    tennaVictoryThreeSoundRef.current = new Audio(tennaVictoryThreeSound);
+    tennaVictoryThreeSoundRef.current.volume = 0.9;
+    tennaVictoryThreeSoundRef.current.preload = 'auto';
+    tennaVictoryThreeSoundRef.current.load();
+
+    return () => {
+      queenVictorySoundRef.current = null;
+      tennaVictoryThreeSoundRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const deltaX = position.x - previousXRef.current;
@@ -2181,8 +3148,44 @@ function StickFighter({
   useEffect(() => {
     return () => {
       if (walkTimer.current) window.clearTimeout(walkTimer.current);
+      if (victoryPoseTimer.current) window.clearTimeout(victoryPoseTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (victoryPoseTimer.current) {
+      window.clearTimeout(victoryPoseTimer.current);
+      victoryPoseTimer.current = null;
+    }
+
+    if (!victorySprite || isDefeated) {
+      victoryPoseWasDelayed.current = false;
+      playedQueenVictorySound.current = false;
+      playedTennaVictoryThreeSound.current = false;
+      setCanShowVictoryPose(false);
+      return;
+    }
+
+    const shouldDelayVictoryPose =
+      fighter.id === 'mister-ant-tenna' && (attack !== 'idle' || isShootingSpecial);
+
+    if (shouldDelayVictoryPose) {
+      victoryPoseWasDelayed.current = true;
+      setCanShowVictoryPose(false);
+      return;
+    }
+
+    if (victoryPoseWasDelayed.current) {
+      victoryPoseTimer.current = window.setTimeout(() => {
+        victoryPoseWasDelayed.current = false;
+        setCanShowVictoryPose(true);
+        victoryPoseTimer.current = null;
+      }, 500);
+      return;
+    }
+
+    setCanShowVictoryPose(true);
+  }, [attack, fighter.id, isDefeated, isShootingSpecial, victorySprite]);
 
   useEffect(() => {
     const deltaY = position.y - previousYRef.current;
@@ -2215,6 +3218,55 @@ function StickFighter({
   const isSpecialSprite = isShootingSpecial && Boolean(fighter.specialSprite);
   const isQueenSpecialSprite = isSpecialSprite && !isAirSpecialSprite && fighter.id === 'queen';
   const isDefeatSprite = isDefeated && Boolean(fighter.defeatSprite);
+  const isVictorySprite = !isDefeated && Boolean(victorySprite) && canShowVictoryPose;
+  const isQueenVictoryBackdrop =
+    isVictorySprite && fighter.id === 'queen' && victorySprite === queenVictoryBackdropSprite;
+  const isQueenVictoryStrip =
+    isVictorySprite && fighter.id === 'queen' && victorySprite === queenVictorySprite;
+
+  useEffect(() => {
+    if (!isQueenVictoryStrip) {
+      playedQueenVictorySound.current = false;
+      return;
+    }
+
+    if (playedQueenVictorySound.current) return;
+
+    const sound = queenVictorySoundRef.current;
+    playedQueenVictorySound.current = true;
+
+    if (!sound) return;
+
+    sound.currentTime = 0;
+    sound.playbackRate = 3;
+    void sound.play().catch(() => {
+      // Victory audio is best-effort if the browser blocks playback.
+    });
+  }, [isQueenVictoryStrip]);
+
+  useEffect(() => {
+    const isTennaVictoryThree =
+      isVictorySprite &&
+      fighter.id === 'mister-ant-tenna' &&
+      victorySprite === misterAntTennaVictoryThreeSprite;
+
+    if (!isTennaVictoryThree) {
+      playedTennaVictoryThreeSound.current = false;
+      return;
+    }
+
+    if (playedTennaVictoryThreeSound.current) return;
+
+    const sound = tennaVictoryThreeSoundRef.current;
+    playedTennaVictoryThreeSound.current = true;
+
+    if (!sound) return;
+
+    sound.currentTime = 0;
+    void sound.play().catch(() => {
+      // Victory audio is best-effort if the browser blocks playback.
+    });
+  }, [fighter.id, isVictorySprite, victorySprite]);
   const isDefeatStrip = isDefeatSprite && fighter.id === 'mister-ant-tenna';
   const isHealingSprite = status === 'healing' && Boolean(fighter.healSprite);
   const isWalkSprite =
@@ -2227,9 +3279,49 @@ function StickFighter({
     position.y === 0 &&
     !isDefeated &&
     Boolean(fighter.walkSprite);
+
+  useLayoutEffect(() => {
+    if (isAirSpecialSprite && fighter.id === 'mister-ant-tenna') {
+      if (!playedAirSpecialSound.current) {
+        playedAirSpecialSound.current = true;
+        onTennaAirSpecialSpriteStart?.();
+      }
+      return;
+    }
+
+    playedAirSpecialSound.current = false;
+  }, [fighter.id, isAirSpecialSprite, onTennaAirSpecialSpriteStart]);
+
+  useLayoutEffect(() => {
+    const isTennaStarSpecialSprite =
+      isSpecialSprite && !isAirSpecialSprite && fighter.id === 'mister-ant-tenna';
+
+    if (isTennaStarSpecialSprite) {
+      if (!playedTennaStarSpecialSound.current) {
+        playedTennaStarSpecialSound.current = true;
+      }
+      return;
+    }
+
+    playedTennaStarSpecialSound.current = false;
+  }, [fighter.id, isAirSpecialSprite, isSpecialSprite, onTennaStarSpecialSpriteStart]);
+
+  useLayoutEffect(() => {
+    if (isQueenSpecialSprite) {
+      if (!playedQueenSpecialSound.current) {
+        playedQueenSpecialSound.current = true;
+        onQueenSpecialSpriteStart?.();
+      }
+      return;
+    }
+
+    playedQueenSpecialSound.current = false;
+  }, [isQueenSpecialSprite, onQueenSpecialSpriteStart]);
   const battleSprite =
     isDefeatSprite
       ? fighter.defeatSprite
+      : isVictorySprite && !isQueenVictoryBackdrop
+      ? victorySprite
       : isAirSpecialSprite
         ? fighter.airSpecialSprite
         : isSpecialSprite
@@ -2269,21 +3361,22 @@ function StickFighter({
   }${isHealingSprite ? ' battle-sprite--healing' : ''
   }${isKnockdownSprite ? ' battle-sprite--knockdown' : ''
   }${isDefeatSprite ? ' battle-sprite--defeat' : ''
+  }${isVictorySprite && !isQueenVictoryBackdrop ? ' battle-sprite--round-victory' : ''
   }${isWalkSprite ? ' battle-sprite--walk' : ''
   }${isWalkSprite && walkDirection === 'backward' ? ' battle-sprite--walk-backward' : ''
   }${isJumpSprite ? ' battle-sprite--jump' : ''
   }${isJumpSprite && jumpPhase === 'falling' ? ' battle-sprite--jump-falling' : ''
   }`;
-  const className = `stick-fighter stick-fighter--${side} stick-fighter--face-${facing} stick-fighter--${attack}${
+  const className = `stick-fighter stick-fighter--${fighter.id} stick-fighter--${side} stick-fighter--face-${facing} stick-fighter--${attack}${
     isCrouching ? ' stick-fighter--crouch' : ''
   }${isShootingSpecial ? ' stick-fighter--special' : ''}${isBlocking ? ' stick-fighter--block' : ''}${
     status !== 'idle' ? ` stick-fighter--${status}` : ''
-  }${isDamageFlashing ? ' stick-fighter--damage-flash' : ''}`;
+  }${isDamageFlashing ? ' stick-fighter--damage-flash' : ''}${isRecovering ? ' stick-fighter--recovering' : ''}`;
 
   return (
-    <div className={className} style={getArenaFighterStyle(fighter, position)}>
+    <div className={className} style={getArenaFighterStyle(fighter, position, floorLift)}>
       {isBlocking && <div className="block-label">BLOCK</div>}
-      {battleSprite && (isKickSprite || isJumpSprite || isCrouchPunchSprite || isDefeatStrip || isWalkSprite || isStandingPunchStrip || isQueenSpecialSprite) ? (
+      {battleSprite && (isKickSprite || isJumpSprite || isCrouchPunchSprite || isDefeatStrip || isWalkSprite || isStandingPunchStrip || isQueenSpecialSprite || isQueenVictoryStrip) ? (
         <span
           className={spriteClassName}
           style={{ backgroundImage: `url(${battleSprite})` }}
@@ -2317,12 +3410,12 @@ function getOrbStyle(fighter: Fighter): FighterOrbStyle {
   };
 }
 
-function getArenaFighterStyle(fighter: Fighter, position: Position): ArenaFighterStyle {
+function getArenaFighterStyle(fighter: Fighter, position: Position, floorLift = 0): ArenaFighterStyle {
   return {
     '--fighter-color': fighter.color,
     '--fighter-shadow': fighter.shadow,
     left: `${getArenaScreenX(position.x)}%`,
-    bottom: `${94 + position.y}px`,
+    bottom: `${94 + floorLift + position.y}px`,
   };
 }
 
