@@ -49,18 +49,16 @@ button {
 }
 
 .settings-widget {
-  position: fixed;
-  z-index: 80;
-  top: 18px;
-  right: 18px;
+  position: relative;
+  z-index: 20;
   display: grid;
   justify-items: end;
   gap: 8px;
 }
 
 .settings-toggle {
-  width: 122px;
-  height: 92px;
+  width: 96px;
+  height: 72px;
   padding: 0;
   display: grid;
   place-items: center;
@@ -87,6 +85,9 @@ button {
 }
 
 .settings-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
   width: min(280px, calc(100vw - 36px));
   padding: 14px;
   display: grid;
@@ -97,6 +98,33 @@ button {
   box-shadow:
     0 0 0 3px #241a00 inset,
     0 16px 36px rgba(0, 0, 0, 0.55);
+}
+
+.settings-widget--arena-paused .settings-panel {
+  position: fixed;
+  top: 50%;
+  right: auto;
+  left: 50%;
+  z-index: 120;
+  width: min(360px, calc(100vw - 36px));
+  padding: 22px;
+  transform: translate(-50%, -50%);
+  border-width: 4px;
+  box-shadow:
+    0 0 0 4px #241a00 inset,
+    0 0 0 9999px rgba(0, 0, 0, 0.36),
+    0 20px 60px rgba(0, 0, 0, 0.72);
+}
+
+.settings-panel__title {
+  color: var(--gold-bright);
+  font-size: 44px;
+  font-weight: 950;
+  line-height: 0.9;
+  text-align: center;
+  text-shadow:
+    3px 3px 0 #000,
+    0 0 18px rgba(255, 242, 122, 0.35);
 }
 
 .settings-control {
@@ -123,6 +151,26 @@ button {
   width: 100%;
   accent-color: var(--gold);
   cursor: pointer;
+}
+
+.arena-pause-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.12) 0 2px,
+      rgba(0, 0, 0, 0.26) 2px 4px
+    ),
+    rgba(0, 0, 0, 0.32);
+}
+
+.arena-screen--paused .arena-stage *,
+.arena-screen--paused .arena-stage *::before,
+.arena-screen--paused .arena-stage *::after {
+  animation-play-state: paused !important;
 }
 
 .game-shell {
@@ -257,7 +305,10 @@ button {
 
 .stage-select-actions {
   display: flex;
+  align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .select-screen::before,
@@ -416,12 +467,13 @@ button {
 }
 
 .mode-menu--doors {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
   align-items: end;
-  gap: clamp(14px, 3vw, 34px);
+  gap: clamp(18px, 3.2vw, 44px);
 }
 
 .mode-door {
+  position: relative;
   min-width: 0;
   padding: 0;
   display: grid;
@@ -439,8 +491,12 @@ button {
   cursor: default;
 }
 
+.mode-door--locked {
+  filter: none;
+}
+
 .mode-door__panel {
-  width: min(100%, 420px);
+  width: min(100%, 540px);
   aspect-ratio: 1 / 1.14;
   display: block;
   background: url("./assets/mode-door.png") center bottom / contain no-repeat;
@@ -448,12 +504,28 @@ button {
   filter: none;
 }
 
+.mode-door__rope {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  z-index: 2;
+  width: min(92%, 500px);
+  aspect-ratio: 400 / 216;
+  translate: -50% 0;
+  background: url("./assets/campaign-door-rope.png") center bottom / contain no-repeat;
+  image-rendering: pixelated;
+  pointer-events: none;
+  filter:
+    drop-shadow(0 10px 10px rgba(0, 0, 0, 0.38))
+    drop-shadow(0 0 10px rgba(105, 255, 241, 0.12));
+}
+
 .mode-door__label {
   min-height: 58px;
   display: grid;
   place-items: center;
   color: #fff6df;
-  font-size: clamp(25px, 3vw, 38px);
+  font-size: clamp(28px, 3.4vw, 44px);
   font-weight: 950;
   line-height: 0.94;
   text-align: center;
@@ -476,13 +548,20 @@ button {
 }
 
 .mode-door:hover {
-  transform: translateY(-8px);
   filter: brightness(1.16);
 }
 
 .mode-door:hover .mode-door__panel {
   background-image: url("./assets/mode-door-open.png");
   filter: none;
+}
+
+.mode-door--locked:hover {
+  filter: none;
+}
+
+.mode-door--locked:hover .mode-door__panel {
+  background-image: url("./assets/mode-door.png");
 }
 
 .mode-card {
@@ -940,10 +1019,10 @@ h1 {
 .arena-screen {
   position: relative;
   width: min(100%, 1680px);
-  min-height: min(930px, calc(100vh - 32px));
+  min-height: min(1060px, calc(100vh - 32px));
   padding: 18px;
   display: grid;
-  grid-template-rows: auto minmax(620px, 1fr) auto;
+  grid-template-rows: auto minmax(var(--arena-stage-min-height, 760px), 1fr) auto;
   gap: 14px;
   background:
     linear-gradient(180deg, rgba(255, 217, 133, 0.1), transparent 22%),
@@ -1057,7 +1136,7 @@ h1 {
 
 .arena-stage {
   position: relative;
-  min-height: 620px;
+  min-height: var(--arena-stage-min-height, 760px);
   overflow: hidden;
   background: #67cdd5 url("./assets/arena-tenna-stage.png") center calc(100% + 18px) / 118% 100% no-repeat;
   border: 1px solid var(--line);
@@ -1296,6 +1375,24 @@ h1 {
   bottom: calc(214px + var(--stage-floor-lift, 0px));
 }
 
+.special-projectile--knight-sword {
+  width: 128px;
+  height: 42px;
+  object-fit: contain;
+  animation: none;
+  filter:
+    drop-shadow(0 10px 9px rgba(0, 0, 0, 0.45))
+    drop-shadow(0 0 14px rgba(248, 248, 255, 0.32));
+}
+
+.special-projectile--knight-sword.special-projectile--high {
+  bottom: calc(252px + var(--stage-floor-lift, 0px));
+}
+
+.special-projectile--knight-sword.special-projectile--right {
+  transform: scaleX(-1);
+}
+
 .special-projectile--queen-heal-wave {
   bottom: calc(92px + var(--stage-floor-lift, 0px));
   width: 96px;
@@ -1350,6 +1447,28 @@ h1 {
     0 0 104px rgba(110, 210, 255, 0.58);
   pointer-events: none;
   animation: tenna-air-wave-burst 360ms ease-out both;
+}
+
+.knight-channel-rings {
+  position: absolute;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+  translate: -50% 50%;
+  pointer-events: none;
+}
+
+.knight-channel-ring {
+  position: absolute;
+  inset: 0;
+  border: 5px solid rgba(255, 42, 50, 0.78);
+  border-radius: 50%;
+  box-shadow:
+    0 0 24px rgba(255, 42, 50, 0.48),
+    inset 0 0 20px rgba(255, 42, 50, 0.24);
+  opacity: 0;
+  transform: scale(0.1);
+  animation: knight-channel-ring-expand 3s linear infinite;
 }
 
 .heal-popup {
@@ -1440,6 +1559,33 @@ h1 {
   }
 }
 
+@keyframes knight-channel-ring-expand {
+  0% {
+    opacity: 0;
+    transform: scale(0.08);
+  }
+
+  6% {
+    opacity: 0.72;
+    transform: scale(0.18);
+  }
+
+  34% {
+    opacity: 0.52;
+    transform: scale(8);
+  }
+
+  72% {
+    opacity: 0.24;
+    transform: scale(20);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(32);
+  }
+}
+
 .arena-controls {
   display: flex;
   align-items: center;
@@ -1464,6 +1610,18 @@ h1 {
   border-radius: 0;
 }
 
+.arena-controls .settings-widget,
+.stage-select-actions .settings-widget,
+.victory-actions .settings-widget {
+  order: 20;
+}
+
+.arena-controls .back-button,
+.stage-select-actions .back-button,
+.victory-actions .back-button {
+  order: 21;
+}
+
 .back-button {
   min-height: 66px;
   padding: 18px 28px;
@@ -1485,6 +1643,40 @@ h1 {
   width: 132px;
   height: 228px;
   translate: -50% 0;
+}
+
+.stick-fighter--dark-aura::before,
+.stick-fighter--dark-aura::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -34px;
+  width: 260px;
+  height: 380px;
+  translate: -50% 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.stick-fighter--dark-aura::before {
+  background:
+    radial-gradient(ellipse at 50% 72%, rgba(20, 0, 35, 0.86), transparent 48%),
+    radial-gradient(ellipse at 50% 46%, rgba(84, 0, 128, 0.42), transparent 56%),
+    radial-gradient(ellipse at 50% 34%, rgba(0, 0, 0, 0.68), transparent 66%);
+  filter: blur(8px) drop-shadow(0 0 22px rgba(30, 0, 48, 0.92));
+  opacity: 0.88;
+  animation: knight-dark-aura-pulse 860ms ease-in-out infinite;
+}
+
+.stick-fighter--dark-aura::after {
+  background:
+    linear-gradient(90deg, transparent 0 12%, rgba(18, 0, 30, 0.72) 13% 16%, transparent 17% 30%, rgba(102, 0, 156, 0.5) 31% 34%, transparent 35% 52%, rgba(6, 0, 18, 0.78) 53% 57%, transparent 58% 72%, rgba(74, 0, 118, 0.5) 73% 77%, transparent 78% 100%),
+    radial-gradient(circle at 40% 76%, rgba(190, 156, 255, 0.44), transparent 4%),
+    radial-gradient(circle at 64% 58%, rgba(190, 156, 255, 0.36), transparent 3%);
+  clip-path: polygon(8% 100%, 18% 42%, 25% 100%, 36% 24%, 46% 100%, 56% 35%, 67% 100%, 78% 30%, 91% 100%);
+  filter: blur(2px) drop-shadow(0 0 18px rgba(98, 0, 150, 0.76));
+  opacity: 0.62;
+  animation: knight-dark-aura-flare 520ms steps(3, end) infinite;
 }
 
 .victory-screen {
@@ -1580,6 +1772,18 @@ h1 {
   font-weight: 900;
 }
 
+.arena-controls .settings-widget,
+.stage-select-actions .settings-widget,
+.victory-actions .settings-widget {
+  order: 20;
+}
+
+.arena-controls .back-button,
+.stage-select-actions .back-button,
+.victory-actions .back-button {
+  order: 21;
+}
+
 .stick-fighter--face-right {
   transform: scaleX(-1);
 }
@@ -1617,32 +1821,170 @@ h1 {
 }
 
 .battle-sprite--roaring-knight {
-  bottom: -2px;
-  height: 285px;
+  bottom: -8px;
+  height: 300px;
   filter:
     drop-shadow(0 18px 18px rgba(0, 0, 0, 0.48))
     drop-shadow(0 0 18px rgba(248, 248, 255, 0.2));
+}
+
+.battle-sprite--roaring-knight.battle-sprite--charge-hold {
+  bottom: -12px;
+  height: 330px;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--charge-release {
+  bottom: -24px;
+  height: 430px;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--block-strip {
+  bottom: -14px;
+  width: 316px;
+  height: 330px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 1000% 100%;
+  animation: knight-block-guard 780ms steps(9, end) infinite;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--sphere-transform {
+  bottom: -21px;
+  width: 300px;
+  height: 257px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 800% 100%;
+  transform: scaleX(-1);
+  animation: knight-sphere-transform 720ms steps(7, end) both;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--sphere-exiting {
+  animation-direction: reverse;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--sphere-idle {
+  bottom: 52px;
+  width: 124px;
+  height: 124px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 300% 100%;
+  transform: none;
+  filter:
+    drop-shadow(0 16px 16px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 18px rgba(248, 248, 255, 0.28));
+  animation: knight-sphere-idle 360ms steps(2, end) infinite;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--bird-transform {
+  bottom: 18px;
+  width: 280px;
+  height: 212px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 800% 100%;
+  transform: scaleX(-1);
+  filter:
+    drop-shadow(0 18px 18px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 18px rgba(248, 248, 255, 0.24));
+  animation: knight-bird-transform 520ms steps(7, end) both;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--bird-dash {
+  bottom: 42px;
+  width: 315px;
+  height: 144px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 400% 100%;
+  transform: scaleX(-1);
+  filter:
+    drop-shadow(0 18px 18px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 18px rgba(248, 248, 255, 0.24));
+  animation: knight-bird-dash 360ms steps(3, end) infinite;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--dark-wave {
+  bottom: 8px;
+  width: 300px;
+  height: 300px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 300% 100%;
+  filter:
+    drop-shadow(0 18px 18px rgba(0, 0, 0, 0.48))
+    drop-shadow(0 0 20px rgba(248, 248, 255, 0.28));
+}
+
+.battle-sprite--roaring-knight.battle-sprite--dark-wave-holding {
+  animation:
+    knight-channel-cast 420ms steps(2, end) both,
+    knight-dark-wave-shake 120ms steps(2, end) 420ms infinite;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--kick {
+  bottom: 34px;
+  width: 375px;
+  height: 289px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 300% 100%;
+  animation: knight-sword-shot 360ms steps(2, end) both;
 }
 
 .knight-afterimage {
   position: absolute;
   z-index: 0;
   width: auto;
-  height: 245px;
+  height: 300px;
   translate: -50% 0;
   image-rendering: pixelated;
   object-fit: contain;
+  background-repeat: no-repeat;
   pointer-events: none;
   opacity: 0.5;
   filter:
     drop-shadow(0 12px 16px rgba(0, 0, 0, 0.34))
     drop-shadow(0 0 16px rgba(248, 248, 255, 0.18));
   mix-blend-mode: normal;
-  animation: knight-afterimage-fade 2000ms linear forwards;
+  animation: knight-afterimage-fly 2000ms linear forwards;
+}
+
+.knight-afterimage--sphere {
+  width: 124px;
+  height: 124px;
+  opacity: 0.58;
+  filter:
+    drop-shadow(0 10px 14px rgba(0, 0, 0, 0.36))
+    drop-shadow(0 0 20px rgba(248, 248, 255, 0.32));
+}
+
+.knight-afterimage--face-left {
+  --knight-afterimage-drift-mid: 115px;
+  --knight-afterimage-drift: 230px;
 }
 
 .knight-afterimage--face-right {
+  --knight-afterimage-drift-mid: -115px;
+  --knight-afterimage-drift: -230px;
   transform: scaleX(-1);
+}
+
+.knight-afterimage--mirrored-base.knight-afterimage--face-left {
+  transform: scaleX(-1);
+}
+
+.knight-afterimage--mirrored-base.knight-afterimage--face-right {
+  transform: none;
+}
+
+.knight-afterimage--charge-charging {
+  height: 330px;
+}
+
+.knight-afterimage--charge-releasing {
+  height: 430px;
 }
 
 .battle-sprite--queen.battle-sprite--walk {
@@ -1824,6 +2166,19 @@ h1 {
   transform: scaleX(-1);
 }
 
+.battle-sprite--roaring-knight.battle-sprite--launched-strip,
+.battle-sprite--roaring-knight.battle-sprite--knockdown {
+  bottom: 2px;
+  width: 210px;
+  height: 205px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 400% 100%;
+  transform: none;
+  transform-origin: 50% 92%;
+  animation: knight-impact-reverse 520ms steps(3, end) infinite;
+}
+
 .battle-sprite--defeat {
   bottom: -4px;
   width: 207px;
@@ -1840,6 +2195,18 @@ h1 {
   width: auto;
   height: 255px;
   animation: none;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--defeat {
+  bottom: -5px;
+  width: 225px;
+  height: 245px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 700% 100%;
+  transform: none;
+  transform-origin: 50% 96%;
+  animation: knight-defeat-collapse 760ms steps(6, end) forwards;
 }
 
 .battle-sprite--round-victory {
@@ -1859,6 +2226,21 @@ h1 {
   background-position: 0 0;
   background-size: 200% 100%;
   animation: queen-round-victory 420ms steps(1, end) infinite;
+}
+
+.battle-sprite--roaring-knight.battle-sprite--round-victory {
+  bottom: 8px;
+  width: 300px;
+  height: 300px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 900% 100%;
+  object-fit: initial;
+  transform: none;
+  filter:
+    drop-shadow(0 18px 18px rgba(0, 0, 0, 0.48))
+    drop-shadow(0 0 22px rgba(248, 248, 255, 0.3));
+  animation: knight-round-victory 1080ms steps(8, end) forwards;
 }
 
 .arena-screen-victory {
@@ -1897,6 +2279,16 @@ h1 {
   }
 }
 
+@keyframes knight-round-victory {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
 @keyframes arena-screen-queen-victory {
   0%,
   48% {
@@ -1909,13 +2301,158 @@ h1 {
   }
 }
 
-@keyframes knight-afterimage-fade {
+@keyframes knight-afterimage-fly {
   0% {
     opacity: 0.5;
+    translate: -50% 0;
   }
 
   100% {
     opacity: 0;
+    translate: calc(-50% + var(--knight-afterimage-drift, 0px)) 0;
+  }
+}
+
+@keyframes knight-dark-aura-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+    scale: 0.92 0.96;
+  }
+
+  50% {
+    opacity: 1;
+    scale: 1.08 1.03;
+  }
+}
+
+@keyframes knight-dark-aura-flare {
+  0% {
+    opacity: 0.34;
+    translate: -50% 8px;
+    scale: 0.92 0.9;
+  }
+
+  50% {
+    opacity: 0.74;
+    translate: -50% -6px;
+    scale: 1.05 1.08;
+  }
+
+  100% {
+    opacity: 0.42;
+    translate: -50% -16px;
+    scale: 0.98 1.16;
+  }
+}
+
+@keyframes knight-block-guard {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes knight-sphere-transform {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes knight-sphere-idle {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes knight-bird-transform {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes knight-bird-dash {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes knight-sword-shot {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes knight-channel-cast {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes knight-dark-wave-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  25% {
+    transform: translate(-3px, 2px);
+  }
+
+  50% {
+    transform: translate(3px, -2px);
+  }
+
+  75% {
+    transform: translate(-2px, -1px);
+  }
+}
+
+@keyframes knight-sphere-afterimage {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes knight-levitate {
+  0%,
+  100% {
+    translate: -50% 0;
+  }
+
+  50% {
+    translate: -50% -34px;
   }
 }
 
@@ -2043,6 +2580,16 @@ h1 {
 }
 
 @keyframes tenna-defeat-noise {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes knight-defeat-collapse {
   from {
     background-position: 0 0;
   }
@@ -2196,6 +2743,17 @@ h1 {
   animation: launched-spin 420ms steps(3, end) infinite;
 }
 
+.stick-fighter--launched .battle-sprite--roaring-knight.battle-sprite--launched-strip,
+.stick-fighter--knockdown .battle-sprite--roaring-knight.battle-sprite--knockdown {
+  bottom: 2px;
+  transform: none;
+  animation: knight-impact-reverse 520ms steps(3, end) infinite;
+}
+
+.stick-fighter--recovering.stick-fighter--roaring-knight .battle-sprite {
+  animation: none;
+}
+
 @keyframes launched-spin {
   0% {
     transform: rotate(-8deg);
@@ -2207,6 +2765,16 @@ h1 {
 
   100% {
     transform: rotate(-8deg);
+  }
+}
+
+@keyframes knight-impact-reverse {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100% 0;
   }
 }
 
@@ -2494,7 +3062,7 @@ h1 {
   }
 
   .mode-door__panel {
-    width: min(260px, 72vw);
+    width: min(340px, 82vw);
   }
 
   .combatants {
@@ -2519,7 +3087,7 @@ h1 {
 
   .arena-screen {
     min-height: auto;
-    grid-template-rows: auto 520px auto;
+    grid-template-rows: auto minmax(660px, var(--arena-stage-min-height, 660px)) auto;
   }
 
   .arena-hud {
