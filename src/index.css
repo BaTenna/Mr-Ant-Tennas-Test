@@ -88,10 +88,12 @@ button {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: min(280px, calc(100vw - 36px));
-  padding: 14px;
+  width: min(520px, calc(100vw - 36px));
+  max-height: min(860px, calc(100vh - 90px));
+  padding: 24px;
   display: grid;
-  gap: 14px;
+  gap: 20px;
+  overflow: auto;
   color: #fff8e8;
   background: rgba(0, 0, 0, 0.92);
   border: 3px solid var(--gold);
@@ -106,8 +108,8 @@ button {
   right: auto;
   left: 50%;
   z-index: 120;
-  width: min(360px, calc(100vw - 36px));
-  padding: 22px;
+  width: min(680px, calc(100vw - 36px));
+  padding: 30px;
   transform: translate(-50%, -50%);
   border-width: 4px;
   box-shadow:
@@ -116,9 +118,17 @@ button {
     0 20px 60px rgba(0, 0, 0, 0.72);
 }
 
+.settings-panel:has(.controls-settings) > .settings-panel__title,
+.settings-panel:has(.controls-settings) > .settings-control,
+.arena-pause-menu:has(.controls-settings) > .settings-panel__title,
+.arena-pause-menu:has(.controls-settings) > .settings-control,
+.arena-pause-menu:has(.controls-settings) > .arena-pause-menu__button {
+  display: none;
+}
+
 .settings-panel__title {
   color: var(--gold-bright);
-  font-size: 44px;
+  font-size: 56px;
   font-weight: 950;
   line-height: 0.9;
   text-align: center;
@@ -129,7 +139,7 @@ button {
 
 .settings-control {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
 .settings-control span {
@@ -149,8 +159,126 @@ button {
 
 .settings-control input {
   width: 100%;
+  min-height: 28px;
   accent-color: var(--gold);
   cursor: pointer;
+}
+
+.settings-menu-button,
+.controls-back-button {
+  min-height: 58px;
+  padding: 12px 18px;
+  color: #05010b;
+  background: var(--gold-bright);
+  border: 2px solid #05010b;
+  border-radius: 0;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(255, 248, 232, 0.35) inset;
+}
+
+.settings-menu-button:hover,
+.settings-menu-button:focus-visible,
+.controls-back-button:hover,
+.controls-back-button:focus-visible {
+  filter: brightness(1.12);
+  outline: 0;
+}
+
+.controls-settings {
+  display: grid;
+  gap: 16px;
+  padding-top: 6px;
+  border-top: 2px solid rgba(255, 242, 122, 0.34);
+}
+
+.controls-settings__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--gold-bright);
+  font-size: 30px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.controls-back-button {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 18px;
+}
+
+.controls-reset-button {
+  min-height: 44px;
+  padding: 8px 14px;
+  color: #05010b;
+  background: var(--gold-bright);
+  border: 2px solid #05010b;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.controls-bindings {
+  display: grid;
+  gap: 10px;
+}
+
+.control-binding {
+  min-height: 54px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(78px, auto);
+  align-items: center;
+  gap: 10px;
+  color: #fff8e8;
+  background: rgba(10, 12, 30, 0.9);
+  border: 2px solid rgba(255, 248, 232, 0.72);
+  border-radius: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.control-binding:hover,
+.control-binding:focus-visible {
+  border-color: var(--gold-bright);
+  outline: 0;
+}
+
+.control-binding--listening {
+  color: #05010b;
+  background: var(--gold-bright);
+  border-color: #fff8e8;
+}
+
+.control-binding span,
+.control-binding strong {
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 950;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.control-binding strong {
+  justify-self: end;
+  min-width: 74px;
+  padding: 7px 10px;
+  color: #05010b;
+  background: #fff8e8;
+  border: 2px solid #05010b;
+  text-align: center;
 }
 
 .arena-pause-scrim {
@@ -167,6 +295,38 @@ button {
     rgba(0, 0, 0, 0.32);
 }
 
+.arena-pause-menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 120;
+  width: min(620px, calc(100% - 36px));
+  padding: 34px;
+  display: grid;
+  gap: 22px;
+  color: #fff8e8;
+  background: rgba(0, 0, 0, 0.94);
+  border: 4px solid var(--gold);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  box-shadow:
+    0 0 0 4px #241a00 inset,
+    0 0 0 9999px rgba(0, 0, 0, 0.22),
+    0 22px 70px rgba(0, 0, 0, 0.78);
+}
+
+.arena-pause-menu__button {
+  width: 100%;
+  min-height: 62px;
+  padding: 14px 18px;
+  justify-content: center;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.arena-screen--paused .arena-stage,
+.arena-screen--paused .arena-stage::before,
+.arena-screen--paused .arena-stage::after,
 .arena-screen--paused .arena-stage *,
 .arena-screen--paused .arena-stage *::before,
 .arena-screen--paused .arena-stage *::after {
@@ -179,6 +339,15 @@ button {
   padding: 22px;
   display: grid;
   place-items: center;
+}
+
+.game-shell--arena {
+  width: 100vw;
+  min-height: 100vh;
+  height: 100vh;
+  padding: 0;
+  place-items: stretch;
+  overflow: hidden;
 }
 
 .game-shell--menu-bg {
@@ -207,7 +376,7 @@ button {
   pointer-events: none;
   background: #000;
   opacity: 0;
-  transition: opacity 520ms ease;
+  transition: opacity 260ms ease;
 }
 
 .game-shell--door-menu-fading::after {
@@ -221,7 +390,7 @@ button {
   z-index: 50;
   pointer-events: none;
   background: #000;
-  animation: screen-reveal 560ms ease both;
+  animation: screen-reveal 280ms ease both;
 }
 
 .select-screen {
@@ -269,7 +438,7 @@ button {
   border-radius: 0;
   cursor: pointer;
   box-shadow: 0 0 0 4px #11164b inset;
-  transition: transform 120ms steps(2, end), border-color 120ms steps(2, end), box-shadow 120ms steps(2, end);
+  transition: transform 60ms steps(2, end), border-color 60ms steps(2, end), box-shadow 60ms steps(2, end);
 }
 
 .stage-card:hover,
@@ -426,7 +595,7 @@ button {
   line-height: 0.92;
   text-transform: uppercase;
   cursor: pointer;
-  transition: transform 120ms steps(2, end), border-color 120ms steps(2, end), box-shadow 120ms steps(2, end);
+  transition: transform 60ms steps(2, end), border-color 60ms steps(2, end), box-shadow 60ms steps(2, end);
 }
 
 .title-menu__button--ghost {
@@ -484,7 +653,7 @@ button {
   border: 0;
   cursor: pointer;
   text-transform: uppercase;
-  transition: transform 130ms steps(2, end), filter 130ms steps(2, end);
+  transition: transform 65ms steps(2, end), filter 65ms steps(2, end);
 }
 
 .mode-door:disabled {
@@ -580,7 +749,7 @@ button {
   border-radius: 0;
   cursor: pointer;
   box-shadow: 0 0 0 4px #090d32 inset;
-  transition: transform 120ms steps(2, end), border-color 120ms steps(2, end), box-shadow 120ms steps(2, end);
+  transition: transform 60ms steps(2, end), border-color 60ms steps(2, end), box-shadow 60ms steps(2, end);
 }
 
 .mode-card--sandbox {
@@ -917,7 +1086,7 @@ h1 {
   border-radius: 0;
   cursor: pointer;
   overflow: hidden;
-  transition: transform 120ms steps(2, end), border-color 120ms steps(2, end), box-shadow 120ms steps(2, end);
+  transition: transform 60ms steps(2, end), border-color 60ms steps(2, end), box-shadow 60ms steps(2, end);
 }
 
 .fighter-tile::before {
@@ -926,7 +1095,7 @@ h1 {
   inset: 0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 45%);
   opacity: 0;
-  transition: opacity 160ms ease;
+  transition: opacity 80ms ease;
 }
 
 .fighter-tile:hover,
@@ -1017,44 +1186,52 @@ h1 {
 }
 
 .arena-screen {
+  --battle-overlay-scale: 1.4;
   position: relative;
-  width: min(100%, 1680px);
-  min-height: min(1060px, calc(100vh - 32px));
-  padding: 18px;
+  width: 100%;
+  min-height: 100vh;
+  height: 100vh;
+  padding: 0;
   display: grid;
-  grid-template-rows: auto minmax(var(--arena-stage-min-height, 760px), 1fr) auto;
-  gap: 14px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
   background:
     linear-gradient(180deg, rgba(255, 217, 133, 0.1), transparent 22%),
     rgba(7, 6, 5, 0.78);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-    0 34px 120px rgba(0, 0, 0, 0.72);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
 }
 
 .arena-hud {
-  position: relative;
-  z-index: 2;
+  position: absolute;
+  top: 22px;
+  left: 26px;
+  right: 26px;
+  z-index: 24;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  pointer-events: none;
 }
 
 .fighter-badge {
-  min-height: 74px;
-  padding: 10px 14px;
+  min-height: 88px;
+  padding: 13px 18px 15px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
   align-content: center;
-  background: linear-gradient(180deg, rgba(31, 25, 19, 0.94), rgba(9, 8, 7, 0.92));
-  border: 1px solid var(--line);
-  border-left: 8px solid var(--red);
-  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(14, 10, 6, 0.94), rgba(0, 0, 0, 0.72));
+  border: 4px solid rgba(255, 232, 184, 0.8);
+  border-left: 13px solid var(--red);
+  border-radius: 0;
   text-transform: uppercase;
+  box-shadow:
+    0 0 0 3px rgba(0, 0, 0, 0.78),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.08),
+    0 10px 18px rgba(0, 0, 0, 0.36);
 }
 
 .badge-topline {
@@ -1070,40 +1247,46 @@ h1 {
 
 .fighter-badge--right {
   text-align: right;
-  border-right: 8px solid #2c5f87;
-  border-left-width: 1px;
+  border-right: 13px solid #2c5f87;
+  border-left-width: 4px;
 }
 
 .badge-label {
   color: var(--gold-bright);
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 950;
 }
 
 .badge-name {
   color: #fff8e8;
-  font-size: 22px;
+  font-size: clamp(21px, 2.4vw, 34px);
   font-weight: 950;
   line-height: 1;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.72);
 }
 
 .health-track {
   position: relative;
-  height: 16px;
+  height: 30px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.11);
-  border: 1px solid rgba(255, 232, 184, 0.34);
-  border-radius: 999px;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.42);
+  background: rgba(19, 4, 4, 0.84);
+  border: 2px solid rgba(255, 244, 207, 0.72);
+  border-radius: 0;
+  box-shadow:
+    inset 0 3px 0 rgba(0, 0, 0, 0.42),
+    inset 0 -3px 0 rgba(255, 255, 255, 0.08);
 }
 
 .health-fill {
   position: absolute;
   inset: 0 auto 0 0;
   display: block;
-  background: linear-gradient(90deg, #9ccf4d, #f0d75d 68%, #e4683b);
-  border-radius: inherit;
-  transition: width 160ms ease;
+  background: linear-gradient(90deg, #f6d45c, #8ed14d 62%, #e56537);
+  border-radius: 0;
+  transition: width 80ms ease;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.28);
 }
 
 .health-infinity {
@@ -1112,7 +1295,7 @@ h1 {
   display: grid;
   place-items: center;
   color: #fff8e8;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 950;
   line-height: 1;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
@@ -1123,24 +1306,74 @@ h1 {
   left: auto;
 }
 
-.round-label {
-  padding: 10px 18px;
-  color: #140e08;
-  background: linear-gradient(180deg, var(--gold-bright), var(--gold) 62%, #8a5618);
-  border: 1px solid rgba(255, 244, 207, 0.76);
-  border-radius: 999px;
-  font-size: 13px;
+.gerson-air-counter {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 7px;
+  color: #fff8e8;
+  font-size: 28px;
   font-weight: 950;
+  line-height: 1;
+  text-shadow:
+    2px 2px 0 #000,
+    0 0 10px rgba(142, 209, 77, 0.72);
+}
+
+.fighter-badge--right .gerson-air-counter {
+  justify-self: end;
+  flex-direction: row-reverse;
+}
+
+.gerson-air-counter img {
+  width: 42px;
+  height: 34px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 #000);
+}
+
+.round-label {
+  min-width: 166px;
+  min-height: 102px;
+  padding: 12px 18px;
+  display: grid;
+  place-items: center;
+  color: #fff7dd;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.28), transparent 22%),
+    linear-gradient(180deg, #3b1f0b, #05010b 72%);
+  border: 4px solid var(--gold-bright);
+  border-radius: 50%;
+  font-size: 17px;
+  font-weight: 950;
+  line-height: 1.05;
+  text-align: center;
   text-transform: uppercase;
+  box-shadow:
+    0 0 0 3px rgba(0, 0, 0, 0.82),
+    0 0 18px rgba(255, 217, 133, 0.32);
+}
+
+.round-timer {
+  color: #fff8e8;
+  font-size: 36px;
+  line-height: 0.95;
+  text-shadow:
+    2px 2px 0 #000,
+    0 0 14px rgba(255, 217, 133, 0.5);
 }
 
 .arena-stage {
   position: relative;
-  min-height: var(--arena-stage-min-height, 760px);
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
   overflow: hidden;
   background: #67cdd5 url("./assets/arena-tenna-stage.png") center calc(100% + 18px) / 118% 100% no-repeat;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  border: 0;
+  border-radius: 0;
   image-rendering: pixelated;
 }
 
@@ -1159,7 +1392,7 @@ h1 {
 .round-announcement {
   position: absolute;
   z-index: 6;
-  top: 116px;
+  top: 154px;
   left: 50%;
   display: grid;
   justify-items: center;
@@ -1172,17 +1405,17 @@ h1 {
   text-shadow:
     0 4px 0 rgba(0, 0, 0, 0.72),
     0 0 22px rgba(255, 212, 105, 0.62);
-  animation: round-announcement 2100ms ease both;
+  animation: round-announcement 1050ms ease both;
 }
 
 .round-announcement span {
   color: var(--gold-bright);
-  font-size: clamp(18px, 3vw, 28px);
+  font-size: clamp(26px, 4vw, 40px);
   font-weight: 950;
 }
 
 .round-announcement strong {
-  font-size: clamp(58px, 10vw, 118px);
+  font-size: clamp(84px, 14vw, 168px);
   font-weight: 950;
   line-height: 0.9;
 }
@@ -1194,7 +1427,7 @@ h1 {
   left: 50%;
   translate: -50% -50%;
   color: var(--gold-bright);
-  font-size: clamp(96px, 18vw, 220px);
+  font-size: clamp(138px, 25vw, 320px);
   font-weight: 950;
   line-height: 0.8;
   text-align: center;
@@ -1203,7 +1436,7 @@ h1 {
     -4px 4px 0 #05010b,
     0 0 34px rgba(255, 242, 122, 0.72);
   pointer-events: none;
-  animation: round-countdown-pop 1000ms ease both;
+  animation: round-countdown-pop 500ms ease both;
 }
 
 .fatality-window {
@@ -1211,8 +1444,8 @@ h1 {
   z-index: 4;
   top: 84px;
   left: 50%;
-  width: min(560px, calc(100% - 48px));
-  padding: 18px 22px;
+  width: min(820px, calc(100% - 64px));
+  padding: 30px 34px;
   display: grid;
   justify-items: center;
   gap: 6px;
@@ -1227,19 +1460,19 @@ h1 {
     0 18px 46px rgba(0, 0, 0, 0.46),
     0 0 0 1px rgba(255, 255, 255, 0.06) inset;
   pointer-events: none;
-  animation: fatality-window-in 320ms ease both;
+  animation: fatality-window-in 160ms ease both;
 }
 
 .fatality-window__eyebrow {
   color: var(--gold-bright);
-  font-size: 13px;
+  font-size: 19px;
   font-weight: 950;
   letter-spacing: 0;
 }
 
 .fatality-window strong {
   color: #fff7dd;
-  font-size: clamp(26px, 4vw, 48px);
+  font-size: clamp(42px, 6vw, 76px);
   font-weight: 950;
   line-height: 0.95;
   text-shadow:
@@ -1249,7 +1482,7 @@ h1 {
 
 .fatality-window span:last-child {
   color: rgba(255, 248, 232, 0.82);
-  font-size: 13px;
+  font-size: 19px;
   font-weight: 900;
 }
 
@@ -1266,11 +1499,11 @@ h1 {
 }
 
 .round-curtain--closing {
-  animation: round-curtain-close 700ms cubic-bezier(0.2, 0.88, 0.18, 1) both;
+  animation: round-curtain-close 350ms cubic-bezier(0.2, 0.88, 0.18, 1) both;
 }
 
 .round-curtain--opening {
-  animation: round-curtain-open 900ms cubic-bezier(0.74, 0, 0.28, 1) both;
+  animation: round-curtain-open 450ms cubic-bezier(0.74, 0, 0.28, 1) both;
 }
 
 @keyframes fatality-window-in {
@@ -1347,12 +1580,14 @@ h1 {
   width: 54px;
   height: 54px;
   translate: -50% 0;
+  scale: var(--battle-overlay-scale);
+  transform-origin: 50% 100%;
   image-rendering: pixelated;
   object-fit: contain;
   filter:
     drop-shadow(0 12px 10px rgba(0, 0, 0, 0.42))
     drop-shadow(0 0 16px rgba(255, 248, 218, 0.28));
-  animation: projectile-roll 360ms steps(8, end) infinite;
+  animation: projectile-roll 180ms steps(8, end) infinite;
 }
 
 .special-projectile--low {
@@ -1365,14 +1600,14 @@ h1 {
 
 .special-projectile--queen-wave {
   width: 92px;
-  height: 92px;
+  height: 170px;
   object-fit: contain;
   transform-origin: 50% 50%;
-  animation: queen-projectile-spin 420ms steps(8, end) infinite;
+  animation: queen-projectile-spin 210ms steps(8, end) infinite;
 }
 
 .special-projectile--queen-wave.special-projectile--high {
-  bottom: calc(214px + var(--stage-floor-lift, 0px));
+  bottom: calc(250px + var(--stage-floor-lift, 0px));
 }
 
 .special-projectile--knight-sword {
@@ -1393,6 +1628,70 @@ h1 {
   transform: scaleX(-1);
 }
 
+.special-projectile--jevil-scythe {
+  width: 132px;
+  height: 128px;
+  object-fit: contain;
+  transform-origin: 50% 50%;
+  animation: jevil-scythe-spin 340ms linear infinite;
+  filter:
+    drop-shadow(0 12px 10px rgba(0, 0, 0, 0.45))
+    drop-shadow(0 0 16px rgba(181, 230, 29, 0.28));
+}
+
+.special-projectile--jevil-scythe.special-projectile--right {
+  animation-name: jevil-scythe-spin-right;
+}
+
+.special-projectile--jevil-chaos-shot {
+  width: 66px;
+  height: 66px;
+  filter:
+    drop-shadow(0 10px 8px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 16px rgba(139, 92, 255, 0.5));
+  animation: none;
+}
+
+.special-projectile--jevil-chaos-shot.special-projectile--dir-left {
+  transform: scaleX(-1);
+}
+
+.special-projectile--jevil-head {
+  width: 108px;
+  height: 107px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 300% 100%;
+  filter:
+    drop-shadow(0 12px 10px rgba(0, 0, 0, 0.45))
+    drop-shadow(0 0 18px rgba(139, 92, 255, 0.42));
+  animation: jevil-head-projectile 260ms steps(2, end) infinite;
+}
+
+.special-projectile--jevil-head.special-projectile--dir-left {
+  transform: scaleX(-1);
+}
+
+@keyframes jevil-scythe-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes jevil-scythe-spin-right {
+  from {
+    transform: scaleX(-1) rotate(0deg);
+  }
+
+  to {
+    transform: scaleX(-1) rotate(360deg);
+  }
+}
+
 .special-projectile--queen-heal-wave {
   bottom: calc(92px + var(--stage-floor-lift, 0px));
   width: 96px;
@@ -1403,7 +1702,7 @@ h1 {
   filter:
     drop-shadow(0 8px 6px rgba(0, 0, 0, 0.32))
     drop-shadow(0 0 14px rgba(78, 255, 91, 0.62));
-  animation: queen-heal-wave-pulse 420ms ease-out infinite;
+  animation: queen-heal-wave-pulse 210ms ease-out infinite;
 }
 
 .special-projectile--queen-heal-wave::before,
@@ -1439,6 +1738,8 @@ h1 {
   width: 160px;
   height: 160px;
   translate: -50% 50%;
+  scale: var(--battle-overlay-scale);
+  transform-origin: 50% 50%;
   border: 5px solid rgba(235, 250, 255, 0.88);
   border-radius: 50%;
   box-shadow:
@@ -1446,7 +1747,7 @@ h1 {
     0 0 58px rgba(255, 255, 255, 0.9),
     0 0 104px rgba(110, 210, 255, 0.58);
   pointer-events: none;
-  animation: tenna-air-wave-burst 360ms ease-out both;
+  animation: tenna-air-wave-burst 180ms ease-out both;
 }
 
 .knight-channel-rings {
@@ -1455,6 +1756,8 @@ h1 {
   width: 48px;
   height: 48px;
   translate: -50% 50%;
+  scale: var(--battle-overlay-scale);
+  transform-origin: 50% 50%;
   pointer-events: none;
 }
 
@@ -1468,7 +1771,7 @@ h1 {
     inset 0 0 20px rgba(255, 42, 50, 0.24);
   opacity: 0;
   transform: scale(0.1);
-  animation: knight-channel-ring-expand 3s linear infinite;
+  animation: knight-channel-ring-expand 1.5s linear infinite;
 }
 
 .heal-popup {
@@ -1477,12 +1780,14 @@ h1 {
   width: 38px;
   height: auto;
   translate: -50% 0;
+  scale: var(--battle-overlay-scale);
+  transform-origin: 50% 100%;
   image-rendering: pixelated;
   pointer-events: none;
   filter:
     drop-shadow(0 4px 0 rgba(0, 0, 0, 0.42))
     drop-shadow(0 0 10px rgba(82, 255, 93, 0.58));
-  animation: heal-popup-rise 520ms ease-out both;
+  animation: heal-popup-rise 260ms ease-out both;
 }
 
 @keyframes heal-popup-rise {
@@ -1587,7 +1892,7 @@ h1 {
 }
 
 .arena-controls {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
@@ -1643,6 +1948,8 @@ h1 {
   width: 132px;
   height: 228px;
   translate: -50% 0;
+  scale: var(--battle-overlay-scale);
+  transform-origin: 50% 100%;
 }
 
 .stick-fighter--dark-aura::before,
@@ -1650,33 +1957,62 @@ h1 {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -34px;
-  width: 260px;
-  height: 380px;
-  translate: -50% 0;
+  bottom: -18px;
+  width: 310px;
+  height: 310px;
+  translate: calc(-50% - 10px) 0;
+  border-radius: 50%;
   pointer-events: none;
   z-index: 0;
+  -webkit-mask-image: radial-gradient(circle, #000 0 58%, rgba(0, 0, 0, 0.62) 66%, transparent 76%);
+  mask-image: radial-gradient(circle, #000 0 58%, rgba(0, 0, 0, 0.62) 66%, transparent 76%);
 }
 
 .stick-fighter--dark-aura::before {
   background:
-    radial-gradient(ellipse at 50% 72%, rgba(20, 0, 35, 0.86), transparent 48%),
-    radial-gradient(ellipse at 50% 46%, rgba(84, 0, 128, 0.42), transparent 56%),
-    radial-gradient(ellipse at 50% 34%, rgba(0, 0, 0, 0.68), transparent 66%);
-  filter: blur(8px) drop-shadow(0 0 22px rgba(30, 0, 48, 0.92));
+    radial-gradient(circle at 50% 50%, rgba(12, 0, 24, 0.22) 0 28%, transparent 31%),
+    radial-gradient(circle at 50% 50%, transparent 0 38%, rgba(82, 0, 130, 0.6) 42%, rgba(14, 0, 28, 0.82) 56%, transparent 72%),
+    radial-gradient(circle at 50% 50%, rgba(140, 44, 220, 0.28), transparent 64%);
+  filter: blur(7px) drop-shadow(0 0 24px rgba(56, 0, 92, 0.92));
   opacity: 0.88;
-  animation: knight-dark-aura-pulse 860ms ease-in-out infinite;
+  animation: knight-dark-aura-pulse 430ms ease-in-out infinite;
 }
 
 .stick-fighter--dark-aura::after {
   background:
-    linear-gradient(90deg, transparent 0 12%, rgba(18, 0, 30, 0.72) 13% 16%, transparent 17% 30%, rgba(102, 0, 156, 0.5) 31% 34%, transparent 35% 52%, rgba(6, 0, 18, 0.78) 53% 57%, transparent 58% 72%, rgba(74, 0, 118, 0.5) 73% 77%, transparent 78% 100%),
-    radial-gradient(circle at 40% 76%, rgba(190, 156, 255, 0.44), transparent 4%),
-    radial-gradient(circle at 64% 58%, rgba(190, 156, 255, 0.36), transparent 3%);
-  clip-path: polygon(8% 100%, 18% 42%, 25% 100%, 36% 24%, 46% 100%, 56% 35%, 67% 100%, 78% 30%, 91% 100%);
+    conic-gradient(from 20deg, transparent 0 18deg, rgba(172, 78, 255, 0.52) 24deg 36deg, transparent 44deg 82deg, rgba(23, 0, 42, 0.7) 94deg 110deg, transparent 124deg 178deg, rgba(116, 0, 184, 0.46) 190deg 212deg, transparent 230deg 290deg, rgba(208, 176, 255, 0.42) 302deg 312deg, transparent 326deg 360deg),
+    radial-gradient(circle at 50% 50%, transparent 0 48%, rgba(180, 116, 255, 0.5) 53%, transparent 61%);
   filter: blur(2px) drop-shadow(0 0 18px rgba(98, 0, 150, 0.76));
-  opacity: 0.62;
-  animation: knight-dark-aura-flare 520ms steps(3, end) infinite;
+  opacity: 0.68;
+  animation: knight-dark-aura-flare 260ms steps(3, end) infinite;
+}
+
+.stick-fighter--dark-wave-overheated .battle-sprite--roaring-knight.battle-sprite--dark-wave {
+  filter:
+    sepia(1)
+    saturate(6)
+    hue-rotate(-38deg)
+    brightness(1.18)
+    drop-shadow(0 18px 18px rgba(0, 0, 0, 0.48))
+    drop-shadow(0 0 24px rgba(255, 28, 28, 0.9));
+  animation:
+    knight-channel-cast 210ms steps(2, end) both,
+    knight-dark-wave-shake 44ms steps(2, end) 210ms infinite,
+    knight-dark-wave-overheat 360ms ease-in-out infinite;
+}
+
+.knight-dark-wave-explosion {
+  position: absolute;
+  z-index: 5;
+  width: 570px;
+  height: 780px;
+  translate: -50% 0;
+  object-fit: contain;
+  image-rendering: auto;
+  pointer-events: none;
+  filter:
+    drop-shadow(0 18px 18px rgba(0, 0, 0, 0.52))
+    drop-shadow(0 0 32px rgba(255, 100, 28, 0.9));
 }
 
 .victory-screen {
@@ -1796,7 +2132,7 @@ h1 {
   position: absolute;
   inset: 0;
   filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.42));
-  transition: translate 120ms ease, scale 120ms ease, filter 80ms ease;
+  transition: translate 60ms ease, scale 60ms ease, filter 40ms ease;
 }
 
 .battle-sprite {
@@ -1812,12 +2148,87 @@ h1 {
   filter:
     drop-shadow(0 18px 18px rgba(0, 0, 0, 0.42))
     drop-shadow(0 0 16px rgba(255, 217, 133, 0.16));
-  transition: filter 80ms ease;
+  transition: filter 40ms ease;
 }
 
 .battle-sprite--queen {
   bottom: -2px;
   height: 250px;
+}
+
+.battle-sprite--mister-ant-tenna.battle-sprite--battle-pose-strip {
+  bottom: -2px;
+  width: 207px;
+  height: 320px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 16700% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  animation: tenna-battle-pose 2780ms steps(166, end) infinite;
+}
+
+.battle-sprite--gerson-boom {
+  bottom: -2px;
+  width: auto;
+  height: 170px;
+  object-fit: contain;
+  animation: none;
+}
+
+.battle-sprite--gerson-boom.battle-sprite--battle-pose-strip {
+  bottom: -2px;
+  width: 296px;
+  height: 170px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 1400% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  animation: gerson-battle-pose 700ms steps(13, end) infinite;
+}
+
+.battle-sprite--jevil.battle-sprite--battle-pose-strip {
+  bottom: -6px;
+  width: 238px;
+  height: 242px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 800% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+  filter:
+    drop-shadow(0 14px 16px rgba(0, 0, 0, 0.44))
+    drop-shadow(0 0 14px rgba(139, 92, 255, 0.28));
+  animation: jevil-battle-pose 720ms steps(7, end) infinite;
+}
+
+.gerson-back-scarf {
+  position: absolute;
+  left: 50%;
+  bottom: 90px;
+  z-index: 0;
+  width: 250px;
+  height: 126px;
+  translate: -38% 0;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 500% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  pointer-events: none;
+  animation: gerson-back-scarf 420ms steps(4, end) infinite;
+}
+
+.battle-sprite--gerson-boom.battle-sprite--gerson-leap-prep {
+  bottom: -2px;
+  width: auto;
+  height: 270px;
+  object-fit: contain;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  animation: gerson-leap-prep-brace 1000ms ease-in-out both;
 }
 
 .battle-sprite--roaring-knight {
@@ -1845,7 +2256,23 @@ h1 {
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 1000% 100%;
-  animation: knight-block-guard 780ms steps(9, end) infinite;
+  animation: knight-block-guard 390ms steps(9, end) infinite;
+}
+
+.battle-sprite--jevil.battle-sprite--block-strip {
+  bottom: -6px;
+  width: 232px;
+  height: 230px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 300% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+  filter:
+    drop-shadow(0 14px 16px rgba(0, 0, 0, 0.44))
+    drop-shadow(0 0 14px rgba(139, 92, 255, 0.28));
+  animation: jevil-block 300ms steps(2, end) infinite;
 }
 
 .battle-sprite--roaring-knight.battle-sprite--sphere-transform {
@@ -1856,7 +2283,7 @@ h1 {
   background-position: 0 0;
   background-size: 800% 100%;
   transform: scaleX(-1);
-  animation: knight-sphere-transform 720ms steps(7, end) both;
+  animation: knight-sphere-transform 360ms steps(7, end) both;
 }
 
 .battle-sprite--roaring-knight.battle-sprite--sphere-exiting {
@@ -1874,7 +2301,7 @@ h1 {
   filter:
     drop-shadow(0 16px 16px rgba(0, 0, 0, 0.42))
     drop-shadow(0 0 18px rgba(248, 248, 255, 0.28));
-  animation: knight-sphere-idle 360ms steps(2, end) infinite;
+  animation: knight-sphere-idle 180ms steps(2, end) infinite;
 }
 
 .battle-sprite--roaring-knight.battle-sprite--bird-transform {
@@ -1888,7 +2315,7 @@ h1 {
   filter:
     drop-shadow(0 18px 18px rgba(0, 0, 0, 0.42))
     drop-shadow(0 0 18px rgba(248, 248, 255, 0.24));
-  animation: knight-bird-transform 520ms steps(7, end) both;
+  animation: knight-bird-transform 260ms steps(7, end) both;
 }
 
 .battle-sprite--roaring-knight.battle-sprite--bird-dash {
@@ -1902,7 +2329,7 @@ h1 {
   filter:
     drop-shadow(0 18px 18px rgba(0, 0, 0, 0.42))
     drop-shadow(0 0 18px rgba(248, 248, 255, 0.24));
-  animation: knight-bird-dash 360ms steps(3, end) infinite;
+  animation: knight-bird-dash 180ms steps(3, end) infinite;
 }
 
 .battle-sprite--roaring-knight.battle-sprite--dark-wave {
@@ -1919,8 +2346,8 @@ h1 {
 
 .battle-sprite--roaring-knight.battle-sprite--dark-wave-holding {
   animation:
-    knight-channel-cast 420ms steps(2, end) both,
-    knight-dark-wave-shake 120ms steps(2, end) 420ms infinite;
+    knight-channel-cast 210ms steps(2, end) both,
+    knight-dark-wave-shake 60ms steps(2, end) 210ms infinite;
 }
 
 .battle-sprite--roaring-knight.battle-sprite--kick {
@@ -1930,7 +2357,7 @@ h1 {
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 300% 100%;
-  animation: knight-sword-shot 360ms steps(2, end) both;
+  animation: knight-sword-shot 180ms steps(2, end) both;
 }
 
 .knight-afterimage {
@@ -1939,6 +2366,8 @@ h1 {
   width: auto;
   height: 300px;
   translate: -50% 0;
+  scale: var(--battle-overlay-scale);
+  transform-origin: 50% 100%;
   image-rendering: pixelated;
   object-fit: contain;
   background-repeat: no-repeat;
@@ -1948,7 +2377,7 @@ h1 {
     drop-shadow(0 12px 16px rgba(0, 0, 0, 0.34))
     drop-shadow(0 0 16px rgba(248, 248, 255, 0.18));
   mix-blend-mode: normal;
-  animation: knight-afterimage-fly 2000ms linear forwards;
+  animation: knight-afterimage-fly 1000ms linear forwards;
 }
 
 .knight-afterimage--sphere {
@@ -1993,7 +2422,7 @@ h1 {
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 400% 100%;
-  animation: queen-walk 300ms steps(3, end) infinite;
+  animation: queen-walk 150ms steps(3, end) infinite;
 }
 
 .battle-sprite--queen.battle-sprite--walk-backward {
@@ -2013,7 +2442,7 @@ h1 {
   width: auto;
   height: 320px;
   transform-origin: 48% 92%;
-  animation: tenna-punch 240ms steps(4, end) both;
+  animation: tenna-punch 120ms steps(4, end) both;
 }
 
 .battle-sprite--queen.battle-sprite--punch-strip {
@@ -2024,7 +2453,21 @@ h1 {
   background-position: 0 0;
   background-size: 300% 100%;
   transform-origin: 48% 92%;
-  animation: queen-punch 320ms step-end both;
+  animation: queen-punch 160ms step-end both;
+}
+
+.battle-sprite--gerson-boom.battle-sprite--punch {
+  bottom: -2px;
+  width: 546px;
+  height: 320px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 400% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+  scale: calc(1 / var(--battle-overlay-scale));
+  animation: gerson-spin 360ms steps(3, end) infinite;
 }
 
 .battle-sprite--kick {
@@ -2034,7 +2477,7 @@ h1 {
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 4000% 100%;
-  animation: tenna-kick 520ms steps(39, end) both;
+  animation: tenna-kick 260ms steps(39, end) both;
 }
 
 .battle-sprite--queen.battle-sprite--kick {
@@ -2045,7 +2488,100 @@ h1 {
   background-position: 0 0;
   background-size: 200% 100%;
   transform-origin: 48% 92%;
-  animation: queen-kick 260ms step-end both;
+  animation: queen-kick 130ms step-end both;
+}
+
+.battle-sprite--gerson-boom.battle-sprite--kick {
+  bottom: -6px;
+  width: 520px;
+  height: 492px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 900% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+  scale: calc(1 / var(--battle-overlay-scale));
+  animation: gerson-right-attack 760ms steps(8, end) both;
+}
+
+.battle-sprite--jevil.battle-sprite--kick {
+  bottom: -6px;
+  width: 324px;
+  height: 240px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 400% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+  filter:
+    drop-shadow(0 14px 16px rgba(0, 0, 0, 0.44))
+    drop-shadow(0 0 14px rgba(139, 92, 255, 0.28));
+  animation: jevil-kick 320ms steps(3, end) both;
+}
+
+.battle-sprite--jevil.battle-sprite--special {
+  bottom: -6px;
+  width: 300px;
+  height: 252px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 200% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+  filter:
+    drop-shadow(0 14px 16px rgba(0, 0, 0, 0.44))
+    drop-shadow(0 0 18px rgba(139, 92, 255, 0.38));
+  animation: jevil-platform-special 260ms steps(1, end) both;
+}
+
+.battle-sprite--jevil.battle-sprite--jevil-chaos-special {
+  bottom: -6px;
+  width: 270px;
+  height: 256px;
+  background-size: 200% 100%;
+  animation: jevil-chaos-special 240ms steps(1, end) both;
+}
+
+.battle-sprite--jevil.battle-sprite--jevil-teleport-special {
+  bottom: -6px;
+  width: 318px;
+  height: 214px;
+  background-size: 500% 100%;
+  animation: jevil-teleport-special 210ms steps(4, end) both;
+}
+
+.battle-sprite--jevil.battle-sprite--jevil-teleport-freeze,
+.battle-sprite--jevil.battle-sprite--jevil-teleport-shoot {
+  bottom: -6px;
+  width: 240px;
+  height: 226px;
+  background-size: 100% 100%;
+  transform-origin: 50% 58%;
+  animation: none;
+}
+
+.battle-sprite--jevil.battle-sprite--jevil-teleport-freeze {
+  animation: jevil-teleport-appear 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.stick-fighter--jevil-absorbing .battle-sprite--jevil {
+  filter:
+    sepia(0.45)
+    saturate(2.1)
+    hue-rotate(315deg)
+    drop-shadow(0 14px 16px rgba(0, 0, 0, 0.44))
+    drop-shadow(0 0 22px rgba(255, 54, 54, 0.42));
+}
+
+.battle-sprite--jevil.battle-sprite--jevil-headless-absorb {
+  bottom: 12px;
+  width: 292px;
+  height: 136px;
+  background-size: 100% 100%;
+  animation: none;
 }
 
 .battle-sprite--jump {
@@ -2055,7 +2591,7 @@ h1 {
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 400% 100%;
-  animation: tenna-jump 420ms steps(3, end) infinite;
+  animation: tenna-jump 210ms steps(3, end) infinite;
 }
 
 .battle-sprite--queen.battle-sprite--jump {
@@ -2072,6 +2608,84 @@ h1 {
   background-position: 100% 0;
 }
 
+.battle-sprite--gerson-boom.battle-sprite--jump {
+  bottom: -2px;
+  width: 182px;
+  height: 395px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 700% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  animation: gerson-jump-strip 520ms steps(6, end) both;
+}
+
+.battle-sprite--gerson-boom.battle-sprite--gerson-jump-bounce {
+  animation-duration: 720ms;
+}
+
+.battle-sprite--gerson-boom.battle-sprite--gerson-jump-slow {
+  animation-duration: 1560ms;
+}
+
+.gerson-leap-boost-effect {
+  --gerson-leap-effect-scale-x: -1;
+  position: absolute;
+  left: 50%;
+  bottom: -32px;
+  z-index: 2;
+  width: 880px;
+  height: 880px;
+  translate: -50% 0;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 400% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  scale: calc(1 / var(--battle-overlay-scale));
+  pointer-events: none;
+  filter:
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.28))
+    drop-shadow(0 12px 16px rgba(0, 0, 0, 0.24));
+  animation:
+    gerson-leap-boost 360ms steps(3, end) both,
+    gerson-leap-boost-fade 620ms ease-out forwards;
+}
+
+.gerson-leap-boost-effect--left {
+  --gerson-leap-effect-scale-x: 1;
+}
+
+.jevil-platform {
+  position: absolute;
+  z-index: 4;
+  width: 390px;
+  height: 178px;
+  translate: -50% 48%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 300% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  pointer-events: none;
+  filter:
+    drop-shadow(0 12px 12px rgba(0, 0, 0, 0.34))
+    drop-shadow(0 0 12px rgba(255, 0, 255, 0.24));
+  animation: jevil-platform-appear 260ms ease-out both;
+}
+
+.jevil-platform--high {
+  animation-delay: 0ms;
+}
+
+.battle-sprite--gerson-boom.battle-sprite--round-victory {
+  bottom: -2px;
+  width: auto;
+  height: 270px;
+  object-fit: contain;
+  animation: none;
+}
+
 .battle-sprite--crouch-uppercut {
   bottom: -8px;
   width: 164px;
@@ -2080,7 +2694,7 @@ h1 {
   background-position: 0 0;
   background-size: 300% 100%;
   transform-origin: 52% 96%;
-  animation: tenna-crouch-uppercut 420ms steps(2, end) both;
+  animation: tenna-crouch-uppercut 210ms steps(2, end) both;
 }
 
 .battle-sprite--queen.battle-sprite--crouch {
@@ -2098,7 +2712,7 @@ h1 {
   background-position: 0 0;
   background-size: 200% 100%;
   transform-origin: 52% 96%;
-  animation: queen-uppercut 220ms steps(1, end) both;
+  animation: queen-uppercut 110ms steps(1, end) both;
 }
 
 .battle-sprite--crouch-sweep {
@@ -2106,7 +2720,7 @@ h1 {
   width: 260px;
   height: auto;
   transform-origin: 54% 96%;
-  animation: tenna-crouch-sweep 420ms steps(5, end) both;
+  animation: tenna-crouch-sweep 210ms steps(5, end) both;
 }
 
 .battle-sprite--queen.battle-sprite--crouch-sweep {
@@ -2114,7 +2728,7 @@ h1 {
   width: 265px;
   height: 258px;
   transform-origin: 50% 100%;
-  animation: queen-sweep 340ms ease-out both;
+  animation: queen-sweep 170ms ease-out both;
 }
 
 .battle-sprite--special {
@@ -2122,14 +2736,14 @@ h1 {
   width: auto;
   height: 250px;
   transform-origin: 52% 94%;
-  animation: tenna-shoot 500ms steps(2, end) both;
+  animation: tenna-shoot 250ms steps(2, end) both;
 }
 
 .battle-sprite--air-special {
   bottom: -16px;
   width: auto;
   height: 285px;
-  animation: tenna-air-special-hover 1000ms ease-in-out both;
+  animation: tenna-air-special-hover 500ms ease-in-out both;
   transform-origin: 50% 58%;
 }
 
@@ -2140,7 +2754,7 @@ h1 {
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 500% 100%;
-  animation: queen-special-throw 500ms steps(4, end) both;
+  animation: queen-special-throw 250ms steps(4, end) both;
 }
 
 .battle-sprite--queen.battle-sprite--healing {
@@ -2149,7 +2763,7 @@ h1 {
   height: 188px;
   transform: none;
   transform-origin: 50% 100%;
-  animation: queen-heal-breathe 1000ms ease-in-out infinite;
+  animation: queen-heal-breathe 500ms ease-in-out infinite;
 }
 
 .battle-sprite--knockdown {
@@ -2166,6 +2780,29 @@ h1 {
   transform: scaleX(-1);
 }
 
+.battle-sprite--gerson-boom.battle-sprite--knockdown {
+  bottom: -4px;
+  width: auto;
+  height: 250px;
+  object-fit: contain;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transform: rotate(35deg);
+  animation: none;
+}
+
+.battle-sprite--jevil.battle-sprite--knockdown,
+.battle-sprite--jevil.battle-sprite--defeat {
+  bottom: 0;
+  width: auto;
+  height: 176px;
+  object-fit: contain;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transform: none;
+  animation: none;
+}
+
 .battle-sprite--roaring-knight.battle-sprite--launched-strip,
 .battle-sprite--roaring-knight.battle-sprite--knockdown {
   bottom: 2px;
@@ -2176,7 +2813,7 @@ h1 {
   background-size: 400% 100%;
   transform: none;
   transform-origin: 50% 92%;
-  animation: knight-impact-reverse 520ms steps(3, end) infinite;
+  animation: knight-impact-reverse 260ms steps(3, end) infinite;
 }
 
 .battle-sprite--defeat {
@@ -2187,7 +2824,7 @@ h1 {
   background-position: 0 0;
   background-size: 700% 100%;
   transform-origin: 50% 96%;
-  animation: tenna-defeat-noise 520ms steps(6, end) infinite;
+  animation: tenna-defeat-noise 260ms steps(6, end) infinite;
 }
 
 .battle-sprite--queen.battle-sprite--defeat {
@@ -2206,7 +2843,20 @@ h1 {
   background-size: 700% 100%;
   transform: none;
   transform-origin: 50% 96%;
-  animation: knight-defeat-collapse 760ms steps(6, end) forwards;
+  animation: knight-defeat-collapse 380ms steps(6, end) forwards;
+}
+
+.battle-sprite--gerson-boom.battle-sprite--defeat {
+  bottom: -2px;
+  width: 339px;
+  height: 250px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 400% 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transform-origin: 50% 96%;
+  animation: gerson-defeat-collapse 520ms steps(3, end) infinite;
 }
 
 .battle-sprite--round-victory {
@@ -2225,7 +2875,15 @@ h1 {
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 200% 100%;
-  animation: queen-round-victory 420ms steps(1, end) infinite;
+  animation: queen-round-victory 210ms steps(1, end) infinite;
+}
+
+.battle-sprite--queen.battle-sprite--queen-unique-victory {
+  bottom: -2px;
+  width: auto;
+  height: 292px;
+  object-fit: contain;
+  animation: none;
 }
 
 .battle-sprite--roaring-knight.battle-sprite--round-victory {
@@ -2240,7 +2898,7 @@ h1 {
   filter:
     drop-shadow(0 18px 18px rgba(0, 0, 0, 0.48))
     drop-shadow(0 0 22px rgba(248, 248, 255, 0.3));
-  animation: knight-round-victory 1080ms steps(8, end) forwards;
+  animation: knight-round-victory 540ms steps(8, end) forwards;
 }
 
 .arena-screen-victory {
@@ -2264,7 +2922,7 @@ h1 {
 }
 
 .arena-screen-victory--queen {
-  animation: arena-screen-queen-victory 520ms steps(1, end) infinite;
+  animation: arena-screen-queen-victory 260ms steps(1, end) infinite;
 }
 
 @keyframes queen-round-victory {
@@ -2413,6 +3071,17 @@ h1 {
 
   100% {
     background-position: 100% 0;
+  }
+}
+
+@keyframes knight-dark-wave-overheat {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+
+  50% {
+    opacity: 1;
   }
 }
 
@@ -2569,6 +3238,231 @@ h1 {
   }
 }
 
+@keyframes gerson-parry {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes gerson-spin {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes gerson-right-attack {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes gerson-leap-boost {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes gerson-back-scarf {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes tenna-battle-pose {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes gerson-battle-pose {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-battle-pose {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-kick {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-block {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-platform-special {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-chaos-special {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-teleport-special {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-teleport-appear {
+  from {
+    opacity: 0;
+    transform: rotate(-540deg) scale(0.08);
+  }
+
+  70% {
+    opacity: 1;
+    transform: rotate(28deg) scale(1.16);
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes jevil-absorb-special {
+  0%,
+  49.99% {
+    background-position: 0 0;
+  }
+
+  50%,
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-head-projectile {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-platform-float {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes jevil-platform-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.78);
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes gerson-leap-prep-brace {
+  0% {
+    transform: translateY(0) scaleX(-1) scaleY(1);
+  }
+
+  55% {
+    transform: translateY(6px) scaleX(-1.02) scaleY(0.96);
+  }
+
+  100% {
+    transform: translateY(0) scaleX(-1) scaleY(1);
+  }
+}
+
+@keyframes gerson-leap-boost-fade {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(-25deg) scaleX(var(--gerson-leap-effect-scale-x)) scale(0.82);
+  }
+
+  70% {
+    opacity: 0.88;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(6px) rotate(-25deg) scaleX(var(--gerson-leap-effect-scale-x)) scale(1.08);
+  }
+}
+
 @keyframes tenna-jump {
   from {
     background-position: 0 0;
@@ -2579,7 +3473,27 @@ h1 {
   }
 }
 
+@keyframes gerson-jump-strip {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
 @keyframes tenna-defeat-noise {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes gerson-defeat-collapse {
   from {
     background-position: 0 0;
   }
@@ -2705,49 +3619,55 @@ h1 {
   translate: -2px 40px;
   transform: rotate(88deg) scale(0.82);
   transform-origin: 50% 88%;
-  animation: sweep-fall-body 260ms ease-out both;
+  animation: sweep-fall-body 130ms ease-out both;
 }
 
 .stick-fighter--knockdown .battle-sprite {
   bottom: -18px;
   transform: rotate(88deg) scale(0.72);
   transform-origin: 50% 92%;
-  animation: sweep-fall-sprite 260ms ease-out both;
+  animation: sweep-fall-sprite 130ms ease-out both;
 }
 
 .stick-fighter--knockdown .battle-sprite--knockdown {
   bottom: -20px;
   transform: none;
-  animation: sweep-fall-knockdown 260ms ease-out both;
+  animation: sweep-fall-knockdown 130ms ease-out both;
 }
 
 .stick-fighter--knockdown .battle-sprite--queen.battle-sprite--knockdown {
   transform: scaleX(-1) rotate(-40deg);
 }
 
+.stick-fighter--knockdown .battle-sprite--gerson-boom.battle-sprite--knockdown {
+  bottom: -4px;
+  transform: rotate(35deg);
+  animation: none;
+}
+
 .stick-fighter--recovering .stick-body {
-  animation: knockdown-rise-body 360ms ease-out both;
+  animation: knockdown-rise-body 180ms ease-out both;
   transform-origin: 50% 90%;
 }
 
 .stick-fighter--recovering .battle-sprite {
-  animation: knockdown-rise-sprite 360ms ease-out both;
+  animation: knockdown-rise-sprite 180ms ease-out both;
   transform-origin: 50% 96%;
 }
 
 .stick-fighter--launched .stick-body {
-  animation: launched-spin 420ms steps(3, end) infinite;
+  animation: launched-spin 210ms steps(3, end) infinite;
 }
 
 .stick-fighter--launched .battle-sprite {
-  animation: launched-spin 420ms steps(3, end) infinite;
+  animation: launched-spin 210ms steps(3, end) infinite;
 }
 
 .stick-fighter--launched .battle-sprite--roaring-knight.battle-sprite--launched-strip,
 .stick-fighter--knockdown .battle-sprite--roaring-knight.battle-sprite--knockdown {
   bottom: 2px;
   transform: none;
-  animation: knight-impact-reverse 520ms steps(3, end) infinite;
+  animation: knight-impact-reverse 260ms steps(3, end) infinite;
 }
 
 .stick-fighter--recovering.stick-fighter--roaring-knight .battle-sprite {
@@ -2999,7 +3919,7 @@ h1 {
 
 .stick-fighter--punch .stick-body,
 .stick-fighter--kick .stick-body {
-  animation: attack-jolt 240ms ease-out;
+  animation: attack-jolt 120ms ease-out;
 }
 
 @keyframes attack-jolt {
@@ -3020,6 +3940,12 @@ h1 {
   .game-shell {
     padding: 12px;
     place-items: start center;
+  }
+
+  .game-shell--arena {
+    height: 100vh;
+    padding: 0;
+    place-items: stretch;
   }
 
   .select-screen {
@@ -3086,16 +4012,46 @@ h1 {
   }
 
   .arena-screen {
-    min-height: auto;
-    grid-template-rows: auto minmax(660px, var(--arena-stage-min-height, 660px)) auto;
+    min-height: 100vh;
+    height: 100vh;
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .arena-hud {
-    grid-template-columns: 1fr;
+    top: 14px;
+    left: 12px;
+    right: 12px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .fighter-badge {
+    min-height: 74px;
+    padding: 10px 12px 12px;
+    border-width: 3px;
+    border-left-width: 10px;
+  }
+
+  .fighter-badge--right {
+    border-right-width: 10px;
+    border-left-width: 3px;
+  }
+
+  .badge-name {
+    font-size: 18px;
+  }
+
+  .health-track {
+    height: 23px;
   }
 
   .round-label {
     justify-self: center;
+    min-width: 98px;
+    min-height: 58px;
+    padding: 8px 12px;
+    border-width: 3px;
+    font-size: 13px;
   }
 }
 
@@ -3116,3 +4072,4 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+

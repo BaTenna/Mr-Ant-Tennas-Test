@@ -1,6 +1,45 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  DEFAULT_BOT_COACH_ADVICE,
+  type BotCoachAdvice,
+  type BotCoachSnapshot,
+  requestGeminiBotAdvice,
+} from './lib/geminiBotCoach';
+import gersonBoomBattleSprite from './assets/gerson-boom-battle-strip.png';
+import gersonAirCounterIcon from './assets/gerson-air-counter-icon.png';
+import gersonBoomBackScarfSprite from './assets/gerson-boom-back-scarf-strip.png';
+import gersonBoomDefeatSprite from './assets/gerson-boom-defeat-strip.png';
+import gersonBoomJumpBounceSprite from './assets/gerson-boom-jump-bounce-strip.png';
+import gersonBoomLeapBoostSprite from './assets/gerson-boom-leap-boost-strip.png';
+import gersonBoomLeapPrepSprite from './assets/gerson-boom-leap-prep.png';
+import gersonBoomJumpSprite from './assets/gerson-boom-jump-strip.png';
+import gersonBoomJumpSlowSprite from './assets/gerson-boom-jump-slow-strip.png';
+import gersonBoomKnockdownSprite from './assets/gerson-boom-knockdown.png';
+import gersonBoomPortraitSprite from './assets/gerson-boom-portrait.png';
+import gersonBoomRightAttackSprite from './assets/gerson-boom-right-attack-strip.png';
+import gersonBoomSpinSprite from './assets/gerson-boom-spin-strip.png';
+import gersonBoomVictorySprite from './assets/gerson-boom-victory.gif';
+import gersonLaughSound from './assets/gerson-laugh.mp3';
+import jevilBattleSprite from './assets/jevil-battle-strip.png';
+import jevilBlockSprite from './assets/jevil-block-strip.png';
+import jevilChaosSpecialSprite from './assets/jevil-chaos-special-strip.png';
+import jevilKickSprite from './assets/jevil-kick-strip.png';
+import jevilPlatformSprite from './assets/jevil-platform-strip.png';
+import jevilPlatformSpecialSprite from './assets/jevil-platform-special-strip.png';
+import jevilPortraitSprite from './assets/jevil-portrait.png';
+import jevilChaosProjectileOneSprite from './assets/jevil-chaos-projectile-1.png';
+import jevilChaosProjectileTwoSprite from './assets/jevil-chaos-projectile-2.png';
+import jevilChaosProjectileThreeSprite from './assets/jevil-chaos-projectile-3.png';
+import jevilChaosProjectileFourSprite from './assets/jevil-chaos-projectile-4.png';
+import jevilHeadProjectileSprite from './assets/jevil-head-projectile-strip.png';
+import jevilHeadlessAbsorbPoseSprite from './assets/jevil-headless-absorb-pose.png';
+import jevilKnockdownDefeatSprite from './assets/jevil-knockdown-defeat.png';
+import jevilScytheProjectileSprite from './assets/jevil-scythe-projectile.png';
+import jevilTeleportFreezeSprite from './assets/jevil-teleport-freeze.png';
+import jevilTeleportShootSprite from './assets/jevil-teleport-shoot.png';
+import jevilTeleportSpecialSprite from './assets/jevil-teleport-special-strip.png';
 import misterAntTennaSprite from './assets/mister-ant-tenna.png';
-import misterAntTennaBattleSprite from './assets/tenna-battle.gif';
+import misterAntTennaBattleSprite from './assets/tenna-battle-strip.png';
 import misterAntTennaCrouchSprite from './assets/tenna-crouch.png';
 import misterAntTennaPunchSprite from './assets/tenna-punch.png';
 import misterAntTennaKickSprite from './assets/tenna-kick-strip.png';
@@ -32,6 +71,7 @@ import queenKnockdownPoseSprite from './assets/queen-knockdown-pose.png';
 import queenHealSprite from './assets/queen-heal.png';
 import queenVictorySprite from './assets/queen-victory-strip.png';
 import queenVictoryBackdropSprite from './assets/queen-victory-backdrop-strip.png';
+import queenUniqueVictoryPoseSprite from './assets/queen-unique-victory-pose.png';
 import roaringKnightPortraitSprite from './assets/roaring-knight-portrait.png';
 import roaringKnightSprite from './assets/roaring-knight.png';
 import roaringKnightChargeHoldSprite from './assets/roaring-knight-charge-hold.png';
@@ -43,6 +83,7 @@ import roaringKnightSphereSprite from './assets/roaring-knight-sphere-strip.png'
 import roaringKnightBirdSprite from './assets/roaring-knight-bird-strip.png';
 import roaringKnightBirdDashSprite from './assets/roaring-knight-bird-dash-strip.png';
 import roaringKnightDarkWaveSprite from './assets/roaring-knight-dark-wave-strip.png';
+import knightDarkWaveExplosionSprite from './assets/knight-dark-wave-explosion.gif';
 import roaringKnightSwordShotSprite from './assets/roaring-knight-sword-shot-strip.png';
 import roaringKnightSwordProjectileSprite from './assets/roaring-knight-sword-projectile.png';
 import roaringKnightDefeatSprite from './assets/roaring-knight-defeat-strip.png';
@@ -71,8 +112,23 @@ import attackKickSound from './assets/snd_heavyswing.wav';
 import attackPunchSound from './assets/snd_impact.wav';
 import queenPunchSound from './assets/snd_laz_c.wav';
 import queenKickSound from './assets/snd_rudebuster_hit.wav';
+import gersonJumpHitSound from './assets/snd_rudebuster_hit.wav';
+import gersonBounceSound from './assets/snd_jump.wav';
 import tennaVictoryThreeSound from './assets/crowd-laughter-deltarune.mp3';
 import tennaStarSpecialSound from './assets/snd_tensionhorn.wav';
+import jevilVoiceAnythingSound from './assets/snd_joker_anything.wav';
+import jevilVoiceAnythingJaSound from './assets/snd_joker_anything_ja.wav';
+import jevilVoiceByeByeSound from './assets/snd_joker_byebye.wav';
+import jevilVoiceChaosSound from './assets/snd_joker_chaos.wav';
+import jevilVoiceHaZeroSound from './assets/snd_joker_ha0.wav';
+import jevilVoiceHaOneSound from './assets/snd_joker_ha1.wav';
+import jevilVoiceLaughZeroSound from './assets/snd_joker_laugh0.wav';
+import jevilVoiceLaughOneSound from './assets/snd_joker_laugh1.wav';
+import jevilVoiceMetamorphosisSound from './assets/snd_joker_metamorphosis.wav';
+import jevilVoiceMetamorphosisJaSound from './assets/snd_joker_metamorphosis_ja.wav';
+import jevilVoiceNeoChaosSound from './assets/snd_joker_neochaos.wav';
+import jevilVoiceNeoChaosJaSound from './assets/snd_joker_neochaos_ja.wav';
+import jevilVoiceOhSound from './assets/snd_joker_oh.wav';
 import doorHoverSound from './assets/snd_spearappear.wav';
 import doorClickSound from './assets/audio_appearance.wav';
 import announcerBeginsOneSound from './assets/announcer-begins-1sec.wav';
@@ -97,6 +153,13 @@ const knightChargeReleaseFrameSprites = [
   roaringKnightChargeReleaseFrame2,
   roaringKnightChargeReleaseFrame3,
   roaringKnightChargeReleaseFrame4,
+];
+
+const jevilChaosProjectileSprites = [
+  jevilChaosProjectileOneSprite,
+  jevilChaosProjectileTwoSprite,
+  jevilChaosProjectileThreeSprite,
+  jevilChaosProjectileFourSprite,
 ];
 
 const KNIGHT_CHARGE_RELEASE_FRAME_MS = [500, 120, 120, 120, 500];
@@ -168,12 +231,37 @@ type Screen = 'title' | 'menu' | 'select' | 'stage' | 'arena' | 'victory';
 type Attack = 'idle' | 'punch' | 'kick';
 type HitLevel = 'high' | 'mid' | 'low';
 type HitEffect = 'none' | 'sweep' | 'uppercut';
+type GersonLandingBounce = {
+  sideDirection: -1 | 1;
+  airHitCount: number;
+  sideKnockbackMultiplier?: number;
+};
+type KnightExplosion = {
+  id: number;
+  side: FighterSide;
+  position: Position;
+};
+type GersonLeapEffect = {
+  id: number;
+  side: FighterSide;
+  x: number;
+  direction: -1 | 1;
+};
 type ArenaMode = 'fight' | 'sandbox';
 type FighterSide = 'left' | 'right';
 type Facing = 'left' | 'right';
 type Position = { x: number; y: number };
+type GameInput = 'w' | 'a' | 's' | 'd' | 'arrowleft' | 'arrowright' | 'arrowdown' | 'arrowup' | 'block';
 type ProjectileLane = 'low' | 'high';
-type ProjectileKind = 'tenna-star' | 'queen-wave' | 'queen-heal-wave' | 'knight-dark-wave' | 'knight-sword';
+type ProjectileKind =
+  | 'tenna-star'
+  | 'queen-wave'
+  | 'queen-heal-wave'
+  | 'knight-dark-wave'
+  | 'knight-sword'
+  | 'jevil-chaos-shot'
+  | 'jevil-head'
+  | 'jevil-scythe';
 type RoundCurtainPhase = 'idle' | 'closing' | 'opening';
 type ChargeAttackState = 'idle' | 'charging' | 'releasing';
 type KnightDarkWaveState = 'idle' | 'holding';
@@ -188,15 +276,27 @@ type Projectile = {
   damage?: number;
   knockback?: number;
   maxTravel?: number;
+  speed?: number;
   createdAt?: number;
   durationMs?: number;
   bottomPx?: number;
+  bottomVelocity?: number;
+  projectileSprite?: string;
+  returning?: boolean;
+  hasHit?: boolean;
+  lastHitAt?: number;
 };
 type HealPopup = {
   id: number;
   side: FighterSide;
   x: number;
   y: number;
+};
+type JevilPlatform = {
+  id: number;
+  x: number;
+  y: number;
+  createdAt: number;
 };
 type KnightAfterimage = {
   id: number;
@@ -220,9 +320,49 @@ type KnightAfterimage = {
 type OpponentStatus = 'idle' | 'knockdown' | 'launched' | 'healing';
 type SelectTarget = 'player' | 'opponent';
 type Difficulty = 'easy' | 'normal' | 'hard';
-type PlayerSpecialMove = 'tenna-ground' | 'tenna-air' | 'queen-ground' | 'queen-heal';
+type BlockOutcome = 'none' | 'normal' | 'perfect';
+type PlayerSpecialMove =
+  | 'tenna-ground'
+  | 'tenna-air'
+  | 'queen-ground'
+  | 'queen-heal'
+  | 'gerson-leap'
+  | 'jevil-absorb'
+  | 'jevil-chaos'
+  | 'jevil-platforms';
 type KnightSpherePhase = 'idle' | 'entering' | 'active' | 'exiting' | 'bird-transform' | 'bird';
 type OpponentKnightSpherePlan = 'none' | 'bird' | 'air-charge' | 'air-dark-wave';
+type AiAction =
+  | 'melee'
+  | 'low'
+  | 'antiHigh'
+  | 'block'
+  | 'crouch'
+  | 'jump'
+  | 'special'
+  | 'heal'
+  | 'sphere'
+  | 'charge'
+  | 'projectile'
+  | 'airSpecial'
+  | 'bird';
+type AiLearningMemory = {
+  player: {
+    total: number;
+    high: number;
+    low: number;
+    mid: number;
+    projectile: number;
+    special: number;
+    jump: number;
+    crouch: number;
+    block: number;
+    air: number;
+    close: number;
+    far: number;
+  };
+  outcomes: Record<AiAction, { success: number; fail: number }>;
+};
 type AttackSoundId =
   | 'attackPunch'
   | 'attackKick'
@@ -230,6 +370,20 @@ type AttackSoundId =
   | 'attackSweep'
   | 'queenPunch'
   | 'queenKick';
+type JevilVoiceSoundId =
+  | 'jevilVoiceAnything'
+  | 'jevilVoiceAnythingJa'
+  | 'jevilVoiceByeBye'
+  | 'jevilVoiceChaos'
+  | 'jevilVoiceHaZero'
+  | 'jevilVoiceHaOne'
+  | 'jevilVoiceLaughZero'
+  | 'jevilVoiceLaughOne'
+  | 'jevilVoiceMetamorphosis'
+  | 'jevilVoiceMetamorphosisJa'
+  | 'jevilVoiceNeoChaos'
+  | 'jevilVoiceNeoChaosJa'
+  | 'jevilVoiceOh';
 type BufferedSoundId =
   | 'select'
   | 'fightStart'
@@ -241,13 +395,50 @@ type BufferedSoundId =
   | 'knightSwordSlash'
   | 'knightSphereTransform'
   | 'knightBirdHit'
+  | 'gersonJumpHit'
+  | 'gersonBounce'
   | 'tennaStarSpecial'
   | 'doorHover'
   | 'doorClick'
   | 'countdown1'
   | 'countdown2'
   | 'countdown3'
+  | JevilVoiceSoundId
   | AttackSoundId;
+
+const JEVIL_VOICE_SOUND_IDS: JevilVoiceSoundId[] = [
+  'jevilVoiceAnything',
+  'jevilVoiceAnythingJa',
+  'jevilVoiceByeBye',
+  'jevilVoiceChaos',
+  'jevilVoiceHaZero',
+  'jevilVoiceHaOne',
+  'jevilVoiceLaughZero',
+  'jevilVoiceLaughOne',
+  'jevilVoiceMetamorphosis',
+  'jevilVoiceMetamorphosisJa',
+  'jevilVoiceNeoChaos',
+  'jevilVoiceNeoChaosJa',
+  'jevilVoiceOh',
+];
+
+function createEmptyJevilVoiceSoundRefs(): Record<JevilVoiceSoundId, HTMLAudioElement | null> {
+  return {
+    jevilVoiceAnything: null,
+    jevilVoiceAnythingJa: null,
+    jevilVoiceByeBye: null,
+    jevilVoiceChaos: null,
+    jevilVoiceHaZero: null,
+    jevilVoiceHaOne: null,
+    jevilVoiceLaughZero: null,
+    jevilVoiceLaughOne: null,
+    jevilVoiceMetamorphosis: null,
+    jevilVoiceMetamorphosisJa: null,
+    jevilVoiceNeoChaos: null,
+    jevilVoiceNeoChaosJa: null,
+    jevilVoiceOh: null,
+  };
+}
 
 type FighterOrbStyle = CSSProperties & {
   '--fighter-color': string;
@@ -297,12 +488,19 @@ const fighters: Fighter[] = [
     ],
   },
   {
-    id: 'volt',
-    name: 'Volt',
-    title: 'Storm Striker',
-    realm: 'Sky Forge',
-    color: '#f0c84b',
-    shadow: '#9a6900',
+    id: 'jevil',
+    name: 'Jevil',
+    title: 'Chaos Jester',
+    realm: 'Card Castle',
+    color: '#8b5cff',
+    shadow: '#28164f',
+    sprite: jevilPortraitSprite,
+    battleSprite: jevilBattleSprite,
+    blockSprite: jevilBlockSprite,
+    kickSprite: jevilKickSprite,
+    specialSprite: jevilPlatformSpecialSprite,
+    knockdownSprite: jevilKnockdownDefeatSprite,
+    defeatSprite: jevilKnockdownDefeatSprite,
   },
   {
     id: 'moss',
@@ -327,6 +525,22 @@ const fighters: Fighter[] = [
     realm: 'Moon Arena',
     color: '#7b5bd6',
     shadow: '#38217a',
+  },
+  {
+    id: 'gerson-boom',
+    name: 'Gerson Boom',
+    title: 'Old Rainmaker',
+    realm: 'History Shelter',
+    color: '#49b642',
+    shadow: '#244232',
+    sprite: gersonBoomPortraitSprite,
+    battleSprite: gersonBoomBattleSprite,
+    punchSprite: gersonBoomSpinSprite,
+    kickSprite: gersonBoomRightAttackSprite,
+    jumpSprite: gersonBoomJumpSprite,
+    knockdownSprite: gersonBoomKnockdownSprite,
+    defeatSprite: gersonBoomDefeatSprite,
+    victorySprites: [gersonBoomVictorySprite],
   },
   {
     id: 'queen',
@@ -377,6 +591,7 @@ const stages: Stage[] = [
     image: stageTennaArena,
     position: 'center calc(100% + 18px)',
     size: '118% 100%',
+    fighterLift: 70,
   },
   {
     id: 'couch-cliffs',
@@ -384,7 +599,7 @@ const stages: Stage[] = [
     image: stageCouchCliffs,
     position: 'center calc(50% + 34px)',
     size: 'cover',
-    fighterLift: 96,
+    fighterLift: 250,
   },
   {
     id: 'cold-place',
@@ -392,6 +607,7 @@ const stages: Stage[] = [
     image: stageColdPlace,
     position: 'center center',
     size: 'cover',
+    fighterLift: 70,
   },
   {
     id: 'dark-sanctuaries',
@@ -399,6 +615,7 @@ const stages: Stage[] = [
     image: stageDarkSanctuaries,
     position: 'center center',
     size: 'cover',
+    fighterLift: 70,
   },
   {
     id: 'queens-mansion',
@@ -406,7 +623,7 @@ const stages: Stage[] = [
     image: stageQueensMansion,
     position: 'center calc(50% + 96px)',
     size: 'cover',
-    fighterLift: 102,
+    fighterLift: 250,
     arenaHeight: 920,
   },
 ];
@@ -460,6 +677,10 @@ function getProjectileVerticalBounds(projectile: Projectile) {
   const bottom =
     typeof projectile.bottomPx === 'number'
       ? projectile.bottomPx
+      : projectile.kind === 'jevil-scythe'
+      ? JEVIL_SCYTHE_BOTTOM_PX
+      : projectile.kind === 'jevil-chaos-shot'
+        ? JEVIL_CHAOS_SHOT_BOTTOM_PX
       : projectile.kind === 'knight-sword'
       ? KNIGHT_SWORD_PROJECTILE_HIGH_BOTTOM_PX
       : projectile.kind === 'queen-wave' && projectile.lane === 'high'
@@ -535,7 +756,11 @@ function getFighterGravity(
 }
 
 function getKnightSphereMaxY(stage: Stage) {
-  const arenaHeight = stage.arenaHeight ?? 760;
+  const viewportArenaHeight =
+    typeof window === 'undefined'
+      ? 0
+      : window.innerHeight;
+  const arenaHeight = Math.max(stage.arenaHeight ?? 760, viewportArenaHeight);
   const floorLift = stage.fighterLift ?? 0;
 
   return Math.max(
@@ -546,7 +771,64 @@ function getKnightSphereMaxY(stage: Stage) {
 }
 
 function canFighterCrouch(fighter: Fighter) {
-  return fighter.id !== 'roaring-knight';
+  return fighter.id !== 'roaring-knight' && fighter.id !== 'jevil';
+}
+
+function isAlwaysCrouchingFighter(fighter: Fighter) {
+  return fighter.id === 'gerson-boom';
+}
+
+function getFighterJumpPower(fighter: Fighter, fallback = DEFAULT_JUMP_POWER) {
+  if (fighter.id === 'roaring-knight') return KNIGHT_JUMP_POWER;
+  if (fighter.id === 'jevil') return JEVIL_JUMP_POWER;
+  return fallback;
+}
+
+function getFighterWalkSpeed(fighter: Fighter, fallback = WALK_SPEED) {
+  if (fighter.id === 'jevil') return JEVIL_WALK_SPEED;
+  return fallback;
+}
+
+function getFighterAttackDuration(fighter: Fighter, attack: Exclude<Attack, 'idle'>) {
+  if (fighter.id === 'jevil' && attack === 'kick') return JEVIL_KICK_DURATION_MS;
+  return ATTACK_DURATION_MS[attack];
+}
+
+function getFighterAttackCooldown(fighter: Fighter, attack: Exclude<Attack, 'idle'>, isCpu = false) {
+  if (fighter.id === 'jevil' && attack === 'kick') {
+    return isCpu ? CPU_JEVIL_KICK_COOLDOWN_MS : JEVIL_KICK_COOLDOWN_MS;
+  }
+
+  return isCpu ? CPU_ATTACK_COOLDOWN_MS : ATTACK_COOLDOWN_MS;
+}
+
+function getAttackKnockbackStrength(fighter: Fighter, attack: Exclude<Attack, 'idle'>) {
+  if (fighter.id === 'jevil' && attack === 'kick') {
+    return (
+      JEVIL_KICK_KNOCKBACK_MIN +
+      Math.random() * (JEVIL_KICK_KNOCKBACK_MAX - JEVIL_KICK_KNOCKBACK_MIN)
+    );
+  }
+
+  return ATTACK_KNOCKBACK_VELOCITY;
+}
+
+function rollBlockOutcome(fighter: Fighter, isBlocked: boolean): BlockOutcome {
+  if (!isBlocked) return 'none';
+  if (fighter.id !== 'jevil') return 'normal';
+
+  const roll = Math.random();
+  if (roll < 0.3) return 'perfect';
+  if (roll < 0.9) return 'normal';
+  return 'none';
+}
+
+function canBlockLowWithoutCrouch(fighter: Fighter) {
+  return fighter.id === 'jevil';
+}
+
+function getFacingToward(fromX: number, targetX: number): Facing {
+  return fromX <= targetX ? 'right' : 'left';
 }
 
 const START_POSITION: Position = { x: 12, y: 0 };
@@ -556,10 +838,43 @@ const ARENA_RIGHT_LIMIT = 118;
 const ARENA_VISIBLE_LEFT = 6;
 const ARENA_VISIBLE_RIGHT = 94;
 const FIGHTER_COLLISION_GAP = 9;
+const AIRBORNE_CROSS_LANDING_SPACE = FIGHTER_COLLISION_GAP * 2;
 const MAX_HEALTH = 100;
 const ATTACK_COOLDOWN_MS = 780;
 const CPU_ATTACK_COOLDOWN_MS = 860;
 const SPECIAL_COOLDOWN_MS = 900;
+const JEVIL_PLATFORM_SPECIAL_COOLDOWN_MS = 2500;
+const JEVIL_CHAOS_SPECIAL_COOLDOWN_MS = 1600;
+const JEVIL_CHAOS_SPECIAL_MS = 520;
+const JEVIL_ABSORB_SPECIAL_COOLDOWN_MS = 2600;
+const JEVIL_ABSORB_DURATION_MS = 10000;
+const JEVIL_ABSORB_DAMAGE_RETURN_RATIO = 0.8;
+const JEVIL_ABSORB_HEAD_MIN_DAMAGE = 15;
+const JEVIL_ABSORB_FINALE_LOCK_MS = 1000;
+const JEVIL_ABSORB_POST_HEAD_LOCK_MS = 1000;
+const JEVIL_HEAD_PROJECTILE_SPEED = 0.72;
+const JEVIL_HEAD_PROJECTILE_BOTTOM_OFFSET = 74;
+const JEVIL_TELEPORT_SPECIAL_COOLDOWN_MS = 1900;
+const JEVIL_TELEPORT_VANISH_MS = 210;
+const JEVIL_TELEPORT_FREEZE_MS = 620;
+const JEVIL_TELEPORT_SHOOT_POSE_MS = 220;
+const JEVIL_TELEPORT_MIN_AIR_Y = 250;
+const JEVIL_CHAOS_SHOT_DAMAGE = 6;
+const JEVIL_CHAOS_SHOT_KNOCKBACK = 0.65;
+const JEVIL_CHAOS_SHOT_SPEED = 0.48;
+const JEVIL_CHAOS_SHOT_BOTTOM_PX = 178;
+const JEVIL_CHAOS_SHOT_SPAWN_OFFSET_Y = 64;
+const JEVIL_SCYTHE_DAMAGE = 7;
+const JEVIL_SCYTHE_MAX_TRAVEL = 86;
+const JEVIL_SCYTHE_HIT_TICK_MS = 260;
+const JEVIL_SCYTHE_SPEED = 0.78;
+const JEVIL_SCYTHE_SPAWN_OFFSET = 9;
+const JEVIL_SCYTHE_BOTTOM_PX = 168;
+const JEVIL_PLATFORM_DURATION_MS = 10000;
+const JEVIL_PLATFORM_MIN_Y = 96;
+const JEVIL_PLATFORM_CENTER_OFFSET_Y = 210;
+const JEVIL_PLATFORM_X_OFFSET = 22;
+const JEVIL_PLATFORM_HALF_WIDTH = 20;
 const QUEEN_SPECIAL_COOLDOWN_MS = 3000;
 const QUEEN_HEAL_COOLDOWN_MS = 6800;
 const QUEEN_HEAL_DURATION_MS = 4200;
@@ -569,15 +884,15 @@ const QUEEN_HEAL_WAVE_DAMAGE = 4;
 const QUEEN_HEAL_WAVE_KNOCKBACK = 0.85;
 const HEAL_POPUP_MS = 520;
 const TENNA_AIR_SPECIAL_COOLDOWN_MS = 2600;
-const SPECIAL_INPUT_WINDOW_MS = 240;
-const SPECIAL_INPUT_TOTAL_MS = 520;
+const SPECIAL_INPUT_WINDOW_MS = 420;
+const SPECIAL_INPUT_TOTAL_MS = 1600;
 const KNIGHT_SPHERE_INPUT_WINDOW_MS = 420;
 const KNIGHT_SPHERE_INPUT_TOTAL_MS = 1400;
 const KNIGHT_SPHERE_TRANSFORM_MS = 720;
 const KNIGHT_SPHERE_SPEED = 0.42;
 const KNIGHT_SPHERE_SIZE_PX = 124;
 const KNIGHT_SPHERE_BOTTOM_OFFSET_PX = 52;
-const KNIGHT_SPHERE_TOP_PADDING_PX = 10;
+const KNIGHT_SPHERE_TOP_PADDING_PX = 128;
 const KNIGHT_SPHERE_HORIZONTAL_MARGIN = 5;
 const KNIGHT_SPHERE_HEALTH_DRAIN = 1;
 const KNIGHT_SPHERE_HEALTH_DRAIN_MS = 2000;
@@ -605,6 +920,10 @@ const KNIGHT_DARK_WAVE_RING_INTERVAL_MS = 500;
 const KNIGHT_DARK_WAVE_RING_DURATION_MS = 3000;
 const KNIGHT_DARK_WAVE_RING_MAX_RANGE = 72;
 const KNIGHT_DARK_WAVE_COOLDOWN_MS = 900;
+const KNIGHT_DARK_WAVE_OVERHEAT_WARNING_MS = 15000;
+const KNIGHT_DARK_WAVE_EXPLODE_MS = 20000;
+const KNIGHT_DARK_WAVE_SELF_DAMAGE = 20;
+const KNIGHT_DARK_WAVE_EXPLOSION_MS = 1100;
 const KNIGHT_SPECIAL_HURTBOX_BONUS = 12;
 const KNIGHT_SPECIAL_PROJECTILE_HURTBOX_BONUS = 8;
 const SPECIAL_SHOOT_MS = 500;
@@ -619,6 +938,7 @@ const ROUND_CURTAIN_DROP_DELAY_MS = 3000;
 const ROUND_CURTAIN_CLOSED_MS = 2000;
 const ROUND_CURTAIN_OPEN_MS = 900;
 const ROUND_COUNTDOWN_STEP_MS = 1000;
+const ROUND_TIME_LIMIT_SECONDS = 60;
 const PROJECTILE_DAMAGE = 8;
 const QUEEN_PROJECTILE_DAMAGE = 13;
 const PROJECTILE_KNOCKBACK_VELOCITY = 1.25;
@@ -627,7 +947,7 @@ const PROJECTILE_KNOCKBACK_FRICTION = 0.9;
 const PROJECTILE_SPEED = 0.72;
 const PROJECTILE_BASE_BOTTOM_PX = 76;
 const PROJECTILE_HIGH_BOTTOM_PX = 188;
-const QUEEN_PROJECTILE_HIGH_BOTTOM_PX = 214;
+const QUEEN_PROJECTILE_HIGH_BOTTOM_PX = 250;
 const KNIGHT_SWORD_PROJECTILE_HIGH_BOTTOM_PX = 252;
 const FIGHTER_BASE_BOTTOM_PX = 94;
 const ATTACK_KNOCKBACK_VELOCITY = 0.92;
@@ -645,15 +965,23 @@ const FIGHTER_PROJECTILE_HITBOX = {
 };
 const PROJECTILE_HITBOX: Record<ProjectileKind, { halfWidth: number; height: number }> = {
   'tenna-star': { halfWidth: 4.5, height: 54 },
-  'queen-wave': { halfWidth: 6.5, height: 92 },
+  'queen-wave': { halfWidth: 6.5, height: 170 },
   'queen-heal-wave': { halfWidth: 7, height: 28 },
   'knight-dark-wave': { halfWidth: 8, height: 120 },
   'knight-sword': { halfWidth: 10.5, height: 42 },
+  'jevil-chaos-shot': { halfWidth: 6, height: 54 },
+  'jevil-head': { halfWidth: 7, height: 86 },
+  'jevil-scythe': { halfWidth: 11, height: 122 },
 };
 const ATTACK_DURATION_MS: Record<Exclude<Attack, 'idle'>, number> = {
   punch: 240,
   kick: 520,
 };
+const JEVIL_KICK_DURATION_MS = 320;
+const JEVIL_KICK_COOLDOWN_MS = 430;
+const CPU_JEVIL_KICK_COOLDOWN_MS = 520;
+const JEVIL_KICK_KNOCKBACK_MIN = 0.9;
+const JEVIL_KICK_KNOCKBACK_MAX = 1.65;
 const CROUCH_UPPERCUT_DURATION_MS = 420;
 const CROUCH_UPPERCUT_RECOVERY_MS = 1000;
 const UPPERCUT_KNOCKBACK = 2.25;
@@ -661,8 +989,44 @@ const SWEEP_KNOCKDOWN_MS = 2000;
 const UPPERCUT_LANDING_KNOCKDOWN_MS = 1000;
 const KNOCKDOWN_RECOVERY_MS = 360;
 const WALK_SPEED = 0.2;
+const JEVIL_WALK_SPEED = 0.29;
 const DEFAULT_JUMP_POWER = 10.2;
 const DEFAULT_JUMP_GRAVITY = 0.28;
+const JEVIL_JUMP_POWER = 15.2;
+const GERSON_LANDING_HIT_RANGE = 26;
+const GERSON_LANDING_DIRECT_HIT_RANGE = 10;
+const GERSON_LANDING_VERTICAL_HIT_RANGE = 120;
+const GERSON_LANDING_DAMAGE = 3;
+const GERSON_LANDING_DIRECT_DAMAGE = 5;
+const GERSON_LEAP_DIRECT_DAMAGE_MULTIPLIER = 2;
+const GERSON_LANDING_IMMUNITY_MS = 700;
+const GERSON_AIR_COUNTER_HIDE_DELAY_MS = 3000;
+const GERSON_LANDING_BOUNCE_POWER = 15.8;
+const GERSON_LANDING_BOUNCE_START_Y = 24;
+const GERSON_SIDE_BOUNCE_AFTER_AIR_HITS = 4;
+const GERSON_RANDOM_SIDE_BOUNCE_AFTER_AIR_HITS = 5;
+const GERSON_SIDE_BOUNCE_VELOCITY = 1.15;
+const GERSON_SIDE_BOUNCE_START_X = 2.5;
+const GERSON_BLOCKED_BOUNCE_KNOCKBACK_MULTIPLIER = 2.2;
+const GERSON_CHAIN_SIDE_BOUNCE_RAMP_AFTER_HITS = 10;
+const GERSON_CHAIN_SIDE_BOUNCE_RAMP_INTERVAL_HITS = 3;
+const GERSON_CHAIN_SIDE_BOUNCE_RAMP_PER_HIT = 0.25;
+const GERSON_CPU_STOMP_JUMP_RANGE = 42;
+const GERSON_CPU_STOMP_JUMP_CHANCE = 0.82;
+const GERSON_PARRY_HIT_FRAME_RATIO = 0.38;
+const GERSON_PARRY_PROJECTILE_RANGE = 52;
+const GERSON_PARRY_MELEE_RANGE = 24;
+const GERSON_PARRY_MELEE_DAMAGE = 4;
+const GERSON_PARRY_DURATION_MS = 760;
+const CPU_GERSON_PARRY_PROJECTILE_HIT_MS = 90;
+const GERSON_SPIN_MAX_HOLD_MS = 5000;
+const GERSON_SPIN_DAMAGE_INTERVAL_MS = 260;
+const GERSON_SPIN_DAMAGE = 1;
+const GERSON_SPIN_RANGE = 29;
+const GERSON_LEAP_JUMP_POWER = DEFAULT_JUMP_POWER * 2;
+const GERSON_LEAP_DASH_VELOCITY = 4.6;
+const GERSON_LEAP_DASH_START_X = 9;
+const GERSON_LEAP_PREP_MS = 1000;
 const KNIGHT_JUMP_POWER = 8.4;
 const KNIGHT_JUMP_GRAVITY = 0.17;
 const KNIGHT_FALL_GRAVITY_MULTIPLIER = 1 / 30;
@@ -674,6 +1038,29 @@ const KNIGHT_CHARGE_RELEASE_MS = 1360;
 const KNIGHT_CHARGE_AURA_DELAY_MS = 4000;
 const KNIGHT_CHARGE_RANGE = 32;
 const KNIGHT_BLOCK_STARTUP_MS = 360;
+const CONTROL_BINDINGS_STORAGE_KEY = 'deltafight-control-bindings';
+const DEFAULT_CONTROL_BINDINGS: Record<GameInput, string> = {
+  w: 'KeyW',
+  a: 'KeyA',
+  s: 'KeyS',
+  d: 'KeyD',
+  arrowleft: 'ArrowLeft',
+  arrowright: 'ArrowRight',
+  arrowdown: 'ArrowDown',
+  arrowup: 'ArrowUp',
+  block: 'ShiftRight',
+};
+const CONTROL_BINDING_LABELS: Array<{ action: GameInput; label: string }> = [
+  { action: 'w', label: 'Прыжок / вверх' },
+  { action: 'a', label: 'Идти влево' },
+  { action: 's', label: 'Присесть / вниз' },
+  { action: 'd', label: 'Идти вправо' },
+  { action: 'arrowleft', label: 'Удар1' },
+  { action: 'arrowright', label: 'Удар2' },
+  { action: 'arrowdown', label: 'Комбо вниз' },
+  { action: 'arrowup', label: 'Комбо вверх' },
+  { action: 'block', label: 'Блок' },
+];
 const AI_CONFIG: Record<
   Difficulty,
   {
@@ -723,6 +1110,61 @@ const AI_CONFIG: Record<
   },
 };
 
+function createAiLearningMemory(): AiLearningMemory {
+  return {
+    player: {
+      total: 0,
+      high: 0,
+      low: 0,
+      mid: 0,
+      projectile: 0,
+      special: 0,
+      jump: 0,
+      crouch: 0,
+      block: 0,
+      air: 0,
+      close: 0,
+      far: 0,
+    },
+    outcomes: {
+      melee: { success: 1, fail: 1 },
+      low: { success: 1, fail: 1 },
+      antiHigh: { success: 1, fail: 1 },
+      block: { success: 1, fail: 1 },
+      crouch: { success: 1, fail: 1 },
+      jump: { success: 1, fail: 1 },
+      special: { success: 1, fail: 1 },
+      heal: { success: 1, fail: 1 },
+      sphere: { success: 1, fail: 1 },
+      charge: { success: 1, fail: 1 },
+      projectile: { success: 1, fail: 1 },
+      airSpecial: { success: 1, fail: 1 },
+      bird: { success: 1, fail: 1 },
+    },
+  };
+}
+
+function loadControlBindings(): Record<GameInput, string> {
+  if (typeof window === 'undefined') return DEFAULT_CONTROL_BINDINGS;
+
+  try {
+    const saved = window.localStorage.getItem(CONTROL_BINDINGS_STORAGE_KEY);
+    if (!saved) return DEFAULT_CONTROL_BINDINGS;
+
+    const parsed = JSON.parse(saved) as Partial<Record<GameInput, string>>;
+    return {
+      ...DEFAULT_CONTROL_BINDINGS,
+      ...Object.fromEntries(
+        (Object.keys(DEFAULT_CONTROL_BINDINGS) as GameInput[])
+          .map((action) => [action, parsed[action]])
+          .filter((entry): entry is [GameInput, string] => typeof entry[1] === 'string' && entry[1].length > 0),
+      ),
+    };
+  } catch {
+    return DEFAULT_CONTROL_BINDINGS;
+  }
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>('title');
   const [showTitleInfo, setShowTitleInfo] = useState(false);
@@ -737,6 +1179,9 @@ export default function App() {
   const [lockedFighter, setLockedFighter] = useState<Fighter | null>(null);
   const [lockedOpponent, setLockedOpponent] = useState<Fighter | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [controlBindings, setControlBindings] = useState<Record<GameInput, string>>(() => loadControlBindings());
+  const [rebindingAction, setRebindingAction] = useState<GameInput | null>(null);
+  const [controlsSettingsOpen, setControlsSettingsOpen] = useState(false);
   const [effectsVolume, setEffectsVolume] = useState(0.85);
   const [musicVolume, setMusicVolume] = useState(0.55);
   const isArenaPaused = screen === 'arena' && settingsOpen;
@@ -752,6 +1197,12 @@ export default function App() {
   const [opponentCrouching, setOpponentCrouching] = useState(false);
   const [playerSpecialShooting, setPlayerSpecialShooting] = useState(false);
   const [opponentSpecialShooting, setOpponentSpecialShooting] = useState(false);
+  const [playerSpecialSpriteOverride, setPlayerSpecialSpriteOverride] = useState<string | null>(null);
+  const [opponentSpecialSpriteOverride, setOpponentSpecialSpriteOverride] = useState<string | null>(null);
+  const [playerJevilAbsorbing, setPlayerJevilAbsorbing] = useState(false);
+  const [opponentJevilAbsorbing, setOpponentJevilAbsorbing] = useState(false);
+  const [playerJevilHeadlessPose, setPlayerJevilHeadlessPose] = useState(false);
+  const [opponentJevilHeadlessPose, setOpponentJevilHeadlessPose] = useState(false);
   const [playerAirSpecialWave, setPlayerAirSpecialWave] = useState(false);
   const [opponentAirSpecialWave, setOpponentAirSpecialWave] = useState(false);
   const [isCrouching, setIsCrouching] = useState(false);
@@ -759,8 +1210,13 @@ export default function App() {
   const [isBlocking, setIsBlocking] = useState(false);
   const [playerHealth, setPlayerHealth] = useState(MAX_HEALTH);
   const [opponentHealth, setOpponentHealth] = useState(MAX_HEALTH);
+  const [playerGersonAirLandingHits, setPlayerGersonAirLandingHits] = useState(0);
+  const [opponentGersonAirLandingHits, setOpponentGersonAirLandingHits] = useState(0);
+  const [playerGersonLeapActive, setPlayerGersonLeapActive] = useState(false);
+  const [playerGersonLeapPreparing, setPlayerGersonLeapPreparing] = useState(false);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [healPopups, setHealPopups] = useState<HealPopup[]>([]);
+  const [jevilPlatforms, setJevilPlatforms] = useState<JevilPlatform[]>([]);
   const [knightAfterimages, setKnightAfterimages] = useState<KnightAfterimage[]>([]);
   const [knightVisualLift, setKnightVisualLift] = useState(0);
   const [winnerSide, setWinnerSide] = useState<FighterSide>('left');
@@ -772,6 +1228,7 @@ export default function App() {
   const [roundWinnerPoseSprite, setRoundWinnerPoseSprite] = useState<string | null>(null);
   const [roundCurtainPhase, setRoundCurtainPhase] = useState<RoundCurtainPhase>('idle');
   const [roundCountdown, setRoundCountdown] = useState(3);
+  const [roundTimeLeft, setRoundTimeLeft] = useState(ROUND_TIME_LIMIT_SECONDS);
   const [playerChargeAttackState, setPlayerChargeAttackState] = useState<ChargeAttackState>('idle');
   const [playerChargeAuraActive, setPlayerChargeAuraActive] = useState(false);
   const [opponentChargeAttackState, setOpponentChargeAttackState] = useState<ChargeAttackState>('idle');
@@ -779,8 +1236,12 @@ export default function App() {
   const [playerKnightSpherePhase, setPlayerKnightSpherePhase] = useState<KnightSpherePhase>('idle');
   const [playerKnightDarkWaveState, setPlayerKnightDarkWaveState] = useState<KnightDarkWaveState>('idle');
   const [playerKnightDarkWaveDirection, setPlayerKnightDarkWaveDirection] = useState<-1 | 1>(1);
+  const [playerKnightDarkWaveOverheated, setPlayerKnightDarkWaveOverheated] = useState(false);
   const [opponentKnightSpherePhase, setOpponentKnightSpherePhase] = useState<KnightSpherePhase>('idle');
   const [opponentKnightDarkWaveState, setOpponentKnightDarkWaveState] = useState<KnightDarkWaveState>('idle');
+  const [opponentKnightDarkWaveOverheated, setOpponentKnightDarkWaveOverheated] = useState(false);
+  const [knightExplosions, setKnightExplosions] = useState<KnightExplosion[]>([]);
+  const [gersonLeapEffects, setGersonLeapEffects] = useState<GersonLeapEffect[]>([]);
 
   const attackTimer = useRef<number | null>(null);
   const attackHitTimer = useRef<number | null>(null);
@@ -791,6 +1252,8 @@ export default function App() {
   const playerStatusTimer = useRef<number | null>(null);
   const playerDamageFlashTimer = useRef<number | null>(null);
   const opponentDamageFlashTimer = useRef<number | null>(null);
+  const playerGersonSpinDamageTimer = useRef<number | null>(null);
+  const playerGersonSpinMaxTimer = useRef<number | null>(null);
   const playerRecoveryTimer = useRef<number | null>(null);
   const opponentRecoveryTimer = useRef<number | null>(null);
   const opponentCrouchTimer = useRef<number | null>(null);
@@ -798,13 +1261,15 @@ export default function App() {
   const roundTransitionTimer = useRef<number | null>(null);
   const roundCurtainTimer = useRef<number | null>(null);
   const countdownTimer = useRef<number | null>(null);
+  const roundClockTimer = useRef<number | null>(null);
   const doorTransitionTimer = useRef<number | null>(null);
   const screenRevealTimer = useRef<number | null>(null);
   const knightAfterimageTimer = useRef<number | null>(null);
   const attackReadyAt = useRef(0);
   const opponentAttackReadyAt = useRef(0);
   const specialReadyAt = useRef(0);
-  const specialInputStep = useRef<0 | 1 | 2>(0);
+  const specialInputStep = useRef(0);
+  const specialInputBuffer = useRef<string[]>([]);
   const specialInputExpiresAt = useRef(0);
   const specialInputStartedAt = useRef(0);
   const specialInputMove = useRef<PlayerSpecialMove | null>(null);
@@ -832,6 +1297,11 @@ export default function App() {
   const playerKnightDarkWaveDirectionRef = useRef<-1 | 1>(1);
   const playerKnightDarkWaveTimer = useRef<number | null>(null);
   const opponentInsidePlayerKnightDarkWaveStartedAt = useRef(0);
+  const playerJevilAbsorbActiveRef = useRef(false);
+  const playerJevilAbsorbDamageRef = useRef(0);
+  const playerJevilAbsorbEndsAtRef = useRef(0);
+  const playerJevilAbsorbFinaleStartedRef = useRef(false);
+  const playerJevilAbsorbRecoverUntilRef = useRef(0);
   const opponentChargeAttackStartedAt = useRef(0);
   const opponentChargeReleaseStartedAt = useRef(0);
   const opponentChargeAttackStateRef = useRef<ChargeAttackState>('idle');
@@ -843,6 +1313,11 @@ export default function App() {
   const opponentKnightDarkWaveDirectionRef = useRef<-1 | 1>(-1);
   const opponentKnightDarkWaveTimer = useRef<number | null>(null);
   const playerInsideOpponentKnightDarkWaveStartedAt = useRef(0);
+  const opponentJevilAbsorbActiveRef = useRef(false);
+  const opponentJevilAbsorbDamageRef = useRef(0);
+  const opponentJevilAbsorbEndsAtRef = useRef(0);
+  const opponentJevilAbsorbFinaleStartedRef = useRef(false);
+  const opponentJevilAbsorbRecoverUntilRef = useRef(0);
   const playerKnightSphereTimer = useRef<number | null>(null);
   const playerKnightSphereDrainInterval = useRef<number | null>(null);
   const playerKnightBirdDashDirection = useRef<-1 | 1>(1);
@@ -855,8 +1330,12 @@ export default function App() {
   const opponentKnightSpherePhaseStartedAt = useRef(0);
   const opponentKnightSpherePlanRef = useRef<OpponentKnightSpherePlan>('none');
   const opponentKnightSphereExitFollowupRef = useRef<Exclude<OpponentKnightSpherePlan, 'none' | 'bird'> | null>(null);
+  const knightExplosionIdRef = useRef(1);
+  const knightExplosionTimers = useRef<number[]>([]);
   const playerAttackStartedAt = useRef(0);
   const opponentAttackStartedAt = useRef(0);
+  const playerAttackFacingRef = useRef<Facing | null>(null);
+  const opponentAttackFacingRef = useRef<Facing | null>(null);
   const playerStatusStartedAt = useRef(0);
   const opponentStatusStartedAt = useRef(0);
   const playerLaunchedFallStartedAt = useRef(0);
@@ -874,6 +1353,10 @@ export default function App() {
   const opponentBlockingRef = useRef(false);
   const opponentCrouchingRef = useRef(false);
   const opponentBlockTimer = useRef<number | null>(null);
+  const aiLearningRef = useRef<AiLearningMemory>(createAiLearningMemory());
+  const pendingOpponentActionRef = useRef<AiAction | null>(null);
+  const botCoachAdviceRef = useRef<BotCoachAdvice>(DEFAULT_BOT_COACH_ADVICE);
+  const botCoachRequestInFlightRef = useRef(false);
   const playerBlockHeldRef = useRef(false);
   const playerBlockStartupRef = useRef(false);
   const playerBlockStartupTimer = useRef<number | null>(null);
@@ -881,6 +1364,16 @@ export default function App() {
   const opponentBlockStartedAt = useRef(0);
   const playerHealthRef = useRef(MAX_HEALTH);
   const opponentHealthRef = useRef(MAX_HEALTH);
+  const playerGersonLandingImmuneUntilRef = useRef(0);
+  const opponentGersonLandingImmuneUntilRef = useRef(0);
+  const playerGersonAirLandingHitsRef = useRef(0);
+  const opponentGersonAirLandingHitsRef = useRef(0);
+  const playerGersonLeapDirectBoostReadyRef = useRef(false);
+  const opponentGersonAirStompChainRef = useRef(false);
+  const playerGersonAirCounterHideTimer = useRef<number | null>(null);
+  const opponentGersonAirCounterHideTimer = useRef<number | null>(null);
+  const playerGersonLeapPrepTimer = useRef<number | null>(null);
+  const gersonLeapEffectIdRef = useRef(1);
   const opponentPositionRef = useRef(OPPONENT_POSITION);
   const playerStatusRef = useRef<OpponentStatus>('idle');
   const opponentStatusRef = useRef<OpponentStatus>('idle');
@@ -898,6 +1391,9 @@ export default function App() {
   const knightVisualLiftRef = useRef(0);
   const projectilesRef = useRef<Projectile[]>([]);
   const projectileIdRef = useRef(1);
+  const jevilPlatformsRef = useRef<JevilPlatform[]>([]);
+  const jevilPlatformOwnerRef = useRef<FighterSide | null>(null);
+  const jevilPlatformIdRef = useRef(1);
   const healPopupIdRef = useRef(1);
   const knightAfterimageIdRef = useRef(1);
   const lastKnightAfterimagePositionRef = useRef<Record<FighterSide, Position | null>>({
@@ -906,7 +1402,9 @@ export default function App() {
   });
   const roundResolvedRef = useRef(false);
   const roundCountdownRef = useRef(3);
+  const roundTimeLeftRef = useRef(ROUND_TIME_LIMIT_SECONDS);
   const isArenaPausedRef = useRef(false);
+  const arenaPauseStartedAtRef = useRef(0);
   const animationFrame = useRef<number | null>(null);
   const selectSoundRef = useRef<HTMLAudioElement | null>(null);
   const fightStartSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -920,6 +1418,8 @@ export default function App() {
   const knightSphereTransformSoundRef = useRef<HTMLAudioElement | null>(null);
   const knightBirdDriveSoundRef = useRef<HTMLAudioElement | null>(null);
   const knightBirdHitSoundRef = useRef<HTMLAudioElement | null>(null);
+  const gersonJumpHitSoundRef = useRef<HTMLAudioElement | null>(null);
+  const gersonBounceSoundRef = useRef<HTMLAudioElement | null>(null);
   const tennaStarSpecialSoundRef = useRef<HTMLAudioElement | null>(null);
   const doorHoverSoundRef = useRef<HTMLAudioElement | null>(null);
   const doorClickSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -932,6 +1432,10 @@ export default function App() {
     queenPunch: null,
     queenKick: null,
   });
+  const jevilVoiceSoundRefs = useRef<Record<JevilVoiceSoundId, HTMLAudioElement | null>>(
+    createEmptyJevilVoiceSoundRefs(),
+  );
+  const lastJevilVoiceSoundIdRef = useRef<JevilVoiceSoundId | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const soundBuffersRef = useRef<Partial<Record<BufferedSoundId, AudioBuffer>>>({});
   const countdownSoundRefs = useRef<Record<1 | 2 | 3, HTMLAudioElement | null>>({
@@ -939,6 +1443,17 @@ export default function App() {
     2: null,
     3: null,
   });
+
+  useEffect(() => {
+    window.localStorage.setItem(CONTROL_BINDINGS_STORAGE_KEY, JSON.stringify(controlBindings));
+  }, [controlBindings]);
+
+  useEffect(() => {
+    if (!settingsOpen) {
+      setRebindingAction(null);
+      setControlsSettingsOpen(false);
+    }
+  }, [settingsOpen]);
 
   useEffect(() => {
     let isMounted = true;
@@ -962,6 +1477,8 @@ export default function App() {
     knightSphereTransformSoundRef.current = createFallbackAudio(knightSphereTransformSound, 0.85);
     knightBirdDriveSoundRef.current = createFallbackAudio(knightBirdDriveSound, 0.75);
     knightBirdHitSoundRef.current = createFallbackAudio(attackPunchSound, 0.9);
+    gersonJumpHitSoundRef.current = createFallbackAudio(gersonJumpHitSound, 0.9);
+    gersonBounceSoundRef.current = createFallbackAudio(gersonBounceSound, 0.85);
     tennaStarSpecialSoundRef.current = createFallbackAudio(tennaStarSpecialSound, 0.9);
     doorHoverSoundRef.current = createFallbackAudio(doorHoverSound, 0.75);
     doorClickSoundRef.current = createFallbackAudio(doorClickSound, 0.85);
@@ -977,6 +1494,21 @@ export default function App() {
       1: createFallbackAudio(announcerBeginsOneSound, 0.9),
       2: createFallbackAudio(announcerBeginsTwoSound, 0.9),
       3: createFallbackAudio(announcerBeginsThreeSound, 0.9),
+    };
+    jevilVoiceSoundRefs.current = {
+      jevilVoiceAnything: createFallbackAudio(jevilVoiceAnythingSound, 0.9),
+      jevilVoiceAnythingJa: createFallbackAudio(jevilVoiceAnythingJaSound, 0.9),
+      jevilVoiceByeBye: createFallbackAudio(jevilVoiceByeByeSound, 0.9),
+      jevilVoiceChaos: createFallbackAudio(jevilVoiceChaosSound, 0.9),
+      jevilVoiceHaZero: createFallbackAudio(jevilVoiceHaZeroSound, 0.9),
+      jevilVoiceHaOne: createFallbackAudio(jevilVoiceHaOneSound, 0.9),
+      jevilVoiceLaughZero: createFallbackAudio(jevilVoiceLaughZeroSound, 0.9),
+      jevilVoiceLaughOne: createFallbackAudio(jevilVoiceLaughOneSound, 0.9),
+      jevilVoiceMetamorphosis: createFallbackAudio(jevilVoiceMetamorphosisSound, 0.9),
+      jevilVoiceMetamorphosisJa: createFallbackAudio(jevilVoiceMetamorphosisJaSound, 0.9),
+      jevilVoiceNeoChaos: createFallbackAudio(jevilVoiceNeoChaosSound, 0.9),
+      jevilVoiceNeoChaosJa: createFallbackAudio(jevilVoiceNeoChaosJaSound, 0.9),
+      jevilVoiceOh: createFallbackAudio(jevilVoiceOhSound, 0.9),
     };
     const AudioContextConstructor =
       window.AudioContext ??
@@ -996,6 +1528,8 @@ export default function App() {
         knightSwordSlash: knightSwordSlashSound,
         knightSphereTransform: knightSphereTransformSound,
         knightBirdHit: attackPunchSound,
+        gersonJumpHit: gersonJumpHitSound,
+        gersonBounce: gersonBounceSound,
         tennaStarSpecial: tennaStarSpecialSound,
         doorHover: doorHoverSound,
         doorClick: doorClickSound,
@@ -1008,6 +1542,19 @@ export default function App() {
         attackSweep: attackSweepSound,
         queenPunch: queenPunchSound,
         queenKick: queenKickSound,
+        jevilVoiceAnything: jevilVoiceAnythingSound,
+        jevilVoiceAnythingJa: jevilVoiceAnythingJaSound,
+        jevilVoiceByeBye: jevilVoiceByeByeSound,
+        jevilVoiceChaos: jevilVoiceChaosSound,
+        jevilVoiceHaZero: jevilVoiceHaZeroSound,
+        jevilVoiceHaOne: jevilVoiceHaOneSound,
+        jevilVoiceLaughZero: jevilVoiceLaughZeroSound,
+        jevilVoiceLaughOne: jevilVoiceLaughOneSound,
+        jevilVoiceMetamorphosis: jevilVoiceMetamorphosisSound,
+        jevilVoiceMetamorphosisJa: jevilVoiceMetamorphosisJaSound,
+        jevilVoiceNeoChaos: jevilVoiceNeoChaosSound,
+        jevilVoiceNeoChaosJa: jevilVoiceNeoChaosJaSound,
+        jevilVoiceOh: jevilVoiceOhSound,
       };
 
       Object.entries(soundUrls).forEach(([id, url]) => {
@@ -1058,6 +1605,8 @@ export default function App() {
       knightSphereTransformSoundRef.current = null;
       knightBirdDriveSoundRef.current = null;
       knightBirdHitSoundRef.current = null;
+      gersonJumpHitSoundRef.current = null;
+      gersonBounceSoundRef.current = null;
       tennaStarSpecialSoundRef.current = null;
       doorHoverSoundRef.current = null;
       doorClickSoundRef.current = null;
@@ -1069,6 +1618,7 @@ export default function App() {
         queenPunch: null,
         queenKick: null,
       };
+      jevilVoiceSoundRefs.current = createEmptyJevilVoiceSoundRefs();
       soundBuffersRef.current = {};
       void audioContextRef.current?.close().catch(() => {});
       audioContextRef.current = null;
@@ -1083,6 +1633,11 @@ export default function App() {
     playbackRate = 1,
     maxDurationMs?: number,
   ) {
+    const pauseAllowedSounds: BufferedSoundId[] = ['select', 'doorHover', 'doorClick'];
+    if (isArenaPausedRef.current && screen === 'arena' && !pauseAllowedSounds.includes(id)) {
+      return;
+    }
+
     const audioContext = audioContextRef.current;
     const buffer = soundBuffersRef.current[id];
     const outputVolume = volume * effectsVolume;
@@ -1124,6 +1679,111 @@ export default function App() {
     }
   }
 
+  function getGameplayEffectAudios() {
+    return [
+      fightStartSoundRef.current,
+      tennaAirWaveSoundRef.current,
+      queenHealSoundRef.current,
+      queenCupThrowSoundRef.current,
+      projectileHitSoundRef.current,
+      knightSwordProjectileSoundRef.current,
+      knightSwordSlashSoundRef.current,
+      roaringKnightRoarSoundRef.current,
+      knightSphereTransformSoundRef.current,
+      knightBirdDriveSoundRef.current,
+      knightBirdHitSoundRef.current,
+      gersonJumpHitSoundRef.current,
+      gersonBounceSoundRef.current,
+      tennaStarSpecialSoundRef.current,
+      ...Object.values(attackSoundRefs.current),
+      ...Object.values(countdownSoundRefs.current),
+      ...Object.values(jevilVoiceSoundRefs.current),
+    ].filter((audio): audio is HTMLAudioElement => Boolean(audio));
+  }
+
+  function pauseGameplayEffectsAudio() {
+    getGameplayEffectAudios().forEach((audio) => {
+      audio.pause();
+    });
+    if (audioContextRef.current?.state === 'running') {
+      void audioContextRef.current.suspend().catch(() => {});
+    }
+  }
+
+  function shiftArenaClockAfterPause(pausedMs: number, pausedAt: number) {
+    const shiftStartedAtRefs = [
+      specialInputStartedAt,
+      knightSphereInputStartedAt,
+      knightDarkWaveInputStartedAt,
+      playerChargeAttackStartedAt,
+      playerChargeReleaseStartedAt,
+      playerKnightDarkWaveStartedAt,
+      opponentInsidePlayerKnightDarkWaveStartedAt,
+      opponentChargeAttackStartedAt,
+      opponentChargeReleaseStartedAt,
+      opponentKnightDarkWaveStartedAt,
+      playerInsideOpponentKnightDarkWaveStartedAt,
+      playerKnightSpherePhaseStartedAt,
+      opponentKnightSpherePhaseStartedAt,
+      playerAttackStartedAt,
+      opponentAttackStartedAt,
+      playerStatusStartedAt,
+      opponentStatusStartedAt,
+      playerLaunchedFallStartedAt,
+      opponentLaunchedFallStartedAt,
+      playerBlockStartedAt,
+      opponentBlockStartedAt,
+    ];
+
+    shiftStartedAtRefs.forEach((ref) => {
+      if (ref.current > 0) ref.current += pausedMs;
+    });
+
+    const shiftDeadlineRefs = [
+      attackReadyAt,
+      opponentAttackReadyAt,
+      specialReadyAt,
+      specialInputExpiresAt,
+      knightSphereInputExpiresAt,
+      knightDarkWaveInputExpiresAt,
+      opponentSpecialReadyAt,
+      playerGersonLandingImmuneUntilRef,
+      opponentGersonLandingImmuneUntilRef,
+      playerJevilAbsorbEndsAtRef,
+      opponentJevilAbsorbEndsAtRef,
+      playerJevilAbsorbRecoverUntilRef,
+      opponentJevilAbsorbRecoverUntilRef,
+    ];
+
+    shiftDeadlineRefs.forEach((ref) => {
+      if (ref.current > pausedAt) ref.current += pausedMs;
+    });
+
+    if (jevilPlatformsRef.current.length > 0) {
+      setJevilPlatformsAndRef(
+        jevilPlatformsRef.current.map((platform) => ({
+          ...platform,
+          createdAt: platform.createdAt + pausedMs,
+        })),
+      );
+    }
+  }
+
+  function runAfterArenaPause(callback: () => void): number {
+    if (!isArenaPausedRef.current) {
+      callback();
+      return 0;
+    }
+
+    const timer = window.setInterval(() => {
+      if (isArenaPausedRef.current) return;
+      window.clearInterval(timer);
+      callback();
+    }, 50);
+
+    return timer;
+  }
+
   function playFightStartSound() {
     playBufferedSound('fightStart', fightStartSoundRef.current, 0.8);
   }
@@ -1160,8 +1820,39 @@ export default function App() {
     playBufferedSound('knightBirdHit', knightBirdHitSoundRef.current, 0.9);
   }
 
+  function playGersonJumpHitSound() {
+    playBufferedSound('gersonJumpHit', gersonJumpHitSoundRef.current, 0.9);
+  }
+
+  function playGersonBounceSound() {
+    playBufferedSound('gersonBounce', gersonBounceSoundRef.current, 0.85);
+  }
+
   function playTennaStarSpecialSound() {
     playBufferedSound('tennaStarSpecial', tennaStarSpecialSoundRef.current, 0.9);
+  }
+
+  function playRandomJevilVoiceSound(volume = 0.9) {
+    const availableSoundIds =
+      JEVIL_VOICE_SOUND_IDS.length > 1
+        ? JEVIL_VOICE_SOUND_IDS.filter((soundId) => soundId !== lastJevilVoiceSoundIdRef.current)
+        : JEVIL_VOICE_SOUND_IDS;
+    const soundId = availableSoundIds[Math.floor(Math.random() * availableSoundIds.length)];
+    lastJevilVoiceSoundIdRef.current = soundId;
+    playBufferedSound(soundId, jevilVoiceSoundRefs.current[soundId], volume);
+  }
+
+  function playProjectileImpactSound(projectile: Projectile) {
+    if (
+      projectile.kind === 'jevil-scythe' ||
+      projectile.kind === 'jevil-chaos-shot' ||
+      projectile.kind === 'jevil-head'
+    ) {
+      playRandomJevilVoiceSound();
+      return;
+    }
+
+    playProjectileHitSound();
   }
 
   function getAttackSoundId(fighter: Fighter, nextAttack: Exclude<Attack, 'idle'>, isCrouchAttack: boolean) {
@@ -1736,38 +2427,26 @@ export default function App() {
   }, [roundCountdown]);
 
   useEffect(() => {
-    isArenaPausedRef.current = isArenaPaused;
+    roundTimeLeftRef.current = roundTimeLeft;
+  }, [roundTimeLeft]);
 
-    if (isArenaPaused) {
+  useEffect(() => {
+    const wasPaused = isArenaPausedRef.current;
+    const now = window.performance.now();
+
+    if (isArenaPaused && !wasPaused) {
+      arenaPauseStartedAtRef.current = now;
       pressedKeys.current.clear();
-      stopPlayerBlock();
-      cancelPlayerChargeAttack();
-      cancelPlayerKnightDarkWave();
-      cancelOpponentChargeAttack();
-      cancelOpponentKnightDarkWave();
-      if (attackHitTimer.current) {
-        window.clearTimeout(attackHitTimer.current);
-        attackHitTimer.current = null;
+      pauseGameplayEffectsAudio();
+    } else if (!isArenaPaused && wasPaused) {
+      const pausedAt = arenaPauseStartedAtRef.current;
+      if (pausedAt > 0) {
+        shiftArenaClockAfterPause(now - pausedAt, pausedAt);
+        arenaPauseStartedAtRef.current = 0;
       }
-      if (attackTimer.current) {
-        window.clearTimeout(attackTimer.current);
-        attackTimer.current = null;
-      }
-      if (opponentAttackHitTimer.current) {
-        window.clearTimeout(opponentAttackHitTimer.current);
-        opponentAttackHitTimer.current = null;
-      }
-      if (opponentAttackTimer.current) {
-        window.clearTimeout(opponentAttackTimer.current);
-        opponentAttackTimer.current = null;
-      }
-      attackRef.current = 'idle';
-      updateOpponentAttack('idle');
-      setAttack('idle');
-      setIsCrouchAttackLocked(false);
-      updateOpponentCrouch(false);
-      setIsCrouching(false);
     }
+
+    isArenaPausedRef.current = isArenaPaused;
   }, [isArenaPaused]);
 
   useEffect(() => {
@@ -1869,6 +2548,47 @@ export default function App() {
     };
   }, [isArenaPaused, opponentHealth, playerHealth, roundCountdown, roundCurtainPhase, screen]);
 
+  useEffect(() => {
+    if (roundClockTimer.current) {
+      window.clearInterval(roundClockTimer.current);
+      roundClockTimer.current = null;
+    }
+
+    if (
+      screen !== 'arena' ||
+      arenaMode === 'sandbox' ||
+      isArenaPaused ||
+      roundCurtainPhase !== 'idle' ||
+      roundCountdown > 0 ||
+      roundResolvedRef.current ||
+      playerHealth <= 0 ||
+      opponentHealth <= 0 ||
+      roundTimeLeft <= 0
+    ) {
+      return undefined;
+    }
+
+    roundClockTimer.current = window.setInterval(() => {
+      setRoundTimeLeft((timeLeft) => Math.max(0, timeLeft - 1));
+    }, 1000);
+
+    return () => {
+      if (roundClockTimer.current) {
+        window.clearInterval(roundClockTimer.current);
+        roundClockTimer.current = null;
+      }
+    };
+  }, [
+    arenaMode,
+    isArenaPaused,
+    opponentHealth,
+    playerHealth,
+    roundCountdown,
+    roundCurtainPhase,
+    roundTimeLeft,
+    screen,
+  ]);
+
   function flashDamage(target: FighterSide) {
     if (target === 'left') {
       setPlayerDamageFlash(false);
@@ -1935,6 +2655,7 @@ export default function App() {
 
     setOpponentHealth((health) => {
       const nextHealth = clamp(health + QUEEN_HEAL_PER_TICK, 0, MAX_HEALTH);
+      rememberAiOutcome('heal', nextHealth > health, nextHealth > health ? 0.8 : 0.35);
       opponentHealthRef.current = nextHealth;
       return nextHealth;
     });
@@ -1988,6 +2709,7 @@ export default function App() {
 
   function isPlayerLowProfile() {
     return (
+      (isAlwaysCrouchingFighter(player) && positionRef.current.y === 0 && playerStatusRef.current === 'idle') ||
       (canFighterCrouch(player) && pressedKeys.current.has('s') && positionRef.current.y === 0) ||
       (player.id === 'queen' && playerStatusRef.current === 'healing')
     );
@@ -1995,6 +2717,7 @@ export default function App() {
 
   function isOpponentLowProfile() {
     return (
+      (isAlwaysCrouchingFighter(opponent) && opponentPositionRef.current.y === 0 && opponentStatusRef.current === 'idle') ||
       opponentCrouchingRef.current ||
       (opponent.id === 'queen' && opponentStatusRef.current === 'healing')
     );
@@ -2026,6 +2749,83 @@ export default function App() {
     knightDarkWaveInputStartedAt.current = 0;
   }
 
+  function clearKnightExplosionTimers() {
+    knightExplosionTimers.current.forEach((timer) => window.clearTimeout(timer));
+    knightExplosionTimers.current = [];
+  }
+
+  function spawnKnightExplosion(side: FighterSide, position: Position) {
+    const id = knightExplosionIdRef.current;
+    knightExplosionIdRef.current += 1;
+    setKnightExplosions((explosions) => [...explosions, { id, side, position }]);
+
+    const timer = window.setTimeout(() => {
+      setKnightExplosions((explosions) => explosions.filter((explosion) => explosion.id !== id));
+      knightExplosionTimers.current = knightExplosionTimers.current.filter(
+        (storedTimer) => storedTimer !== timer,
+      );
+    }, KNIGHT_DARK_WAVE_EXPLOSION_MS);
+    knightExplosionTimers.current.push(timer);
+  }
+
+  function applyPlayerHealthDamage(damage: number) {
+    if (player.id === 'jevil' && playerJevilAbsorbActiveRef.current && damage > 0) {
+      playerJevilAbsorbDamageRef.current += damage;
+    }
+
+    setPlayerHealth((health) => {
+      const nextHealth = clamp(health - damage, 0, MAX_HEALTH);
+      const restoredHealth = arenaMode === 'sandbox' && nextHealth <= 0 ? MAX_HEALTH : nextHealth;
+      playerHealthRef.current = restoredHealth;
+      return restoredHealth;
+    });
+  }
+
+  function damagePlayerDirect(damage: number) {
+    flashDamage('left');
+    applyPlayerHealthDamage(damage);
+  }
+
+  function explodeKnightDarkWave(side: FighterSide) {
+    const isPlayerExplosion = side === 'left';
+    const explosionPosition = isPlayerExplosion ? positionRef.current : opponentPositionRef.current;
+
+    spawnKnightExplosion(side, explosionPosition);
+
+    if (isPlayerExplosion) {
+      cancelPlayerKnightDarkWave();
+      damagePlayerDirect(KNIGHT_DARK_WAVE_SELF_DAMAGE);
+    } else {
+      cancelOpponentKnightDarkWave();
+      flashDamage('right');
+      applyOpponentHealthDamage(KNIGHT_DARK_WAVE_SELF_DAMAGE);
+    }
+  }
+
+  function tickKnightDarkWaveOverheat(side: FighterSide) {
+    const isPlayerWave = side === 'left';
+    const stateRef = isPlayerWave ? playerKnightDarkWaveStateRef : opponentKnightDarkWaveStateRef;
+    const startedAt = isPlayerWave
+      ? playerKnightDarkWaveStartedAt.current
+      : opponentKnightDarkWaveStartedAt.current;
+
+    if (stateRef.current !== 'holding' || startedAt <= 0) return false;
+
+    const elapsedMs = window.performance.now() - startedAt;
+    if (elapsedMs >= KNIGHT_DARK_WAVE_OVERHEAT_WARNING_MS) {
+      if (isPlayerWave) {
+        setPlayerKnightDarkWaveOverheated(true);
+      } else {
+        setOpponentKnightDarkWaveOverheated(true);
+      }
+    }
+
+    if (elapsedMs < KNIGHT_DARK_WAVE_EXPLODE_MS) return false;
+
+    explodeKnightDarkWave(side);
+    return true;
+  }
+
   function cancelPlayerKnightDarkWave() {
     if (playerKnightDarkWaveTimer.current) {
       window.clearInterval(playerKnightDarkWaveTimer.current);
@@ -2036,6 +2836,7 @@ export default function App() {
     playerKnightDarkWaveStartedAt.current = 0;
     opponentInsidePlayerKnightDarkWaveStartedAt.current = 0;
     playerSpecialLockRef.current = false;
+    setPlayerKnightDarkWaveOverheated(false);
     updatePlayerKnightDarkWaveState('idle');
   }
 
@@ -2048,6 +2849,7 @@ export default function App() {
     opponentKnightDarkWaveStartedAt.current = 0;
     playerInsideOpponentKnightDarkWaveStartedAt.current = 0;
     opponentSpecialLockRef.current = false;
+    setOpponentKnightDarkWaveOverheated(false);
     updateOpponentKnightDarkWaveState('idle');
   }
 
@@ -2117,6 +2919,19 @@ export default function App() {
     return false;
   }
 
+  function applyOpponentHealthDamage(damage: number) {
+    if (opponent.id === 'jevil' && opponentJevilAbsorbActiveRef.current && damage > 0) {
+      opponentJevilAbsorbDamageRef.current += damage;
+    }
+
+    setOpponentHealth((health) => {
+      const nextHealth = clamp(health - damage, 0, MAX_HEALTH);
+      const restoredHealth = arenaMode === 'sandbox' && nextHealth <= 0 ? MAX_HEALTH : nextHealth;
+      opponentHealthRef.current = restoredHealth;
+      return restoredHealth;
+    });
+  }
+
   function damageOpponentFromKnightDarkWave() {
     if (isArenaPausedRef.current || roundResolvedRef.current || roundCountdownRef.current > 0) return;
     if (opponentHealthRef.current <= 0 || opponentStatusRef.current === 'knockdown') return;
@@ -2132,11 +2947,7 @@ export default function App() {
 
     const tickDamage = getKnightDarkWaveTickDamage(opponentInsidePlayerKnightDarkWaveStartedAt.current);
 
-    setOpponentHealth((health) => {
-      const nextHealth = clamp(health - tickDamage, 0, MAX_HEALTH);
-      opponentHealthRef.current = nextHealth;
-      return nextHealth;
-    });
+    applyOpponentHealthDamage(tickDamage);
 
     if (opponentKnightDarkWaveStateRef.current === 'holding') {
       cancelOpponentKnightDarkWave();
@@ -2161,11 +2972,7 @@ export default function App() {
     const tickDamage = getKnightDarkWaveTickDamage(playerInsideOpponentKnightDarkWaveStartedAt.current);
 
     flashDamage('left');
-    setPlayerHealth((health) => {
-      const nextHealth = clamp(health - tickDamage, 0, MAX_HEALTH);
-      playerHealthRef.current = nextHealth;
-      return nextHealth;
-    });
+    applyPlayerHealthDamage(tickDamage);
 
     if (playerKnightDarkWaveStateRef.current === 'holding') {
       cancelPlayerKnightDarkWave();
@@ -2198,11 +3005,13 @@ export default function App() {
     playerKnightDarkWaveStartedAt.current = window.performance.now();
     opponentInsidePlayerKnightDarkWaveStartedAt.current = 0;
     playerKnightDarkWaveDirectionRef.current = direction;
+    setPlayerKnightDarkWaveOverheated(false);
     setPlayerKnightDarkWaveDirection(direction);
     updatePlayerKnightDarkWaveState('holding');
 
     if (playerKnightDarkWaveTimer.current) window.clearInterval(playerKnightDarkWaveTimer.current);
     playerKnightDarkWaveTimer.current = window.setInterval(() => {
+      if (tickKnightDarkWaveOverheat('left')) return;
       damageOpponentFromKnightDarkWave();
     }, KNIGHT_DARK_WAVE_TICK_MS);
 
@@ -2220,6 +3029,7 @@ export default function App() {
     playerKnightDarkWaveStartedAt.current = 0;
     opponentInsidePlayerKnightDarkWaveStartedAt.current = 0;
     playerSpecialLockRef.current = false;
+    setPlayerKnightDarkWaveOverheated(false);
     specialReadyAt.current = window.performance.now() + KNIGHT_DARK_WAVE_COOLDOWN_MS;
     updatePlayerKnightDarkWaveState('idle');
     return true;
@@ -2245,10 +3055,12 @@ export default function App() {
     opponentKnightDarkWaveStartedAt.current = window.performance.now();
     playerInsideOpponentKnightDarkWaveStartedAt.current = 0;
     opponentKnightDarkWaveDirectionRef.current = positionRef.current.x >= opponentPositionRef.current.x ? 1 : -1;
+    setOpponentKnightDarkWaveOverheated(false);
     updateOpponentKnightDarkWaveState('holding');
 
     if (opponentKnightDarkWaveTimer.current) window.clearInterval(opponentKnightDarkWaveTimer.current);
     opponentKnightDarkWaveTimer.current = window.setInterval(() => {
+      if (tickKnightDarkWaveOverheat('right')) return;
       damagePlayerFromOpponentKnightDarkWave();
     }, KNIGHT_DARK_WAVE_TICK_MS);
 
@@ -2318,13 +3130,14 @@ export default function App() {
 
       setPlayerHealth((health) => {
         const nextHealth = clamp(health - KNIGHT_SPHERE_HEALTH_DRAIN, 0, MAX_HEALTH);
-        playerHealthRef.current = nextHealth;
+        const restoredHealth = arenaMode === 'sandbox' && nextHealth <= 0 ? MAX_HEALTH : nextHealth;
+        playerHealthRef.current = restoredHealth;
 
         if (nextHealth <= 0) {
           stopKnightSphereHealthDrain();
         }
 
-        return nextHealth;
+        return restoredHealth;
       });
     }, KNIGHT_SPHERE_HEALTH_DRAIN_MS);
   }
@@ -2733,6 +3546,7 @@ export default function App() {
     cancelPlayerChargeAttack();
     cancelPlayerKnightDarkWave();
     attackRef.current = 'idle';
+    playerAttackFacingRef.current = null;
     playerSpecialLockRef.current = false;
     setIsCrouchAttackLocked(false);
     setAttack('idle');
@@ -2907,6 +3721,7 @@ export default function App() {
 
       if (hitDistance <= KNIGHT_CHARGE_RANGE) {
         const didDamageThroughBlock = damagePlayer(damage, 'none', 'mid');
+        consumeOpponentPlan(didDamageThroughBlock, 'charge');
 
         if (didDamageThroughBlock && !isPlayerKnightSphereActive() && !isPlayerKnightDarkWaveHolding()) {
           applyProjectileKnockback(
@@ -2915,6 +3730,8 @@ export default function App() {
             KNIGHT_CHARGE_ATTACK_KNOCKBACK,
           );
         }
+      } else {
+        consumeOpponentPlan(false, 'charge');
       }
     }, Math.max(0, Math.floor(KNIGHT_CHARGE_RELEASE_MS * ATTACK_HIT_FRAME_RATIO)));
 
@@ -2929,6 +3746,208 @@ export default function App() {
       setOpponentChargeState('idle');
     }, KNIGHT_CHARGE_RELEASE_MS);
   }
+
+  function rememberPlayerAction(
+    kind: keyof AiLearningMemory['player'],
+    weight = 1,
+    options: { includeTotal?: boolean } = {},
+  ) {
+    if (arenaMode !== 'fight') return;
+
+    const memory = aiLearningRef.current.player;
+    memory[kind] += weight;
+    if (kind !== 'total' && options.includeTotal !== false) {
+      memory.total += weight;
+    }
+
+    if (memory.total > 140) {
+      (Object.keys(memory) as Array<keyof AiLearningMemory['player']>).forEach((key) => {
+        memory[key] *= 0.72;
+      });
+    }
+  }
+
+  function rememberAiOutcome(action: AiAction | null, didSucceed: boolean, weight = 1) {
+    if (!action || arenaMode !== 'fight') return;
+
+    const outcome = aiLearningRef.current.outcomes[action];
+    if (didSucceed) {
+      outcome.success += weight;
+    } else {
+      outcome.fail += weight;
+    }
+
+    if (outcome.success + outcome.fail > 80) {
+      outcome.success *= 0.72;
+      outcome.fail *= 0.72;
+    }
+  }
+
+  function markOpponentPlan(action: AiAction) {
+    pendingOpponentActionRef.current = action;
+  }
+
+  function consumeOpponentPlan(didSucceed: boolean, fallbackAction: AiAction | null = null) {
+    const action = pendingOpponentActionRef.current ?? fallbackAction;
+    rememberAiOutcome(action, didSucceed);
+    pendingOpponentActionRef.current = null;
+  }
+
+  function getPlayerHabit(kind: keyof AiLearningMemory['player']) {
+    const memory = aiLearningRef.current.player;
+    return memory.total <= 0 ? 0 : clamp(memory[kind] / memory.total, 0, 1);
+  }
+
+  function getAiConfidence(action: AiAction) {
+    const outcome = aiLearningRef.current.outcomes[action];
+    const rate = outcome.success / Math.max(1, outcome.success + outcome.fail);
+    return clamp(0.66 + rate * 0.88, 0.72, 1.42);
+  }
+
+  function getActiveBotCoachAdvice() {
+    const advice = botCoachAdviceRef.current;
+    return Date.now() - advice.updatedAt <= 45_000 ? advice : DEFAULT_BOT_COACH_ADVICE;
+  }
+
+  function buildBotCoachSnapshot(): BotCoachSnapshot {
+    const memory = aiLearningRef.current;
+
+    return {
+      difficulty: selectedDifficulty,
+      stageId: selectedStage.id,
+      playerId: player.id,
+      opponentId: opponent.id,
+      playerHealth: Math.round(playerHealthRef.current),
+      opponentHealth: Math.round(opponentHealthRef.current),
+      distance: Math.round(Math.abs(positionRef.current.x - opponentPositionRef.current.x)),
+      playerY: Math.round(positionRef.current.y),
+      opponentY: Math.round(opponentPositionRef.current.y),
+      playerStatus: playerStatusRef.current,
+      opponentStatus: opponentStatusRef.current,
+      playerAttack: attackRef.current,
+      opponentAttack: opponentAttackRef.current,
+      playerBlocking: isBlockingRef.current,
+      playerCrouching: isPlayerLowProfile(),
+      playerSpecial: playerKnightDarkWaveStateRef.current,
+      opponentSpecial: opponentKnightDarkWaveStateRef.current,
+      playerHabits: { ...memory.player },
+      aiOutcomes: { ...memory.outcomes },
+    };
+  }
+
+  function getAdaptiveAiConfig(baseAi: (typeof AI_CONFIG)[Difficulty]) {
+    const projectileHabit = getPlayerHabit('projectile');
+    const specialHabit = getPlayerHabit('special');
+    const jumpHabit = getPlayerHabit('jump') + getPlayerHabit('air') * 0.55;
+    const crouchHabit = getPlayerHabit('crouch') + getPlayerHabit('low') * 0.55;
+    const blockHabit = getPlayerHabit('block');
+    const closeHabit = getPlayerHabit('close');
+    const farHabit = getPlayerHabit('far');
+    const coach = getActiveBotCoachAdvice();
+    const fighterSpeedScale = getFighterWalkSpeed(opponent) / WALK_SPEED;
+
+    return {
+      moveSpeed:
+        baseAi.moveSpeed *
+        fighterSpeedScale *
+        clamp((1 + closeHabit * 0.18 + farHabit * 0.08) * coach.aggression, 0.88, 1.32),
+      preferredRange: clamp(
+        baseAi.preferredRange +
+          (projectileHabit + specialHabit) * 10 -
+          closeHabit * 5 -
+          blockHabit * 3 +
+          coach.preferredRangeShift,
+        12,
+        34,
+      ),
+      attackChance: clamp(
+        baseAi.attackChance *
+          (1 + blockHabit * 0.32 + closeHabit * 0.18) *
+          coach.attackBias *
+          coach.aggression *
+          getAiConfidence('melee'),
+        0.12,
+        0.95,
+      ),
+      blockChance: clamp(
+        baseAi.blockChance *
+          (1 + getPlayerHabit('high') * 0.75 + specialHabit * 0.28) *
+          coach.defenseBias *
+          getAiConfidence('block'),
+        0.08,
+        0.96,
+      ),
+      crouchChance: clamp(
+        baseAi.crouchChance *
+          (1 + getPlayerHabit('high') * 0.85 + projectileHabit * 0.4) *
+          coach.defenseBias *
+          getAiConfidence('crouch'),
+        0.05,
+        0.9,
+      ),
+      jumpChance: clamp(
+        baseAi.jumpChance *
+          (1 + crouchHabit * 0.55 + projectileHabit * 0.3) *
+          coach.defenseBias *
+          getAiConfidence('jump'),
+        0.03,
+        0.72,
+      ),
+      specialChance: clamp(
+        baseAi.specialChance *
+          (1 + blockHabit * 0.35 + farHabit * 0.24 + jumpHabit * 0.2) *
+          coach.specialBias *
+          Math.max(getAiConfidence('special'), getAiConfidence('projectile') * 0.92),
+        0.08,
+        0.88,
+      ),
+      lowAttackBias: clamp(
+        0.35 + blockHabit * 0.55 + getAiConfidence('low') * 0.18 + coach.lowAttackBias,
+        0.18,
+        0.92,
+      ),
+      antiAirBias: clamp(
+        jumpHabit * 0.7 + getAiConfidence('antiHigh') * 0.18 + coach.antiAirBias,
+        0.08,
+        0.92,
+      ),
+      projectilePressure: clamp(projectileHabit + specialHabit * 0.6 + coach.projectileBias, 0, 1.15),
+    };
+  }
+
+  useEffect(() => {
+    if (screen !== 'arena' || arenaMode !== 'fight') return undefined;
+
+    const requestAdvice = () => {
+      if (
+        botCoachRequestInFlightRef.current ||
+        isArenaPausedRef.current ||
+        roundCountdownRef.current > 0 ||
+        roundResolvedRef.current ||
+        playerHealthRef.current <= 0 ||
+        opponentHealthRef.current <= 0
+      ) {
+        return;
+      }
+
+      botCoachRequestInFlightRef.current = true;
+      void requestGeminiBotAdvice(buildBotCoachSnapshot())
+        .then((advice) => {
+          if (advice) botCoachAdviceRef.current = advice;
+        })
+        .finally(() => {
+          botCoachRequestInFlightRef.current = false;
+        });
+    };
+
+    const timer = window.setInterval(requestAdvice, 9000);
+    requestAdvice();
+
+    return () => {
+      window.clearInterval(timer);
+      botCoachRequestInFlightRef.current = false;
+    };
+  }, [arenaMode, opponent.id, player.id, screen, selectedDifficulty, selectedStage.id]);
 
   function damagePlayer(
     baseDamage: number,
@@ -2947,27 +3966,30 @@ export default function App() {
         (hitLevel === 'low' && (playerIsAirborne || isPlayerKnightLowAttackImmune())));
     const isBlocked =
       hitLevel === 'low'
-        ? isBlocking && playerIsCrouching
+        ? isBlocking && (playerIsCrouching || canBlockLowWithoutCrouch(player))
         : isBlocking;
+    const blockOutcome = rollBlockOutcome(player, isBlocked);
 
     if (isDodged) return false;
 
-    const finalDamage = isBlocked
+    const finalDamage = blockOutcome === 'perfect'
+      ? 0
+      : blockOutcome === 'normal'
       ? Math.ceil(baseDamage * (player.id === 'roaring-knight' ? 0.1 : 0.25))
       : baseDamage;
     if (playerStatusRef.current === 'healing') stopQueenHeal('left');
     flashDamage('left');
-    setPlayerHealth((health) => {
-      const nextHealth = clamp(health - finalDamage, 0, MAX_HEALTH);
-      playerHealthRef.current = nextHealth;
-      return nextHealth;
-    });
+    applyPlayerHealthDamage(finalDamage);
+
+    if (player.id === 'jevil' && playerJevilAbsorbActiveRef.current) {
+      return blockOutcome === 'none';
+    }
 
     if (playerKnightDarkWaveStateRef.current === 'holding') {
       cancelPlayerKnightDarkWave();
     }
 
-    if (isBlocked || effect === 'none') return !isBlocked;
+    if (blockOutcome !== 'none' || effect === 'none') return blockOutcome === 'none';
     if (isPlayerKnightSphereActive()) return true;
 
     if (playerStatusTimer.current) window.clearTimeout(playerStatusTimer.current);
@@ -2986,7 +4008,7 @@ export default function App() {
       cancelPlayerKnightDarkWave();
       resetPlayerAttackAnimation();
     }
-    jumpVelocity.current = 13.2;
+      jumpVelocity.current = 13.2;
     applyProjectileKnockback(
       'left',
       positionRef.current.x <= opponentPositionRef.current.x ? -1 : 1,
@@ -2997,6 +4019,18 @@ export default function App() {
   }
 
   function updatePlayerStatus(nextStatus: OpponentStatus) {
+    if (nextStatus !== 'idle') {
+      if (playerGersonLeapPrepTimer.current) {
+        window.clearTimeout(playerGersonLeapPrepTimer.current);
+        playerGersonLeapPrepTimer.current = null;
+        playerSpecialLockRef.current = false;
+      }
+      setPlayerGersonLeapPreparing(false);
+      stopPlayerGersonSpin();
+      setPlayerGersonLeapActive(false);
+      playerGersonLeapDirectBoostReadyRef.current = false;
+    }
+
     playerLaunchedFallStartedAt.current = 0;
     playerStatusRef.current = nextStatus;
     playerStatusStartedAt.current = window.performance.now();
@@ -3005,6 +4039,10 @@ export default function App() {
   }
 
   function updateOpponentAttack(nextAttack: Attack) {
+    opponentAttackFacingRef.current =
+      nextAttack === 'idle'
+        ? null
+        : getFacingToward(opponentPositionRef.current.x, positionRef.current.x);
     opponentAttackRef.current = nextAttack;
     opponentAttackStartedAt.current = window.performance.now();
     setOpponentAttack(nextAttack);
@@ -3074,6 +4112,10 @@ export default function App() {
   }
 
   function updateOpponentStatus(nextStatus: OpponentStatus) {
+    if (nextStatus !== 'idle') {
+      opponentGersonAirStompChainRef.current = false;
+    }
+
     opponentLaunchedFallStartedAt.current = 0;
     opponentStatusRef.current = nextStatus;
     opponentStatusStartedAt.current = window.performance.now();
@@ -3122,35 +4164,434 @@ export default function App() {
         (hitLevel === 'low' && (opponentIsAirborne || isOpponentKnightLowAttackImmune())));
     const isBlocked =
       hitLevel === 'low'
-        ? isBlocking && opponentIsCrouching
+        ? isBlocking && (opponentIsCrouching || canBlockLowWithoutCrouch(opponent))
         : isBlocking;
+    const blockOutcome = rollBlockOutcome(opponent, isBlocked);
 
     if (isDodged) return false;
 
-    if (arenaMode === 'sandbox') {
-      flashDamage('right');
-      opponentHealthRef.current = MAX_HEALTH;
-      setOpponentHealth(MAX_HEALTH);
-      return true;
-    }
-
-    const damage = isBlocked
+    const damage = blockOutcome === 'perfect'
+      ? 0
+      : blockOutcome === 'normal'
       ? Math.ceil(baseDamage * (opponent.id === 'roaring-knight' ? 0.1 : 0.25))
       : baseDamage;
+
+    if (arenaMode === 'sandbox') {
+      flashDamage('right');
+      applyOpponentHealthDamage(damage);
+      return blockOutcome === 'none';
+    }
+
     if (opponentStatusRef.current === 'healing') stopQueenHeal('right');
     flashDamage('right');
+    if (blockOutcome === 'none') {
+      if (opponentBlockingRef.current) rememberAiOutcome('block', false, 0.6);
+      if (opponentCrouchingRef.current) rememberAiOutcome('crouch', false, 0.6);
+      if (opponentPositionRef.current.y > 0) rememberAiOutcome('jump', false, 0.6);
+    }
 
-    setOpponentHealth((health) => {
-      const nextHealth = clamp(health - damage, 0, MAX_HEALTH);
-      opponentHealthRef.current = nextHealth;
-      return nextHealth;
-    });
+    applyOpponentHealthDamage(damage);
+
+    if (opponent.id === 'jevil' && opponentJevilAbsorbActiveRef.current) {
+      return blockOutcome === 'none';
+    }
 
     if (opponentKnightDarkWaveStateRef.current === 'holding') {
       cancelOpponentKnightDarkWave();
     }
 
-    return !isBlocked;
+    return blockOutcome === 'none';
+  }
+
+  function clearGersonAirCounterHideTimer(side: FighterSide) {
+    const timerRef = side === 'left'
+      ? playerGersonAirCounterHideTimer
+      : opponentGersonAirCounterHideTimer;
+
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+
+  function setGersonAirCounter(side: FighterSide, value: number) {
+    clearGersonAirCounterHideTimer(side);
+
+    if (side === 'left') {
+      setPlayerGersonAirLandingHits(value);
+      return;
+    }
+
+    setOpponentGersonAirLandingHits(value);
+  }
+
+  function hideGersonAirCounterAfterLanding(side: FighterSide) {
+    const timerRef = side === 'left'
+      ? playerGersonAirCounterHideTimer
+      : opponentGersonAirCounterHideTimer;
+    const setValue = side === 'left'
+      ? setPlayerGersonAirLandingHits
+      : setOpponentGersonAirLandingHits;
+
+    clearGersonAirCounterHideTimer(side);
+    timerRef.current = window.setTimeout(() => {
+      setValue(0);
+      timerRef.current = null;
+    }, GERSON_AIR_COUNTER_HIDE_DELAY_MS);
+  }
+
+  function tryGersonLandingHit(attackerSide: FighterSide, landingPosition: Position): GersonLandingBounce | null {
+    if (roundResolvedRef.current) return null;
+
+    const isPlayerLanding = attackerSide === 'left';
+    const attacker = isPlayerLanding ? player : opponent;
+    const targetPosition = isPlayerLanding ? opponentPositionRef.current : positionRef.current;
+    const targetHealth = isPlayerLanding ? opponentHealthRef.current : playerHealthRef.current;
+    const targetStatus = isPlayerLanding ? opponentStatusRef.current : playerStatusRef.current;
+    const targetImmuneUntil = isPlayerLanding
+      ? opponentGersonLandingImmuneUntilRef.current
+      : playerGersonLandingImmuneUntilRef.current;
+    const attackerAirHitCounter = isPlayerLanding
+      ? playerGersonAirLandingHitsRef
+      : opponentGersonAirLandingHitsRef;
+    const now = window.performance.now();
+    const targetIsHighBlocking = isPlayerLanding
+      ? opponentBlockingRef.current &&
+        opponentStatusRef.current === 'idle' &&
+        opponentAttackRef.current === 'idle' &&
+        !isOpponentLowProfile()
+      : isBlockingRef.current &&
+        playerStatusRef.current === 'idle' &&
+        !isPlayerLowProfile();
+    const targetIsAnimating = isPlayerLanding
+      ? opponentAttackRef.current !== 'idle' ||
+        opponentStatusRef.current !== 'idle' ||
+        opponentSpecialLockRef.current
+      : attackRef.current !== 'idle' ||
+        playerStatusRef.current !== 'idle' ||
+        playerSpecialLockRef.current;
+
+    if (
+      attacker.id !== 'gerson-boom' ||
+      now < targetImmuneUntil ||
+      targetHealth <= 0 ||
+      targetStatus === 'knockdown'
+    ) {
+      return null;
+    }
+
+    const distance = Math.abs(landingPosition.x - targetPosition.x);
+    const verticalDistance = Math.abs(landingPosition.y - targetPosition.y);
+    if (distance > GERSON_LANDING_HIT_RANGE || verticalDistance > GERSON_LANDING_VERTICAL_HIT_RANGE) return null;
+    const isDirectHit = distance <= GERSON_LANDING_DIRECT_HIT_RANGE;
+    const hasLeapDirectBoost =
+      isPlayerLanding && isDirectHit && playerGersonLeapDirectBoostReadyRef.current;
+    const sideDirection: -1 | 1 =
+      Math.abs(landingPosition.x - targetPosition.x) < 0.01
+        ? isPlayerLanding
+          ? -1
+          : 1
+        : landingPosition.x >= targetPosition.x
+          ? 1
+          : -1;
+    const buildBounce = (
+      forceSideDirection?: -1 | 1,
+      sideKnockbackMultiplier = 1,
+    ): GersonLandingBounce => {
+      attackerAirHitCounter.current += 1;
+      setGersonAirCounter(attackerSide, attackerAirHitCounter.current);
+      const chainSideBounceMultiplier =
+        sideKnockbackMultiplier === 1 &&
+        attackerAirHitCounter.current > GERSON_CHAIN_SIDE_BOUNCE_RAMP_AFTER_HITS
+          ? 1 +
+            Math.ceil(
+              (attackerAirHitCounter.current - GERSON_CHAIN_SIDE_BOUNCE_RAMP_AFTER_HITS) /
+                GERSON_CHAIN_SIDE_BOUNCE_RAMP_INTERVAL_HITS,
+            ) *
+              GERSON_CHAIN_SIDE_BOUNCE_RAMP_PER_HIT
+          : 1;
+      const bounceSideDirection =
+        forceSideDirection ??
+        (attackerAirHitCounter.current >= GERSON_RANDOM_SIDE_BOUNCE_AFTER_AIR_HITS
+          ? Math.random() < 0.5
+            ? -1
+            : 1
+          : sideDirection);
+
+      return {
+        sideDirection: bounceSideDirection,
+        airHitCount: attackerAirHitCounter.current,
+        sideKnockbackMultiplier: sideKnockbackMultiplier * chainSideBounceMultiplier,
+      };
+    };
+
+    if (targetIsHighBlocking) {
+      if (hasLeapDirectBoost) {
+        playerGersonLeapDirectBoostReadyRef.current = false;
+      }
+
+      if (isPlayerLanding) {
+        rememberAiOutcome('block', true, 0.9);
+      } else {
+        consumeOpponentPlan(false, 'jump');
+      }
+
+      return isDirectHit
+        ? buildBounce(sideDirection, GERSON_BLOCKED_BOUNCE_KNOCKBACK_MULTIPLIER)
+        : null;
+    }
+
+    const damage =
+      (isDirectHit ? GERSON_LANDING_DIRECT_DAMAGE : GERSON_LANDING_DAMAGE) *
+      (hasLeapDirectBoost ? GERSON_LEAP_DIRECT_DAMAGE_MULTIPLIER : 1);
+    const didDamage = isPlayerLanding
+      ? damageOpponentHealth(damage, 'high', { ignoreHitLevelDodge: targetIsAnimating })
+      : damagePlayer(damage, 'none', 'high', { ignoreHitLevelDodge: targetIsAnimating });
+
+    if (hasLeapDirectBoost) {
+      playerGersonLeapDirectBoostReadyRef.current = false;
+    }
+
+    if (didDamage) {
+      playGersonJumpHitSound();
+
+      if (isPlayerLanding) {
+        opponentGersonLandingImmuneUntilRef.current = now + GERSON_LANDING_IMMUNITY_MS;
+      } else {
+        playerGersonLandingImmuneUntilRef.current = now + GERSON_LANDING_IMMUNITY_MS;
+      }
+    }
+
+    if (!isPlayerLanding) {
+      consumeOpponentPlan(didDamage, 'jump');
+    }
+
+    return didDamage && isDirectHit ? buildBounce() : null;
+  }
+
+  function reflectProjectileWithGerson(attackerSide: FighterSide) {
+    const isPlayerParry = attackerSide === 'left';
+    const attacker = isPlayerParry ? player : opponent;
+    const attackerPosition = isPlayerParry ? positionRef.current : opponentPositionRef.current;
+    const targetPosition = isPlayerParry ? opponentPositionRef.current : positionRef.current;
+    const reflectedDirection: -1 | 1 = targetPosition.x >= attackerPosition.x ? 1 : -1;
+    const incomingOwner: FighterSide = isPlayerParry ? 'right' : 'left';
+
+    if (attacker.id !== 'gerson-boom') return false;
+
+    const projectileIndex = projectilesRef.current.findIndex((projectile) => {
+      if (projectile.owner !== incomingOwner) return false;
+
+      const verticalBounds = getProjectileVerticalBounds(projectile);
+      const fighterBottom = FIGHTER_BASE_BOTTOM_PX + attackerPosition.y;
+      const fighterTop = fighterBottom + FIGHTER_PROJECTILE_HITBOX.height;
+
+      return (
+        Math.abs(projectile.x - attackerPosition.x) <= GERSON_PARRY_PROJECTILE_RANGE &&
+        verticalBounds.bottom <= fighterTop &&
+        verticalBounds.top >= fighterBottom
+      );
+    });
+
+    if (projectileIndex < 0) return false;
+
+    const nextProjectiles = projectilesRef.current.map((projectile, index) =>
+      index === projectileIndex
+        ? {
+            ...projectile,
+            owner: attackerSide,
+            direction: reflectedDirection,
+            startX: attackerPosition.x,
+            x: clamp(
+              attackerPosition.x + reflectedDirection * 6,
+              ARENA_LEFT_LIMIT,
+              ARENA_RIGHT_LIMIT,
+            ),
+          }
+        : projectile,
+    );
+
+    projectilesRef.current = nextProjectiles;
+    setProjectiles(nextProjectiles);
+    playProjectileHitSound();
+    return true;
+  }
+
+  function isProjectileNearGersonParry(attackerSide: FighterSide, projectile: Projectile) {
+    const isPlayerParry = attackerSide === 'left';
+    const attacker = isPlayerParry ? player : opponent;
+    const attackerPosition = isPlayerParry ? positionRef.current : opponentPositionRef.current;
+    const incomingOwner: FighterSide = isPlayerParry ? 'right' : 'left';
+
+    if (attacker.id !== 'gerson-boom' || projectile.owner !== incomingOwner) return false;
+
+    const verticalBounds = getProjectileVerticalBounds(projectile);
+    const fighterBottom = FIGHTER_BASE_BOTTOM_PX + attackerPosition.y;
+    const fighterTop = fighterBottom + FIGHTER_PROJECTILE_HITBOX.height;
+
+    return (
+      Math.abs(projectile.x - attackerPosition.x) <= GERSON_PARRY_PROJECTILE_RANGE &&
+      verticalBounds.bottom <= fighterTop &&
+      verticalBounds.top >= fighterBottom
+    );
+  }
+
+  function getGersonReflectedProjectile(attackerSide: FighterSide, projectile: Projectile): Projectile {
+    const isPlayerParry = attackerSide === 'left';
+    const attackerPosition = isPlayerParry ? positionRef.current : opponentPositionRef.current;
+    const targetPosition = isPlayerParry ? opponentPositionRef.current : positionRef.current;
+    const reflectedDirection: -1 | 1 = targetPosition.x >= attackerPosition.x ? 1 : -1;
+
+    return {
+      ...projectile,
+      owner: attackerSide,
+      direction: reflectedDirection,
+      startX: attackerPosition.x,
+      x: clamp(attackerPosition.x + reflectedDirection * 6, ARENA_LEFT_LIMIT, ARENA_RIGHT_LIMIT),
+    };
+  }
+
+  function knockDownFromGersonParry(attackerSide: FighterSide) {
+    const isPlayerParry = attackerSide === 'left';
+    const attacker = isPlayerParry ? player : opponent;
+    const attackerPosition = isPlayerParry ? positionRef.current : opponentPositionRef.current;
+    const target = isPlayerParry ? opponent : player;
+    const targetPosition = isPlayerParry ? opponentPositionRef.current : positionRef.current;
+    const targetStatus = isPlayerParry ? opponentStatusRef.current : playerStatusRef.current;
+
+    if (attacker.id !== 'gerson-boom' || targetStatus === 'knockdown') return false;
+
+    const distance = Math.abs(targetPosition.x - attackerPosition.x);
+    if (
+      distance > GERSON_PARRY_MELEE_RANGE ||
+      !canMeleeAttackReachVertical(attackerPosition.y, targetPosition.y, 'sweep', 'mid')
+    ) {
+      return false;
+    }
+
+    const didDamage = isPlayerParry
+      ? damageOpponentHealth(GERSON_PARRY_MELEE_DAMAGE, 'mid')
+      : damagePlayer(GERSON_PARRY_MELEE_DAMAGE, 'sweep', 'mid');
+
+    if (!didDamage || target.id === 'roaring-knight' && (isPlayerParry ? isOpponentKnightSphereActive() : isPlayerKnightSphereActive())) {
+      return didDamage;
+    }
+
+    if (isPlayerParry) {
+      if (opponent.id === 'roaring-knight') resetOpponentAttackAnimation();
+      if (opponentStatusTimer.current) window.clearTimeout(opponentStatusTimer.current);
+      opponentJumpVelocity.current = 0;
+      updateOpponentStatus('knockdown');
+      opponentStatusTimer.current = window.setTimeout(() => {
+        recoverFromKnockdown('right');
+      }, SWEEP_KNOCKDOWN_MS);
+    } else {
+      if (playerStatusTimer.current) window.clearTimeout(playerStatusTimer.current);
+      jumpVelocity.current = 0;
+      updatePlayerStatus('knockdown');
+      playerStatusTimer.current = window.setTimeout(() => {
+        recoverFromKnockdown('left');
+      }, SWEEP_KNOCKDOWN_MS);
+    }
+
+    return true;
+  }
+
+  function useGersonParry(attackerSide: FighterSide) {
+    if (reflectProjectileWithGerson(attackerSide)) return true;
+    return knockDownFromGersonParry(attackerSide);
+  }
+
+  function damageWithPlayerGersonSpin() {
+    if (
+      player.id !== 'gerson-boom' ||
+      attackRef.current !== 'punch' ||
+      playerStatusRef.current !== 'idle' ||
+      opponentHealthRef.current <= 0 ||
+      opponentStatusRef.current === 'knockdown'
+    ) {
+      return;
+    }
+
+    const distance = Math.abs(opponentPositionRef.current.x - positionRef.current.x);
+    if (
+      distance > GERSON_SPIN_RANGE ||
+      !canMeleeAttackReachVertical(positionRef.current.y, opponentPositionRef.current.y, 'none', 'mid')
+    ) {
+      return;
+    }
+
+    const didDamage = damageOpponentHealth(GERSON_SPIN_DAMAGE, 'mid');
+    if (didDamage) {
+      playAttackSound(player, 'punch', false);
+    }
+
+    if (didDamage && !isOpponentKnightSphereActive()) {
+      applyProjectileKnockback(
+        'right',
+        opponentPositionRef.current.x >= positionRef.current.x ? 1 : -1,
+        ATTACK_KNOCKBACK_VELOCITY * 0.35,
+      );
+    }
+  }
+
+  function stopPlayerGersonSpin() {
+    if (playerGersonSpinDamageTimer.current) {
+      window.clearInterval(playerGersonSpinDamageTimer.current);
+      playerGersonSpinDamageTimer.current = null;
+    }
+
+    if (playerGersonSpinMaxTimer.current) {
+      window.clearTimeout(playerGersonSpinMaxTimer.current);
+      playerGersonSpinMaxTimer.current = null;
+    }
+
+    if (player.id === 'gerson-boom' && attackRef.current === 'punch') {
+      attackRef.current = 'idle';
+      playerAttackFacingRef.current = null;
+      playerAttackStartedAt.current = 0;
+      setAttack('idle');
+    }
+  }
+
+  function startPlayerGersonSpin() {
+    const now = window.performance.now();
+
+    if (
+      player.id !== 'gerson-boom' ||
+      now < attackReadyAt.current ||
+      attackRef.current !== 'idle' ||
+      playerBlockHeldRef.current ||
+      playerSpecialLockRef.current ||
+      playerStatusRef.current !== 'idle' ||
+      opponentHealthRef.current <= 0 ||
+      roundCountdownRef.current > 0 ||
+      roundResolvedRef.current
+    ) {
+      return false;
+    }
+
+    attackReadyAt.current = now + ATTACK_COOLDOWN_MS;
+    rememberPlayerAction('mid', 0.9);
+    rememberPlayerAction('close', 0.45, { includeTotal: false });
+    playerAttackFacingRef.current = getFacingToward(positionRef.current.x, opponentPositionRef.current.x);
+    attackRef.current = 'punch';
+    playerAttackStartedAt.current = now;
+    setAttack('punch');
+    damageWithPlayerGersonSpin();
+
+    if (playerGersonSpinDamageTimer.current) window.clearInterval(playerGersonSpinDamageTimer.current);
+    playerGersonSpinDamageTimer.current = window.setInterval(() => {
+      if (isArenaPausedRef.current) return;
+      damageWithPlayerGersonSpin();
+    }, GERSON_SPIN_DAMAGE_INTERVAL_MS);
+
+    if (playerGersonSpinMaxTimer.current) window.clearTimeout(playerGersonSpinMaxTimer.current);
+    playerGersonSpinMaxTimer.current = window.setTimeout(() => {
+      stopPlayerGersonSpin();
+    }, GERSON_SPIN_MAX_HOLD_MS);
+
+    return true;
   }
 
   function spawnProjectile(
@@ -3159,11 +4600,23 @@ export default function App() {
     direction: -1 | 1,
     lane: ProjectileLane,
     kind: ProjectileKind,
-    options: Pick<Projectile, 'damage' | 'knockback' | 'maxTravel' | 'durationMs' | 'bottomPx'> = {},
+    options: Pick<
+      Projectile,
+      | 'damage'
+      | 'knockback'
+      | 'maxTravel'
+      | 'durationMs'
+      | 'bottomPx'
+      | 'bottomVelocity'
+      | 'projectileSprite'
+      | 'speed'
+    > = {},
   ) {
     const spawnOffset =
       kind === 'knight-dark-wave'
         ? 0
+        : kind === 'jevil-scythe'
+          ? JEVIL_SCYTHE_SPAWN_OFFSET
         : kind === 'knight-sword'
           ? KNIGHT_SWORD_PROJECTILE_SPAWN_OFFSET
           : 7;
@@ -3187,7 +4640,403 @@ export default function App() {
     }
   }
 
-  function lockSpecialShooter(owner: FighterSide) {
+  function setJevilPlatformsAndRef(nextPlatforms: JevilPlatform[]) {
+    jevilPlatformsRef.current = nextPlatforms;
+    setJevilPlatforms(nextPlatforms);
+  }
+
+  function clearJevilPlatforms() {
+    jevilPlatformOwnerRef.current = null;
+    setJevilPlatformsAndRef([]);
+  }
+
+  function startJevilPlatformCooldown(owner: FighterSide | null, now = window.performance.now()) {
+    if (owner === 'left') {
+      specialReadyAt.current = Math.max(
+        specialReadyAt.current,
+        now + JEVIL_PLATFORM_SPECIAL_COOLDOWN_MS,
+      );
+      return;
+    }
+
+    if (owner === 'right') {
+      opponentSpecialReadyAt.current = Math.max(
+        opponentSpecialReadyAt.current,
+        now + JEVIL_PLATFORM_SPECIAL_COOLDOWN_MS,
+      );
+    }
+  }
+
+  function removeExpiredJevilPlatforms(now = window.performance.now()) {
+    const nextPlatforms = jevilPlatformsRef.current.filter(
+      (platform) => now - platform.createdAt < JEVIL_PLATFORM_DURATION_MS,
+    );
+
+    if (nextPlatforms.length !== jevilPlatformsRef.current.length) {
+      if (jevilPlatformsRef.current.length > 0 && nextPlatforms.length === 0) {
+        startJevilPlatformCooldown(jevilPlatformOwnerRef.current, now);
+        jevilPlatformOwnerRef.current = null;
+      }
+      setJevilPlatformsAndRef(nextPlatforms);
+    }
+  }
+
+  function spawnJevilPlatforms(owner: FighterSide) {
+    const now = window.performance.now();
+    const ownerPosition = owner === 'left' ? positionRef.current : opponentPositionRef.current;
+    const leftX = clamp(ownerPosition.x - JEVIL_PLATFORM_X_OFFSET, ARENA_VISIBLE_LEFT, ARENA_VISIBLE_RIGHT);
+    const rightX = clamp(ownerPosition.x + JEVIL_PLATFORM_X_OFFSET, ARENA_VISIBLE_LEFT, ARENA_VISIBLE_RIGHT);
+    const arenaHeight =
+      typeof window === 'undefined'
+        ? selectedStage.arenaHeight ?? 760
+        : Math.max(selectedStage.arenaHeight ?? 760, window.innerHeight);
+    const platformY = Math.max(
+      JEVIL_PLATFORM_MIN_Y,
+      Math.round((arenaHeight - FIGHTER_BASE_BOTTOM_PX - (selectedStage.fighterLift ?? 0)) / 2) -
+        JEVIL_PLATFORM_CENTER_OFFSET_Y,
+    );
+
+    jevilPlatformOwnerRef.current = owner;
+    setJevilPlatformsAndRef([
+      {
+        id: jevilPlatformIdRef.current++,
+        x: leftX,
+        y: platformY,
+        createdAt: now,
+      },
+      {
+        id: jevilPlatformIdRef.current++,
+        x: rightX,
+        y: platformY,
+        createdAt: now,
+      },
+    ]);
+  }
+
+  function spawnJevilScythe(owner: FighterSide) {
+    const ownerPosition = owner === 'left' ? positionRef.current : opponentPositionRef.current;
+    const targetPosition = owner === 'left' ? opponentPositionRef.current : positionRef.current;
+    const direction: -1 | 1 = targetPosition.x >= ownerPosition.x ? 1 : -1;
+
+    spawnProjectile(owner, ownerPosition.x, direction, 'high', 'jevil-scythe', {
+      bottomPx: JEVIL_SCYTHE_BOTTOM_PX + ownerPosition.y,
+      maxTravel: JEVIL_SCYTHE_MAX_TRAVEL,
+      knockback: 0,
+    });
+  }
+
+  function getRandomJevilTeleportPosition(owner: FighterSide) {
+    const otherPosition = owner === 'left' ? opponentPositionRef.current : positionRef.current;
+    const maxY = Math.max(JEVIL_TELEPORT_MIN_AIR_Y, getKnightSphereMaxY(selectedStage) - 40);
+
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const x = ARENA_VISIBLE_LEFT + Math.random() * (ARENA_VISIBLE_RIGHT - ARENA_VISIBLE_LEFT);
+      const y = JEVIL_TELEPORT_MIN_AIR_Y + Math.random() * Math.max(0, maxY - JEVIL_TELEPORT_MIN_AIR_Y);
+      if (Math.abs(x - otherPosition.x) >= 16) {
+        return { x, y };
+      }
+    }
+
+    const fallbackX =
+      otherPosition.x < (ARENA_VISIBLE_LEFT + ARENA_VISIBLE_RIGHT) / 2
+        ? ARENA_VISIBLE_RIGHT - 8
+        : ARENA_VISIBLE_LEFT + 8;
+
+    return {
+      x: fallbackX,
+      y: JEVIL_TELEPORT_MIN_AIR_Y + Math.random() * Math.max(0, maxY - JEVIL_TELEPORT_MIN_AIR_Y),
+    };
+  }
+
+  function shootJevilChaosShot(owner: FighterSide) {
+    const ownerPosition = owner === 'left' ? positionRef.current : opponentPositionRef.current;
+    const targetPosition = owner === 'left' ? opponentPositionRef.current : positionRef.current;
+    const targetFighter = owner === 'left' ? opponent : player;
+    const targetIsLowProfile = owner === 'left' ? isOpponentLowProfile() : isPlayerLowProfile();
+    const targetVisualLift = targetFighter.id === 'roaring-knight' ? knightVisualLiftRef.current : 0;
+    const targetBottom = FIGHTER_BASE_BOTTOM_PX + targetPosition.y + targetVisualLift;
+    const aimOffset = targetIsLowProfile ? 18 : 50;
+    const direction: -1 | 1 = targetPosition.x >= ownerPosition.x ? 1 : -1;
+    const spawnBottom = FIGHTER_BASE_BOTTOM_PX + ownerPosition.y + JEVIL_CHAOS_SHOT_SPAWN_OFFSET_Y;
+    const travelFrames = Math.max(1, Math.abs(targetPosition.x - ownerPosition.x) / JEVIL_CHAOS_SHOT_SPEED);
+    const projectileSprite =
+      jevilChaosProjectileSprites[Math.floor(Math.random() * jevilChaosProjectileSprites.length)];
+
+    spawnProjectile(owner, ownerPosition.x, direction, 'high', 'jevil-chaos-shot', {
+      bottomPx: spawnBottom,
+      bottomVelocity: (targetBottom + aimOffset - spawnBottom) / travelFrames,
+      projectileSprite,
+      speed: JEVIL_CHAOS_SHOT_SPEED,
+    });
+  }
+
+  function clearJevilAbsorbState(owner: FighterSide) {
+    if (owner === 'left') {
+      playerJevilAbsorbActiveRef.current = false;
+      playerJevilAbsorbDamageRef.current = 0;
+      playerJevilAbsorbEndsAtRef.current = 0;
+      playerJevilAbsorbFinaleStartedRef.current = false;
+      setPlayerJevilAbsorbing(false);
+      setPlayerJevilHeadlessPose(false);
+      return;
+    }
+
+    opponentJevilAbsorbActiveRef.current = false;
+    opponentJevilAbsorbDamageRef.current = 0;
+    opponentJevilAbsorbEndsAtRef.current = 0;
+    opponentJevilAbsorbFinaleStartedRef.current = false;
+    setOpponentJevilAbsorbing(false);
+    setOpponentJevilHeadlessPose(false);
+  }
+
+  function spawnJevilHeadProjectile(owner: FighterSide, absorbedDamage: number) {
+    const damage = Math.max(
+      JEVIL_ABSORB_HEAD_MIN_DAMAGE,
+      Math.floor(absorbedDamage * JEVIL_ABSORB_DAMAGE_RETURN_RATIO),
+    );
+
+    const ownerPosition = owner === 'left' ? positionRef.current : opponentPositionRef.current;
+    const targetPosition = owner === 'left' ? opponentPositionRef.current : positionRef.current;
+    const direction: -1 | 1 = targetPosition.x >= ownerPosition.x ? 1 : -1;
+
+    spawnProjectile(owner, ownerPosition.x, direction, 'high', 'jevil-head', {
+      bottomPx: FIGHTER_BASE_BOTTOM_PX + ownerPosition.y + JEVIL_HEAD_PROJECTILE_BOTTOM_OFFSET,
+      damage,
+      knockback: 0,
+      speed: JEVIL_HEAD_PROJECTILE_SPEED,
+    });
+  }
+
+  function finishJevilAbsorb(owner: FighterSide) {
+    const now = window.performance.now();
+    const absorbedDamage =
+      owner === 'left' ? playerJevilAbsorbDamageRef.current : opponentJevilAbsorbDamageRef.current;
+
+    if (owner === 'left') {
+      playerSpecialLockRef.current = true;
+      playerKnockbackVelocity.current = 0;
+      specialReadyAt.current = now + JEVIL_ABSORB_SPECIAL_COOLDOWN_MS;
+      playerJevilAbsorbRecoverUntilRef.current = now + JEVIL_ABSORB_POST_HEAD_LOCK_MS;
+      setPlayerJevilHeadlessPose(true);
+    } else {
+      opponentSpecialLockRef.current = true;
+      opponentKnockbackVelocity.current = 0;
+      opponentSpecialReadyAt.current = now + JEVIL_ABSORB_SPECIAL_COOLDOWN_MS;
+      opponentJevilAbsorbRecoverUntilRef.current = now + JEVIL_ABSORB_POST_HEAD_LOCK_MS;
+      setOpponentJevilHeadlessPose(true);
+    }
+
+    spawnJevilHeadProjectile(owner, absorbedDamage);
+    clearJevilAbsorbState(owner);
+
+    if (owner === 'left') {
+      setPlayerJevilHeadlessPose(true);
+    } else {
+      setOpponentJevilHeadlessPose(true);
+    }
+  }
+
+  function startJevilAbsorbFinale(owner: FighterSide) {
+    if (owner === 'left') {
+      if (playerJevilAbsorbFinaleStartedRef.current) return;
+      playerJevilAbsorbFinaleStartedRef.current = true;
+      resetPlayerAttackAnimation();
+      stopPlayerBlock();
+      pressedKeys.current.clear();
+      playerKnockbackVelocity.current = 0;
+      jumpVelocity.current = 0;
+      playerSpecialLockRef.current = true;
+      setPlayerSpecialShooting(false);
+      setPlayerSpecialSpriteOverride(null);
+      return;
+    }
+
+    if (opponentJevilAbsorbFinaleStartedRef.current) return;
+    opponentJevilAbsorbFinaleStartedRef.current = true;
+    resetOpponentAttackAnimation();
+    updateOpponentBlock(false);
+    updateOpponentCrouch(false);
+    opponentKnockbackVelocity.current = 0;
+    opponentJumpVelocity.current = 0;
+    opponentSpecialLockRef.current = true;
+    setOpponentSpecialShooting(false);
+    setOpponentSpecialSpriteOverride(null);
+  }
+
+  function updateJevilAbsorbRecovery(now = window.performance.now()) {
+    if (playerJevilAbsorbRecoverUntilRef.current > 0 && now >= playerJevilAbsorbRecoverUntilRef.current) {
+      playerJevilAbsorbRecoverUntilRef.current = 0;
+      playerSpecialLockRef.current = false;
+      setPlayerJevilHeadlessPose(false);
+    }
+
+    if (opponentJevilAbsorbRecoverUntilRef.current > 0 && now >= opponentJevilAbsorbRecoverUntilRef.current) {
+      opponentJevilAbsorbRecoverUntilRef.current = 0;
+      opponentSpecialLockRef.current = false;
+      setOpponentJevilHeadlessPose(false);
+    }
+  }
+
+  function updateJevilAbsorbTimers(now = window.performance.now()) {
+    updateJevilAbsorbRecovery(now);
+
+    if (
+      playerJevilAbsorbActiveRef.current &&
+      now >= playerJevilAbsorbEndsAtRef.current - JEVIL_ABSORB_FINALE_LOCK_MS
+    ) {
+      startJevilAbsorbFinale('left');
+    }
+
+    if (
+      opponentJevilAbsorbActiveRef.current &&
+      now >= opponentJevilAbsorbEndsAtRef.current - JEVIL_ABSORB_FINALE_LOCK_MS
+    ) {
+      startJevilAbsorbFinale('right');
+    }
+
+    if (playerJevilAbsorbActiveRef.current && now >= playerJevilAbsorbEndsAtRef.current) {
+      finishJevilAbsorb('left');
+    }
+
+    if (opponentJevilAbsorbActiveRef.current && now >= opponentJevilAbsorbEndsAtRef.current) {
+      finishJevilAbsorb('right');
+    }
+  }
+
+  function startJevilAbsorb(owner: FighterSide) {
+    const now = window.performance.now();
+    playRandomJevilVoiceSound();
+
+    if (owner === 'left') {
+      playerJevilAbsorbActiveRef.current = true;
+      playerJevilAbsorbDamageRef.current = 0;
+      playerJevilAbsorbEndsAtRef.current = now + JEVIL_ABSORB_DURATION_MS;
+      playerJevilAbsorbFinaleStartedRef.current = false;
+      playerJevilAbsorbRecoverUntilRef.current = 0;
+      setPlayerJevilAbsorbing(true);
+      return;
+    }
+
+    opponentJevilAbsorbActiveRef.current = true;
+    opponentJevilAbsorbDamageRef.current = 0;
+    opponentJevilAbsorbEndsAtRef.current = now + JEVIL_ABSORB_DURATION_MS;
+    opponentJevilAbsorbFinaleStartedRef.current = false;
+    opponentJevilAbsorbRecoverUntilRef.current = 0;
+    setOpponentJevilAbsorbing(true);
+  }
+
+  function startJevilTeleportShot(owner: FighterSide) {
+    const isPlayerSide = owner === 'left';
+    playRandomJevilVoiceSound();
+
+    if (isPlayerSide) {
+      specialReadyAt.current = window.performance.now() + JEVIL_TELEPORT_SPECIAL_COOLDOWN_MS;
+      setPlayerSpecialSpriteOverride(jevilTeleportSpecialSprite);
+    } else {
+      opponentSpecialReadyAt.current = window.performance.now() + JEVIL_TELEPORT_SPECIAL_COOLDOWN_MS;
+      setOpponentSpecialSpriteOverride(jevilTeleportSpecialSprite);
+    }
+
+    lockSpecialShooter(
+      owner,
+      JEVIL_TELEPORT_VANISH_MS + JEVIL_TELEPORT_FREEZE_MS + JEVIL_TELEPORT_SHOOT_POSE_MS,
+    );
+
+    const teleportTimer = isPlayerSide ? playerSpecialSpawnTimer : opponentSpecialSpawnTimer;
+    if (teleportTimer.current) window.clearTimeout(teleportTimer.current);
+    teleportTimer.current = window.setTimeout(() => {
+      teleportTimer.current = null;
+
+      if (isArenaPausedRef.current) {
+        teleportTimer.current = runAfterArenaPause(() => {
+          startJevilTeleportShot(owner);
+        });
+        return;
+      }
+
+      const nextPosition = getRandomJevilTeleportPosition(owner);
+
+      if (isPlayerSide) {
+        setPlayerSpecialSpriteOverride(jevilTeleportFreezeSprite);
+        positionRef.current = nextPosition;
+        jumpVelocity.current = 0;
+        playerKnockbackVelocity.current = 0;
+        playerAirSpecialActiveRef.current = true;
+        playerAirSpecialYRef.current = nextPosition.y;
+        setPlayerPosition(nextPosition);
+      } else {
+        setOpponentSpecialSpriteOverride(jevilTeleportFreezeSprite);
+        opponentPositionRef.current = nextPosition;
+        opponentJumpVelocity.current = 0;
+        opponentKnockbackVelocity.current = 0;
+        opponentAirSpecialActiveRef.current = true;
+        opponentAirSpecialYRef.current = nextPosition.y;
+        setOpponentPosition(nextPosition);
+      }
+
+      teleportTimer.current = window.setTimeout(() => {
+        teleportTimer.current = null;
+
+        if (isArenaPausedRef.current) {
+          teleportTimer.current = runAfterArenaPause(() => {
+            if (isPlayerSide) {
+              setPlayerSpecialSpriteOverride(jevilTeleportShootSprite);
+              playerAirSpecialActiveRef.current = false;
+              jumpVelocity.current = -0.08;
+            } else {
+              setOpponentSpecialSpriteOverride(jevilTeleportShootSprite);
+              opponentAirSpecialActiveRef.current = false;
+              opponentJumpVelocity.current = -0.08;
+            }
+            shootJevilChaosShot(owner);
+          });
+          return;
+        }
+
+        if (isPlayerSide) {
+          setPlayerSpecialSpriteOverride(jevilTeleportShootSprite);
+          playerAirSpecialActiveRef.current = false;
+          jumpVelocity.current = -0.08;
+        } else {
+          setOpponentSpecialSpriteOverride(jevilTeleportShootSprite);
+          opponentAirSpecialActiveRef.current = false;
+          opponentJumpVelocity.current = -0.08;
+        }
+
+        shootJevilChaosShot(owner);
+      }, JEVIL_TELEPORT_FREEZE_MS);
+    }, JEVIL_TELEPORT_VANISH_MS);
+  }
+
+  function isOnJevilPlatform(fighter: Fighter, position: Position) {
+    if (fighter.id !== 'jevil') return false;
+
+    return jevilPlatformsRef.current.some(
+      (platform) =>
+        Math.abs(position.y - platform.y) <= 1 &&
+        Math.abs(position.x - platform.x) <= JEVIL_PLATFORM_HALF_WIDTH,
+    );
+  }
+
+  function getJevilPlatformLanding(
+    fighter: Fighter,
+    fromPosition: Position,
+    toPosition: Position,
+    verticalVelocity: number,
+  ) {
+    if (fighter.id !== 'jevil' || verticalVelocity >= 0) return null;
+
+    return (
+      jevilPlatformsRef.current.find(
+        (platform) =>
+          fromPosition.y >= platform.y &&
+          toPosition.y <= platform.y &&
+          Math.abs(toPosition.x - platform.x) <= JEVIL_PLATFORM_HALF_WIDTH,
+      ) ?? null
+    );
+  }
+
+  function lockSpecialShooter(owner: FighterSide, durationMs = SPECIAL_SHOOT_MS) {
     if (owner === 'left') {
       playerSpecialLockRef.current = true;
       setPlayerSpecialShooting(true);
@@ -3196,7 +5045,8 @@ export default function App() {
       playerSpecialTimer.current = window.setTimeout(() => {
         playerSpecialLockRef.current = false;
         setPlayerSpecialShooting(false);
-      }, SPECIAL_SHOOT_MS);
+        setPlayerSpecialSpriteOverride(null);
+      }, durationMs);
       return;
     }
 
@@ -3207,7 +5057,8 @@ export default function App() {
     opponentSpecialTimer.current = window.setTimeout(() => {
       opponentSpecialLockRef.current = false;
       setOpponentSpecialShooting(false);
-    }, SPECIAL_SHOOT_MS);
+      setOpponentSpecialSpriteOverride(null);
+    }, durationMs);
   }
 
   function getProjectileDamage(projectile: Projectile) {
@@ -3220,6 +5071,12 @@ export default function App() {
         ? QUEEN_PROJECTILE_DAMAGE
         : kind === 'knight-sword'
           ? KNIGHT_SWORD_PROJECTILE_DAMAGE
+          : kind === 'jevil-chaos-shot'
+            ? JEVIL_CHAOS_SHOT_DAMAGE
+          : kind === 'jevil-head'
+            ? 0
+          : kind === 'jevil-scythe'
+            ? JEVIL_SCYTHE_DAMAGE
         : PROJECTILE_DAMAGE;
   }
 
@@ -3231,6 +5088,12 @@ export default function App() {
       ? QUEEN_HEAL_WAVE_KNOCKBACK
       : kind === 'knight-sword'
         ? KNIGHT_SWORD_PROJECTILE_KNOCKBACK
+      : kind === 'jevil-chaos-shot'
+        ? JEVIL_CHAOS_SHOT_KNOCKBACK
+      : kind === 'jevil-head'
+        ? 0
+      : kind === 'jevil-scythe'
+        ? 0
       : kind === 'queen-wave'
         ? QUEEN_PROJECTILE_KNOCKBACK_VELOCITY
         : PROJECTILE_KNOCKBACK_VELOCITY;
@@ -3239,6 +5102,11 @@ export default function App() {
   function getProjectileSprite(projectile: Projectile) {
     if (projectile.kind === 'queen-wave') return queenProjectileSprite;
     if (projectile.kind === 'knight-sword') return roaringKnightSwordProjectileSprite;
+    if (projectile.kind === 'jevil-scythe') return jevilScytheProjectileSprite;
+    if (projectile.kind === 'jevil-head') return jevilHeadProjectileSprite;
+    if (projectile.kind === 'jevil-chaos-shot') {
+      return projectile.projectileSprite ?? jevilChaosProjectileOneSprite;
+    }
 
     return misterAntTennaProjectileSprite;
   }
@@ -3288,19 +5156,30 @@ export default function App() {
       playerStatusRef.current !== 'knockdown'
     ) {
       const canApplyKnockback = damagePlayer(TENNA_AIR_SPECIAL_DAMAGE, 'none', 'mid');
+      consumeOpponentPlan(canApplyKnockback, 'airSpecial');
       if (canApplyKnockback && !isPlayerKnightSphereActive() && !isPlayerKnightDarkWaveHolding()) {
         applyProjectileKnockback('left', direction, TENNA_AIR_SPECIAL_KNOCKBACK);
       }
+    } else {
+      consumeOpponentPlan(false, 'airSpecial');
     }
   }
 
   useEffect(() => {
     if (screen !== 'arena') return undefined;
     if (arenaMode === 'sandbox') return undefined;
-    if (opponentHealth > 0 && playerHealth > 0) return undefined;
+    const timeExpired = roundTimeLeft <= 0;
+    if (opponentHealth > 0 && playerHealth > 0 && !timeExpired) return undefined;
     if (roundResolvedRef.current) return undefined;
 
-    const roundWinner: FighterSide = opponentHealth <= 0 ? 'left' : 'right';
+    const roundWinner: FighterSide =
+      timeExpired && playerHealth > 0 && opponentHealth > 0
+        ? playerHealth >= opponentHealth
+          ? 'left'
+          : 'right'
+        : opponentHealth <= 0
+          ? 'left'
+          : 'right';
     const nextPlayerWins = playerRoundWins + (roundWinner === 'left' ? 1 : 0);
     const nextOpponentWins = opponentRoundWins + (roundWinner === 'right' ? 1 : 0);
     const roundWinnerFighter = roundWinner === 'left' ? player : opponent;
@@ -3310,12 +5189,25 @@ export default function App() {
         ? victorySprites
         : victorySprites.filter((sprite) => sprite !== queenVictoryBackdropSprite);
 
+    if (timeExpired && playerHealth > 0 && opponentHealth > 0) {
+      if (roundWinner === 'left') {
+        opponentHealthRef.current = 0;
+        setOpponentHealth(0);
+      } else {
+        playerHealthRef.current = 0;
+        setPlayerHealth(0);
+      }
+    }
+
     setWinnerSide(roundWinner);
     setRoundWinnerPoseSprite(
       availableVictorySprites.length > 0
         ? availableVictorySprites[Math.floor(Math.random() * availableVictorySprites.length)]
         : null,
     );
+    if (roundWinnerFighter.id === 'jevil') {
+      playRandomJevilVoiceSound();
+    }
     roundResolvedRef.current = true;
     if (roundWinner === 'left') {
       setPlayerRoundWins(nextPlayerWins);
@@ -3346,15 +5238,17 @@ export default function App() {
       }, ROUND_CURTAIN_CLOSED_MS);
     }, nextPlayerWins >= 2 || nextOpponentWins >= 2 ? FATALITY_WINDOW_MS : ROUND_CURTAIN_DROP_DELAY_MS);
 
-    return () => {
-      if (victoryTimer.current) window.clearTimeout(victoryTimer.current);
-    };
-  }, [arenaMode, opponentHealth, playerHealth, screen]);
+    return undefined;
+  }, [arenaMode, opponentHealth, opponentRoundWins, playerHealth, playerRoundWins, roundTimeLeft, screen]);
 
   useEffect(() => {
     if (screen !== 'arena') return undefined;
 
     function damageOpponent(nextAttack: Exclude<Attack, 'idle'>, isCrouchAttack: boolean) {
+      if (player.id === 'gerson-boom' && nextAttack === 'kick') {
+        useGersonParry('left');
+        return;
+      }
       if (opponentStatusRef.current === 'knockdown') return;
 
       const range =
@@ -3388,7 +5282,17 @@ export default function App() {
         )
       ) {
         const canApplyHitEffect = damageOpponentHealth(baseDamage, hitLevel);
-        if (!canApplyHitEffect) return;
+        if (!canApplyHitEffect) {
+          if (opponentBlockingRef.current) rememberAiOutcome('block', true, 0.9);
+          if (opponentCrouchingRef.current && hitLevel === 'high') rememberAiOutcome('crouch', true, 0.9);
+          if (opponentPositionRef.current.y > 0 && hitLevel === 'low') rememberAiOutcome('jump', true, 0.9);
+          return;
+        }
+        if (player.id === 'jevil') {
+          playRandomJevilVoiceSound();
+        }
+        if (opponentBlockingRef.current) rememberAiOutcome('block', false, 0.8);
+        if (opponentCrouchingRef.current) rememberAiOutcome('crouch', false, 0.7);
         if (isOpponentKnightSphereActive()) return;
 
         if (isCrouchAttack && nextAttack === 'kick') {
@@ -3418,7 +5322,7 @@ export default function App() {
         applyProjectileKnockback(
           'right',
           opponentPositionRef.current.x >= positionRef.current.x ? 1 : -1,
-          ATTACK_KNOCKBACK_VELOCITY,
+          getAttackKnockbackStrength(player, nextAttack),
         );
       }
     }
@@ -3426,6 +5330,7 @@ export default function App() {
     function triggerAttack(nextAttack: Exclude<Attack, 'idle'>) {
       const now = window.performance.now();
       const isKnightSwordShot = player.id === 'roaring-knight' && nextAttack === 'kick';
+      const isGersonParry = player.id === 'gerson-boom' && nextAttack === 'kick';
 
       if (
         now < attackReadyAt.current ||
@@ -3434,10 +5339,26 @@ export default function App() {
       ) {
         return;
       }
-      attackReadyAt.current = now + (isKnightSwordShot ? KNIGHT_SWORD_PROJECTILE_COOLDOWN_MS : ATTACK_COOLDOWN_MS);
+      attackReadyAt.current =
+        now + (isKnightSwordShot ? KNIGHT_SWORD_PROJECTILE_COOLDOWN_MS : getFighterAttackCooldown(player, nextAttack));
 
       const isCrouchAttack =
         canFighterCrouch(player) && pressedKeys.current.has('s') && positionRef.current.y === 0;
+      const playerHitLevel: HitLevel =
+        isCrouchAttack && nextAttack === 'kick'
+          ? 'low'
+          : isCrouchAttack && nextAttack === 'punch'
+            ? 'mid'
+            : nextAttack === 'punch'
+              ? getStandingPunchHitLevel(player)
+              : getStandingKickHitLevel(player);
+      rememberPlayerAction(playerHitLevel);
+      rememberPlayerAction(Math.abs(opponentPositionRef.current.x - positionRef.current.x) <= 24 ? 'close' : 'far', 0.45, {
+        includeTotal: false,
+      });
+      if (isCrouchAttack) rememberPlayerAction('crouch', 0.7, { includeTotal: false });
+      if (isKnightSwordShot) rememberPlayerAction('projectile', 1.15);
+      playerAttackFacingRef.current = getFacingToward(positionRef.current.x, opponentPositionRef.current.x);
       attackRef.current = nextAttack;
       playerAttackStartedAt.current = now;
       setAttack(nextAttack);
@@ -3451,43 +5372,126 @@ export default function App() {
       const attackDuration =
         isKnightSwordShot
           ? KNIGHT_SWORD_PROJECTILE_COOLDOWN_MS
+          : isGersonParry
+            ? GERSON_PARRY_DURATION_MS
           : isCrouchUppercut
           ? CROUCH_UPPERCUT_DURATION_MS + CROUCH_UPPERCUT_RECOVERY_MS
-          : ATTACK_DURATION_MS[nextAttack];
+          : getFighterAttackDuration(player, nextAttack);
       const hitFrameRatio = isCrouchAttack ? CROUCH_HIT_FRAME_RATIO : ATTACK_HIT_FRAME_RATIO;
+      const attackHitFrameRatio = isGersonParry ? GERSON_PARRY_HIT_FRAME_RATIO : hitFrameRatio;
+      const attackHitDelay = isGersonParry
+        ? CPU_GERSON_PARRY_PROJECTILE_HIT_MS
+        : isKnightSwordShot
+          ? KNIGHT_SWORD_PROJECTILE_SHOOT_MS
+          : Math.max(0, Math.floor(attackDuration * attackHitFrameRatio));
+      let attackHitAt = now + attackHitDelay;
+      let attackEndsAt = now + attackDuration;
 
       setIsCrouchAttackLocked(isCrouchAttack);
-      attackHitTimer.current = window.setTimeout(() => {
-        attackHitTimer.current = null;
-
-        if (isArenaPausedRef.current) return;
+      const resolvePlayerAttackHit = () => {
         if (
-          attackRef.current === nextAttack &&
-          playerStatusRef.current === 'idle' &&
-          opponentHealthRef.current > 0
+          attackRef.current !== nextAttack ||
+          playerStatusRef.current !== 'idle' ||
+          opponentHealthRef.current <= 0
         ) {
-          if (isKnightSwordShot) {
-            const direction: -1 | 1 = opponentPositionRef.current.x >= positionRef.current.x ? 1 : -1;
-            spawnProjectile('left', positionRef.current.x, direction, 'high', 'knight-sword', {
-              bottomPx: getKnightSwordProjectileBottom(
-                positionRef.current,
-                player.id === 'roaring-knight' ? knightVisualLiftRef.current : 0,
-              ),
-            });
-            return;
-          }
-
-          damageOpponent(nextAttack, isCrouchAttack);
+          return;
         }
-      }, isKnightSwordShot ? KNIGHT_SWORD_PROJECTILE_SHOOT_MS : Math.max(0, Math.floor(attackDuration * hitFrameRatio)));
 
-      attackTimer.current = window.setTimeout(() => {
-        if (isArenaPausedRef.current) return;
+        if (isKnightSwordShot) {
+          const direction: -1 | 1 = opponentPositionRef.current.x >= positionRef.current.x ? 1 : -1;
+          spawnProjectile('left', positionRef.current.x, direction, 'high', 'knight-sword', {
+            bottomPx: getKnightSwordProjectileBottom(
+              positionRef.current,
+              player.id === 'roaring-knight' ? knightVisualLiftRef.current : 0,
+            ),
+          });
+          return;
+        }
+
+        damageOpponent(nextAttack, isCrouchAttack);
+      };
+      const finishPlayerAttack = () => {
         attackRef.current = 'idle';
+        playerAttackFacingRef.current = null;
         playerAttackStartedAt.current = 0;
         setIsCrouchAttackLocked(false);
         setAttack('idle');
-      }, attackDuration);
+      };
+      const handlePlayerAttackHitTimer = () => {
+        attackHitTimer.current = null;
+
+        if (isArenaPausedRef.current) {
+          const pausedAt = arenaPauseStartedAtRef.current || window.performance.now();
+          const remainingAfterPause = Math.max(0, attackHitAt - pausedAt);
+          attackHitTimer.current = runAfterArenaPause(() => {
+            attackHitAt += Math.max(0, window.performance.now() - pausedAt);
+            attackHitTimer.current = window.setTimeout(handlePlayerAttackHitTimer, remainingAfterPause);
+          });
+          return;
+        }
+        resolvePlayerAttackHit();
+      };
+      attackHitTimer.current = window.setTimeout(handlePlayerAttackHitTimer, attackHitDelay);
+
+      const handlePlayerAttackEndTimer = () => {
+        attackTimer.current = null;
+
+        if (isArenaPausedRef.current) {
+          const pausedAt = arenaPauseStartedAtRef.current || window.performance.now();
+          const remainingAfterPause = Math.max(0, attackEndsAt - pausedAt);
+          attackTimer.current = runAfterArenaPause(() => {
+            attackEndsAt += Math.max(0, window.performance.now() - pausedAt);
+            attackTimer.current = window.setTimeout(handlePlayerAttackEndTimer, remainingAfterPause);
+          });
+          return;
+        }
+        finishPlayerAttack();
+      };
+      attackTimer.current = window.setTimeout(handlePlayerAttackEndTimer, attackDuration);
+    }
+
+    function spawnGersonLeapBoostEffect(side: FighterSide, x: number, direction: -1 | 1) {
+      const leapEffectId = gersonLeapEffectIdRef.current++;
+
+      setGersonLeapEffects((effects) => [
+        ...effects,
+        { id: leapEffectId, side, x, direction },
+      ]);
+      window.setTimeout(() => {
+        setGersonLeapEffects((effects) => effects.filter((effect) => effect.id !== leapEffectId));
+      }, 720);
+    }
+
+    function launchPlayerGersonLeap(direction: -1 | 1) {
+      if (
+        isArenaPausedRef.current ||
+        roundResolvedRef.current ||
+        roundCountdownRef.current > 0 ||
+        player.id !== 'gerson-boom' ||
+        playerStatusRef.current !== 'idle' ||
+        positionRef.current.y > 0
+      ) {
+        playerSpecialLockRef.current = false;
+        setPlayerGersonLeapPreparing(false);
+        return;
+      }
+
+      const startX = positionRef.current.x;
+      const nextX = clampAirbornePlayerX(
+        startX + direction * GERSON_LEAP_DASH_START_X,
+        startX,
+        opponentPositionRef.current.x,
+      );
+
+      spawnGersonLeapBoostEffect('left', startX, direction);
+      setPlayerGersonLeapPreparing(false);
+      setPlayerGersonLeapActive(true);
+      playerGersonLeapDirectBoostReadyRef.current = true;
+      jumpVelocity.current = GERSON_LEAP_JUMP_POWER;
+      playerKnockbackVelocity.current = direction * GERSON_LEAP_DASH_VELOCITY;
+      positionRef.current = { ...positionRef.current, x: nextX };
+      setPlayerPosition(positionRef.current);
+      playerSpecialLockRef.current = false;
     }
 
     function triggerSpecial(specialMove: PlayerSpecialMove) {
@@ -3497,6 +5501,12 @@ export default function App() {
       const isTennaAirSpecial = specialMove === 'tenna-air';
       const isQueenSpecial = specialMove === 'queen-ground';
       const isQueenHeal = specialMove === 'queen-heal';
+      const isGersonLeap = specialMove === 'gerson-leap';
+      const isJevilPlatforms = specialMove === 'jevil-platforms';
+      const isJevilChaos = specialMove === 'jevil-chaos';
+      const isJevilAbsorb = specialMove === 'jevil-absorb';
+      const playerOnGroundOrJevilPlatform =
+        positionRef.current.y === 0 || isOnJevilPlatform(player, positionRef.current);
 
       if (
         now < specialReadyAt.current ||
@@ -3508,6 +5518,11 @@ export default function App() {
         (isTennaAirSpecial && positionRef.current.y <= 0) ||
         ((isTennaGroundSpecial || isTennaAirSpecial) && player.id !== 'mister-ant-tenna') ||
         ((isQueenSpecial || isQueenHeal) && player.id !== 'queen') ||
+        (isGersonLeap && (player.id !== 'gerson-boom' || positionRef.current.y > 0)) ||
+        ((isJevilPlatforms || isJevilChaos || isJevilAbsorb) && player.id !== 'jevil') ||
+        (isJevilAbsorb && !playerOnGroundOrJevilPlatform) ||
+        (isJevilAbsorb && playerJevilAbsorbActiveRef.current) ||
+        (isJevilPlatforms && jevilPlatformsRef.current.length > 0) ||
         opponentHealthRef.current <= 0
       ) {
         return false;
@@ -3519,11 +5534,20 @@ export default function App() {
           ? QUEEN_HEAL_COOLDOWN_MS
           : isQueenSpecial
           ? QUEEN_SPECIAL_COOLDOWN_MS
+          : isGersonLeap
+            ? SPECIAL_COOLDOWN_MS
+          : isJevilChaos
+            ? JEVIL_CHAOS_SPECIAL_COOLDOWN_MS
+          : isJevilAbsorb
+            ? 0
+          : isJevilPlatforms
+            ? 0
           : isTennaAirSpecial
             ? TENNA_AIR_SPECIAL_COOLDOWN_MS
             : SPECIAL_COOLDOWN_MS);
 
       if (isQueenHeal) {
+        rememberPlayerAction('special', 0.85);
         startQueenHeal('left');
         return true;
       }
@@ -3532,9 +5556,54 @@ export default function App() {
         playTennaStarSpecialSound();
       }
 
+      if (isGersonLeap) {
+        rememberPlayerAction('special', 1.1);
+        rememberPlayerAction('jump', 0.9, { includeTotal: false });
+        rememberPlayerAction('air', 0.7, { includeTotal: false });
+        stopPlayerGersonSpin();
+        playerSpecialLockRef.current = true;
+        setPlayerGersonLeapPreparing(true);
+        if (playerGersonLeapPrepTimer.current) window.clearTimeout(playerGersonLeapPrepTimer.current);
+        playerGersonLeapPrepTimer.current = window.setTimeout(() => {
+          playerGersonLeapPrepTimer.current = null;
+          launchPlayerGersonLeap(direction);
+        }, GERSON_LEAP_PREP_MS);
+        return true;
+      }
+
+      if (isJevilChaos) {
+        playRandomJevilVoiceSound();
+        setPlayerSpecialSpriteOverride(jevilChaosSpecialSprite);
+        lockSpecialShooter('left', JEVIL_CHAOS_SPECIAL_MS);
+        if (playerSpecialSpawnTimer.current) window.clearTimeout(playerSpecialSpawnTimer.current);
+        playerSpecialSpawnTimer.current = window.setTimeout(() => {
+          playerSpecialSpawnTimer.current = null;
+          spawnJevilScythe('left');
+        }, 160);
+        rememberPlayerAction('special', 0.95);
+        return true;
+      }
+
+      if (isJevilAbsorb) {
+        startJevilAbsorb('left');
+        rememberPlayerAction('special', 1.05);
+        return true;
+      }
+
+      if (isJevilPlatforms) {
+        playRandomJevilVoiceSound();
+        setPlayerSpecialSpriteOverride(jevilPlatformSpecialSprite);
+        lockSpecialShooter('left');
+        spawnJevilPlatforms('left');
+        rememberPlayerAction('special', 1.1);
+        return true;
+      }
+
       lockSpecialShooter('left');
+      rememberPlayerAction('special', 1.1);
 
       if (isQueenSpecial) {
+        rememberPlayerAction('projectile', 0.85);
         if (playerSpecialSpawnTimer.current) window.clearTimeout(playerSpecialSpawnTimer.current);
         playerSpecialSpawnTimer.current = window.setTimeout(() => {
           const delayedDirection: -1 | 1 =
@@ -3546,6 +5615,7 @@ export default function App() {
       }
 
       if (isTennaAirSpecial) {
+        rememberPlayerAction('air', 0.7, { includeTotal: false });
         jumpVelocity.current = 0;
         playerAirSpecialActiveRef.current = true;
         playerAirSpecialYRef.current = Math.max(positionRef.current.y, 28);
@@ -3581,6 +5651,7 @@ export default function App() {
       }
 
       spawnProjectile('left', positionRef.current.x, direction, 'low', 'tenna-star');
+      rememberPlayerAction('projectile', 0.85);
       return true;
     }
 
@@ -3589,6 +5660,55 @@ export default function App() {
       specialInputExpiresAt.current = 0;
       specialInputStartedAt.current = 0;
       specialInputMove.current = null;
+      specialInputBuffer.current = [];
+    }
+
+    function getSpecialInputSequence(move: PlayerSpecialMove): string[] {
+      const targetArrow = opponentPositionRef.current.x >= positionRef.current.x ? 'arrowright' : 'arrowleft';
+      const gersonSideKey = opponentPositionRef.current.x >= positionRef.current.x ? 'd' : 'a';
+
+      if (move === 'queen-ground') return ['a', 'd', targetArrow];
+      if (move === 'queen-heal') return ['s', 's', 'arrowdown'];
+      if (move === 'gerson-leap') return ['s', gersonSideKey, 'arrowup'];
+      if (move === 'tenna-air') return ['a', 'd', targetArrow];
+      if (move === 'jevil-platforms') return ['a', 'd', 's', 'arrowup'];
+      if (move === 'jevil-absorb') return ['s', 'arrowdown', 'arrowdown', 'arrowup'];
+      if (move === 'jevil-chaos') {
+        return opponentPositionRef.current.x < positionRef.current.x
+          ? ['a', 'd', 'arrowleft']
+          : ['d', 'a', 'arrowleft'];
+      }
+
+      return ['s', 'd', targetArrow];
+    }
+
+    function getJevilSpecialSequences(): Array<{ move: PlayerSpecialMove; keys: string[] }> {
+      return [
+        { move: 'jevil-platforms', keys: getSpecialInputSequence('jevil-platforms') },
+        { move: 'jevil-chaos', keys: getSpecialInputSequence('jevil-chaos') },
+        { move: 'jevil-absorb', keys: getSpecialInputSequence('jevil-absorb') },
+      ];
+    }
+
+    function getFirstSpecialMove(key: string): PlayerSpecialMove | null {
+      if (player.id === 'queen' && positionRef.current.y === 0) {
+        if (key === 's') return 'queen-heal';
+        if (key === 'a') return 'queen-ground';
+      }
+
+      if (player.id === 'mister-ant-tenna') {
+        return positionRef.current.y > 0 ? (key === 'a' ? 'tenna-air' : null) : key === 's' ? 'tenna-ground' : null;
+      }
+
+      if (player.id === 'gerson-boom' && positionRef.current.y === 0 && key === 's') {
+        return 'gerson-leap';
+      }
+
+      if (player.id === 'jevil' && key === 'a') {
+        return 'jevil-platforms';
+      }
+
+      return null;
     }
 
     function advanceSpecialInput(key: string): PlayerSpecialMove | null {
@@ -3602,52 +5722,70 @@ export default function App() {
         resetSpecialInput();
       }
 
-      if (key === 'd' || key === 's') {
-        const expectedSecondKey = specialInputMove.current === 'queen-heal' ? 's' : 'd';
-        if (specialInputStep.current === 1 && key === expectedSecondKey) {
-          specialInputStep.current = 2;
+      if (player.id === 'jevil') {
+        const nextBuffer = [...specialInputBuffer.current, key];
+        const sequences = getJevilSpecialSequences();
+        const matches = sequences.filter(({ keys }) =>
+          nextBuffer.every((bufferKey, index) => keys[index] === bufferKey),
+        );
+        const completed = matches.find(({ keys }) => keys.length === nextBuffer.length);
+
+        if (completed) {
+          resetSpecialInput();
+          return completed.move;
+        }
+
+        if (matches.length > 0) {
+          specialInputBuffer.current = nextBuffer;
+          specialInputStep.current = nextBuffer.length;
+          specialInputMove.current = matches[0].move;
+          specialInputStartedAt.current = specialInputStartedAt.current || now;
           specialInputExpiresAt.current = now + SPECIAL_INPUT_WINDOW_MS;
           return null;
         }
+
+        resetSpecialInput();
+
+        const restartMatches = sequences.filter(({ keys }) => keys[0] === key);
+        if (restartMatches.length > 0) {
+          specialInputBuffer.current = [key];
+          specialInputStep.current = 1;
+          specialInputMove.current = restartMatches[0].move;
+          specialInputStartedAt.current = now;
+          specialInputExpiresAt.current = now + SPECIAL_INPUT_WINDOW_MS;
+        }
+
+        return null;
       }
 
-      const firstComboMove: PlayerSpecialMove | null =
-        player.id === 'queen'
-          ? positionRef.current.y === 0
-            ? key === 's'
-              ? 'queen-heal'
-              : key === 'a'
-                ? 'queen-ground'
-                : null
-            : null
-          : player.id === 'mister-ant-tenna'
-            ? positionRef.current.y > 0
-              ? 'tenna-air'
-              : 'tenna-ground'
-            : null;
-      const firstComboKey =
-        firstComboMove === 'queen-ground' || firstComboMove === 'tenna-air' ? 'a' : 's';
+      if (specialInputMove.current && specialInputStep.current > 0) {
+        const sequence = getSpecialInputSequence(specialInputMove.current);
+        const expectedKey = sequence[specialInputStep.current];
 
-      if (firstComboMove && key === firstComboKey) {
+        if (key === expectedKey) {
+          specialInputStep.current += 1;
+          specialInputExpiresAt.current = now + SPECIAL_INPUT_WINDOW_MS;
+
+          if (specialInputStep.current >= sequence.length) {
+            const completedMove = specialInputMove.current;
+            resetSpecialInput();
+            return completedMove;
+          }
+
+          return null;
+        }
+
+        resetSpecialInput();
+      }
+
+      const firstComboMove = getFirstSpecialMove(key);
+
+      if (firstComboMove) {
         specialInputStep.current = 1;
         specialInputMove.current = firstComboMove;
         specialInputStartedAt.current = now;
         specialInputExpiresAt.current = now + SPECIAL_INPUT_WINDOW_MS;
         return null;
-      }
-
-      if (key === 'arrowleft' || key === 'arrowright' || key === 'arrowdown') {
-        const specialArrow =
-          specialInputMove.current === 'queen-heal'
-            ? 'arrowdown'
-            : opponentPositionRef.current.x >= positionRef.current.x
-              ? 'arrowright'
-              : 'arrowleft';
-        const isCompleteCombo = specialInputStep.current === 2 && key === specialArrow;
-        const completedMove = isCompleteCombo ? specialInputMove.current : null;
-
-        resetSpecialInput();
-        return completedMove;
       }
 
       return null;
@@ -3803,8 +5941,17 @@ export default function App() {
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      const key = getGameKey(event);
-      const handledKeys = ['w', 'a', 's', 'd', 'arrowleft', 'arrowright', 'arrowdown', 'arrowup', 'block'];
+      const key = getGameKey(event, controlBindings);
+
+      if (key === 'escape') {
+        event.preventDefault();
+        if (!event.repeat) {
+          setSettingsOpen((isOpen) => !isOpen);
+        }
+        return;
+      }
+
+      const handledKeys: string[] = ['w', 'a', 's', 'd', 'arrowleft', 'arrowright', 'arrowdown', 'arrowup', 'block'];
 
       if (!handledKeys.includes(key)) return;
       event.preventDefault();
@@ -3815,6 +5962,8 @@ export default function App() {
 
       const knightDarkWaveDirection = advanceKnightDarkWaveInput(key);
       if (knightDarkWaveDirection) {
+        rememberPlayerAction('special', 1.25);
+        rememberPlayerAction('far', 0.5, { includeTotal: false });
         startPlayerKnightDarkWaveHold(knightDarkWaveDirection);
         return;
       }
@@ -3828,6 +5977,8 @@ export default function App() {
 
       const knightSphereAction = advanceKnightSphereInput(key);
       if (knightSphereAction === 'enter') {
+        rememberPlayerAction('special', 0.8);
+        rememberPlayerAction('air', 0.45, { includeTotal: false });
         startPlayerKnightSphere();
         return;
       }
@@ -3836,6 +5987,8 @@ export default function App() {
         return;
       }
       if (knightSphereAction === 'bird') {
+        rememberPlayerAction('special', 1);
+        rememberPlayerAction('air', 0.7, { includeTotal: false });
         startPlayerKnightBirdDash(opponentPositionRef.current.x >= positionRef.current.x ? 1 : -1);
         return;
       }
@@ -3854,19 +6007,49 @@ export default function App() {
         return;
       }
 
+      const specialInput = advanceSpecialInput(key);
+      if (specialInput) {
+        triggerSpecial(specialInput);
+        return;
+      }
+
       if (key === 'arrowup') {
         if (playerStatusRef.current === 'healing') stopQueenHeal('left');
         return;
       }
 
       if (key === 'arrowleft' && player.id === 'roaring-knight') {
+        rememberPlayerAction('high', 0.8);
         startPlayerChargeAttack();
         return;
       }
 
-      const specialInput = advanceSpecialInput(key);
+      if (key === 'arrowleft' && player.id === 'gerson-boom') {
+        startPlayerGersonSpin();
+        return;
+      }
 
-      const isOnGround = positionRef.current.y === 0;
+      if (key === 'arrowleft' && player.id === 'jevil') {
+        const playerCanUseGroundedJevilMove =
+          positionRef.current.y === 0 || isOnJevilPlatform(player, positionRef.current);
+
+        if (
+          !playerCanUseGroundedJevilMove ||
+          attackRef.current !== 'idle' ||
+          playerSpecialLockRef.current ||
+          playerBlockHeldRef.current ||
+          playerStatusRef.current !== 'idle' ||
+          window.performance.now() < specialReadyAt.current
+        ) {
+          return;
+        }
+
+        rememberPlayerAction('special', 0.9);
+        startJevilTeleportShot('left');
+        return;
+      }
+
+      const isOnGround = positionRef.current.y === 0 || isOnJevilPlatform(player, positionRef.current);
 
       if (key === 'block') {
         if (
@@ -3876,16 +6059,12 @@ export default function App() {
           playerStatusRef.current !== 'idle'
         ) return;
 
+        rememberPlayerAction('block', 0.9);
         startPlayerBlock();
         return;
       }
 
       if (key === 'arrowleft' || key === 'arrowright' || key === 'arrowdown') {
-        if (specialInput) {
-          triggerSpecial(specialInput);
-          return;
-        }
-
         if (key === 'arrowdown') return;
 
         const isKnightSwordShotInput = player.id === 'roaring-knight' && key === 'arrowright';
@@ -3905,23 +6084,29 @@ export default function App() {
       const canJump =
         isOnGround &&
         jumpVelocity.current === 0 &&
-          !(canFighterCrouch(player) && pressedKeys.current.has('s')) &&
+          (isAlwaysCrouchingFighter(player) || !(canFighterCrouch(player) && pressedKeys.current.has('s'))) &&
           !playerBlockHeldRef.current &&
           attackRef.current === 'idle' &&
           !playerSpecialLockRef.current &&
           playerStatusRef.current === 'idle';
 
         if (canJump) {
-          jumpVelocity.current = player.id === 'roaring-knight' ? KNIGHT_JUMP_POWER : DEFAULT_JUMP_POWER;
+          rememberPlayerAction('jump', 0.95);
+          rememberPlayerAction('air', 0.45, { includeTotal: false });
+          jumpVelocity.current = getFighterJumpPower(player);
         }
         return;
+      }
+
+      if (key === 's') {
+        rememberPlayerAction('crouch', 0.65);
       }
 
       pressedKeys.current.add(key);
     }
 
     function handleKeyUp(event: KeyboardEvent) {
-      const key = getGameKey(event);
+      const key = getGameKey(event, controlBindings);
 
       if (isArenaPausedRef.current) {
         pressedKeys.current.delete(key);
@@ -3948,6 +6133,11 @@ export default function App() {
         return;
       }
 
+      if (key === 'arrowleft' && player.id === 'gerson-boom') {
+        stopPlayerGersonSpin();
+        return;
+      }
+
       pressedKeys.current.delete(key);
     }
 
@@ -3957,8 +6147,10 @@ export default function App() {
         return;
       }
 
+      removeExpiredJevilPlatforms();
+
       const keys = pressedKeys.current;
-      const isOnGround = positionRef.current.y === 0;
+      const isOnGround = positionRef.current.y === 0 || isOnJevilPlatform(player, positionRef.current);
       const isRoundLocked = roundCountdownRef.current > 0 || roundResolvedRef.current;
       const playerIsSphereActive = !isRoundLocked && knightSpherePhaseRef.current === 'active';
       const playerIsBirdDashing = !isRoundLocked && knightSpherePhaseRef.current === 'bird';
@@ -4037,15 +6229,17 @@ export default function App() {
 
       if (!playerIsSphereActive && !playerIsBirdDashing) {
         nextIsCrouching =
-          canFighterCrouch(player) && keys.has('s') && isOnGround && playerStatusRef.current === 'idle';
+          isOnGround &&
+          playerStatusRef.current === 'idle' &&
+          (isAlwaysCrouchingFighter(player) || (canFighterCrouch(player) && keys.has('s')));
         const movementLocked =
           isRoundLocked ||
-          nextIsCrouching ||
+          (nextIsCrouching && !isAlwaysCrouchingFighter(player)) ||
           playerBlockHeldRef.current ||
           playerSpecialLockRef.current ||
           attackRef.current !== 'idle' ||
           playerStatusRef.current !== 'idle';
-        const speed = WALK_SPEED;
+        const speed = getFighterWalkSpeed(player);
         const nextPosition = { ...positionRef.current };
 
         if (!movementLocked) {
@@ -4080,6 +6274,7 @@ export default function App() {
           nextPosition.y = playerAirSpecialYRef.current;
           jumpVelocity.current = 0;
         } else if (jumpVelocity.current !== 0 || nextPosition.y > 0) {
+          const previousPosition = positionRef.current;
           nextPosition.y = Math.max(0, nextPosition.y + jumpVelocity.current);
           if (
             player.id === 'roaring-knight' &&
@@ -4096,8 +6291,51 @@ export default function App() {
             playerStatusRef.current === 'launched' ? playerLaunchedFallStartedAt.current : 0,
           );
 
-          if (nextPosition.y === 0 && jumpVelocity.current < 0) {
+          const landedPlatform = getJevilPlatformLanding(
+            player,
+            previousPosition,
+            nextPosition,
+            jumpVelocity.current,
+          );
+
+          if (landedPlatform) {
+            nextPosition.y = landedPlatform.y;
             jumpVelocity.current = 0;
+            playerLaunchedFallStartedAt.current = 0;
+          } else if (nextPosition.y === 0 && jumpVelocity.current < 0) {
+            const landingBounce =
+              playerStatusRef.current === 'idle' &&
+              tryGersonLandingHit('left', nextPosition);
+
+            if (landingBounce) {
+              playGersonBounceSound();
+              nextPosition.y = GERSON_LANDING_BOUNCE_START_Y;
+
+              if (
+                landingBounce.airHitCount >= GERSON_SIDE_BOUNCE_AFTER_AIR_HITS ||
+                (landingBounce.sideKnockbackMultiplier ?? 1) > 1
+              ) {
+                nextPosition.x = clampAirbornePlayerX(
+                  nextPosition.x +
+                    landingBounce.sideDirection *
+                      GERSON_SIDE_BOUNCE_START_X *
+                      (landingBounce.sideKnockbackMultiplier ?? 1),
+                  nextPosition.x,
+                  opponentPositionRef.current.x,
+                );
+                playerKnockbackVelocity.current =
+                  landingBounce.sideDirection *
+                  GERSON_SIDE_BOUNCE_VELOCITY *
+                  (landingBounce.sideKnockbackMultiplier ?? 1);
+              }
+            } else {
+              setPlayerGersonLeapActive(false);
+              playerGersonLeapDirectBoostReadyRef.current = false;
+              playerGersonAirLandingHitsRef.current = 0;
+              hideGersonAirCounterAfterLanding('left');
+            }
+
+            jumpVelocity.current = landingBounce ? GERSON_LANDING_BOUNCE_POWER : 0;
             playerLaunchedFallStartedAt.current = 0;
 
             if (playerStatusRef.current === 'launched') {
@@ -4145,6 +6383,7 @@ export default function App() {
           if (hitDistance <= KNIGHT_BIRD_DASH_HIT_RANGE && verticalDistance <= KNIGHT_BIRD_DASH_VERTICAL_RANGE) {
             opponentKnightBirdDashHitRef.current = true;
             const didDamage = damagePlayer(KNIGHT_BIRD_DASH_DAMAGE, 'none', 'mid');
+            consumeOpponentPlan(didDamage, 'bird');
 
             if (didDamage) {
               playKnightBirdHitSound();
@@ -4160,6 +6399,9 @@ export default function App() {
         }
 
         if (reachedWall) {
+          if (!opponentKnightBirdDashHitRef.current) {
+            rememberAiOutcome('bird', false, 0.8);
+          }
           opponentKnightBirdDashHitRef.current = false;
           opponentSpecialLockRef.current = false;
           setKnightSpherePhase('idle', 'right');
@@ -4225,7 +6467,29 @@ export default function App() {
         }
       } else if (!opponentIsSphereActive && !opponentIsBirdDashing && (opponentJumpVelocity.current !== 0 || opponentPositionRef.current.y > 0)) {
         const nextOpponentPosition = { ...opponentPositionRef.current };
+        const previousOpponentPosition = opponentPositionRef.current;
         nextOpponentPosition.y = Math.max(0, nextOpponentPosition.y + opponentJumpVelocity.current);
+
+        if (
+          arenaMode === 'fight' &&
+          opponent.id === 'gerson-boom' &&
+          opponentStatusRef.current === 'idle' &&
+          playerHealthRef.current > 0 &&
+          playerStatusRef.current !== 'knockdown' &&
+          opponentGersonAirStompChainRef.current &&
+          nextOpponentPosition.y > 0
+        ) {
+          const distanceToPlayer = positionRef.current.x - nextOpponentPosition.x;
+
+          if (Math.abs(distanceToPlayer) > GERSON_LANDING_DIRECT_HIT_RANGE) {
+            nextOpponentPosition.x = clampAirborneOpponentX(
+              nextOpponentPosition.x + Math.sign(distanceToPlayer) * WALK_SPEED,
+              opponentPositionRef.current.x,
+              positionRef.current.x,
+            );
+          }
+        }
+
         if (
           opponent.id === 'roaring-knight' &&
           opponentStatusRef.current === 'launched' &&
@@ -4241,8 +6505,51 @@ export default function App() {
           opponentStatusRef.current === 'launched' ? opponentLaunchedFallStartedAt.current : 0,
         );
 
-        if (nextOpponentPosition.y === 0 && opponentJumpVelocity.current < 0) {
+        const landedPlatform = getJevilPlatformLanding(
+          opponent,
+          previousOpponentPosition,
+          nextOpponentPosition,
+          opponentJumpVelocity.current,
+        );
+
+        if (landedPlatform) {
+          nextOpponentPosition.y = landedPlatform.y;
           opponentJumpVelocity.current = 0;
+          opponentLaunchedFallStartedAt.current = 0;
+        } else if (nextOpponentPosition.y === 0 && opponentJumpVelocity.current < 0) {
+          const landingBounce =
+            opponentStatusRef.current === 'idle' &&
+            tryGersonLandingHit('right', nextOpponentPosition);
+
+          if (landingBounce) {
+            playGersonBounceSound();
+            opponentGersonAirStompChainRef.current = true;
+            nextOpponentPosition.y = GERSON_LANDING_BOUNCE_START_Y;
+
+            if (
+              landingBounce.airHitCount >= GERSON_SIDE_BOUNCE_AFTER_AIR_HITS ||
+              (landingBounce.sideKnockbackMultiplier ?? 1) > 1
+            ) {
+              nextOpponentPosition.x = clampAirborneOpponentX(
+                nextOpponentPosition.x +
+                  landingBounce.sideDirection *
+                    GERSON_SIDE_BOUNCE_START_X *
+                    (landingBounce.sideKnockbackMultiplier ?? 1),
+                nextOpponentPosition.x,
+                positionRef.current.x,
+              );
+              opponentKnockbackVelocity.current =
+                landingBounce.sideDirection *
+                GERSON_SIDE_BOUNCE_VELOCITY *
+                (landingBounce.sideKnockbackMultiplier ?? 1);
+            }
+          } else {
+            opponentGersonAirStompChainRef.current = false;
+            opponentGersonAirLandingHitsRef.current = 0;
+            hideGersonAirCounterAfterLanding('right');
+          }
+
+          opponentJumpVelocity.current = landingBounce ? GERSON_LANDING_BOUNCE_POWER : 0;
           opponentLaunchedFallStartedAt.current = 0;
 
           if (opponentStatusRef.current === 'launched') {
@@ -4253,7 +6560,10 @@ export default function App() {
           }
         }
 
-        if (nextOpponentPosition.y !== opponentPositionRef.current.y) {
+        if (
+          nextOpponentPosition.y !== opponentPositionRef.current.y ||
+          nextOpponentPosition.x !== opponentPositionRef.current.x
+        ) {
           opponentPositionRef.current = nextOpponentPosition;
           setOpponentPosition(nextOpponentPosition);
         }
@@ -4289,6 +6599,8 @@ export default function App() {
         opponentKnockbackVelocity.current = 0;
       }
 
+      updateJevilAbsorbTimers();
+
       if (
         !isRoundLocked &&
         arenaMode === 'fight' &&
@@ -4300,7 +6612,7 @@ export default function App() {
         opponentPositionRef.current.y === 0 &&
         opponentHealthRef.current > 0
       ) {
-        const ai = AI_CONFIG[selectedDifficulty];
+        const ai = getAdaptiveAiConfig(AI_CONFIG[selectedDifficulty]);
         const nextOpponentPosition = { ...opponentPositionRef.current };
         const distanceToPlayer = positionRef.current.x - nextOpponentPosition.x;
         const absDistance = Math.abs(distanceToPlayer);
@@ -4330,20 +6642,110 @@ export default function App() {
       if (!isRoundLocked && projectilesRef.current.length > 0) {
         let didProjectileHit = false;
         const nextProjectiles = projectilesRef.current
-          .map((projectile) => ({
-            ...projectile,
-            x: projectile.x + projectile.direction * PROJECTILE_SPEED,
-          }))
+          .map((projectile) => {
+            if (projectile.kind === 'jevil-scythe') {
+              const startX = projectile.startX ?? projectile.x;
+              const shouldReturn =
+                !projectile.returning &&
+                Math.abs(projectile.x - startX) >= (projectile.maxTravel ?? JEVIL_SCYTHE_MAX_TRAVEL);
+              const direction = shouldReturn ? ((-projectile.direction) as -1 | 1) : projectile.direction;
+
+              return {
+                ...projectile,
+                direction,
+                returning: projectile.returning || shouldReturn,
+                x: projectile.x + direction * JEVIL_SCYTHE_SPEED,
+              };
+            }
+
+            const movedProjectile = {
+              ...projectile,
+              x: projectile.x + projectile.direction * (projectile.speed ?? PROJECTILE_SPEED),
+              ...(typeof projectile.bottomPx === 'number' && typeof projectile.bottomVelocity === 'number'
+                ? { bottomPx: projectile.bottomPx + projectile.bottomVelocity }
+                : {}),
+            };
+
+            if (
+              opponent.id === 'gerson-boom' &&
+              opponentAttackRef.current === 'kick' &&
+              isProjectileNearGersonParry('right', movedProjectile)
+            ) {
+              playProjectileHitSound();
+              return getGersonReflectedProjectile('right', movedProjectile);
+            }
+
+            if (
+              player.id === 'gerson-boom' &&
+              attackRef.current === 'kick' &&
+              isProjectileNearGersonParry('left', movedProjectile)
+            ) {
+              playProjectileHitSound();
+              return getGersonReflectedProjectile('left', movedProjectile);
+            }
+
+            return movedProjectile;
+          })
           .filter((projectile) => {
-            if (projectile.x < ARENA_LEFT_LIMIT - 4 || projectile.x > ARENA_RIGHT_LIMIT + 4) {
+            const projectileScreenMargin = projectile.kind === 'jevil-scythe' ? 36 : 4;
+
+            if (
+              projectile.x < ARENA_LEFT_LIMIT - projectileScreenMargin ||
+              projectile.x > ARENA_RIGHT_LIMIT + projectileScreenMargin
+            ) {
+              if (projectile.owner === 'right') {
+                rememberAiOutcome(
+                  projectile.kind === 'knight-sword'
+                    ? 'projectile'
+                    : projectile.kind === 'queen-wave' || projectile.kind === 'tenna-star'
+                      ? 'special'
+                      : 'projectile',
+                  false,
+                  0.75,
+                );
+              }
               return false;
             }
 
             if (
+              projectile.kind !== 'jevil-scythe' &&
               typeof projectile.maxTravel === 'number' &&
               Math.abs(projectile.x - (projectile.startX ?? projectile.x)) > projectile.maxTravel
             ) {
+              if (projectile.owner === 'right') {
+                rememberAiOutcome(projectile.kind === 'knight-dark-wave' ? 'special' : 'projectile', false, 0.75);
+              }
               return false;
+            }
+
+            if (
+              projectile.kind === 'jevil-scythe' &&
+              projectile.returning
+            ) {
+              const ownerPosition = projectile.owner === 'left' ? positionRef.current : opponentPositionRef.current;
+              const ownerFighter = projectile.owner === 'left' ? player : opponent;
+              const ownerIsLowProfile =
+                projectile.owner === 'left' ? isPlayerLowProfile() : isOpponentLowProfile();
+              const ownerVisualLift =
+                ownerFighter.id === 'roaring-knight' ? knightVisualLiftRef.current : 0;
+
+              if (
+                isProjectileTouchingFighter(
+                  projectile,
+                  ownerPosition,
+                  ownerFighter,
+                  ownerIsLowProfile,
+                  0,
+                  ownerVisualLift,
+                )
+              ) {
+                if (projectile.owner === 'left') {
+                  specialReadyAt.current = 0;
+                } else {
+                  opponentSpecialReadyAt.current = 0;
+                }
+                return false;
+              }
             }
 
             if (projectile.owner === 'left') {
@@ -4363,26 +6765,40 @@ export default function App() {
 
               if (!opponentCanBeHit) return true;
 
+              const now = window.performance.now();
+              const canScytheDamageNow =
+                projectile.kind !== 'jevil-scythe' ||
+                !projectile.lastHitAt ||
+                now - projectile.lastHitAt >= JEVIL_SCYTHE_HIT_TICK_MS;
+
+              if (!canScytheDamageNow) return true;
+
               const didDamageThroughBlock = damageOpponentHealth(
                 getProjectileDamage(projectile),
                 projectile.lane === 'low' ? 'low' : 'high',
                 { ignoreHitLevelDodge: true },
               );
-              if (didDamageThroughBlock && !isOpponentKnightSphereActive()) {
+              if (
+                didDamageThroughBlock &&
+                !isOpponentKnightSphereActive() &&
+                getProjectileKnockback(projectile) > 0
+              ) {
                 applyProjectileKnockback(
                   'right',
                   projectile.direction,
                   getProjectileKnockback(projectile),
                 );
               }
-              playProjectileHitSound();
+              playProjectileImpactSound(projectile);
               didProjectileHit = true;
+              if (projectile.kind === 'jevil-scythe') {
+                projectile.lastHitAt = now;
+                return true;
+              }
               return false;
             }
 
-            const playerIsCrouchingNow =
-              (canFighterCrouch(player) && keys.has('s') && positionRef.current.y === 0) ||
-              (player.id === 'queen' && playerStatusRef.current === 'healing');
+            const playerIsCrouchingNow = isPlayerLowProfile();
             const isLowProjectile = projectile.lane === 'low';
             if (isLowProjectile && isPlayerKnightLowAttackImmune()) return true;
 
@@ -4399,21 +6815,47 @@ export default function App() {
 
             if (!playerCanBeHit) return true;
 
+            const now = window.performance.now();
+            const canScytheDamageNow =
+              projectile.kind !== 'jevil-scythe' ||
+              !projectile.lastHitAt ||
+              now - projectile.lastHitAt >= JEVIL_SCYTHE_HIT_TICK_MS;
+
+            if (!canScytheDamageNow) return true;
+
             const didDamageThroughBlock = damagePlayer(
               getProjectileDamage(projectile),
               'none',
               projectile.lane === 'low' ? 'low' : 'high',
               { ignoreHitLevelDodge: true },
             );
-            if (didDamageThroughBlock && !isPlayerKnightSphereActive() && !isPlayerKnightDarkWaveHolding()) {
+            rememberAiOutcome(
+              projectile.kind === 'knight-sword'
+                ? 'projectile'
+                : projectile.kind === 'queen-wave' || projectile.kind === 'tenna-star'
+                  ? 'special'
+                  : 'projectile',
+              didDamageThroughBlock,
+              didDamageThroughBlock ? 1.2 : 0.7,
+            );
+            if (
+              didDamageThroughBlock &&
+              !isPlayerKnightSphereActive() &&
+              !isPlayerKnightDarkWaveHolding() &&
+              getProjectileKnockback(projectile) > 0
+            ) {
               applyProjectileKnockback(
                 'left',
                 projectile.direction,
                 getProjectileKnockback(projectile),
               );
             }
-            playProjectileHitSound();
+            playProjectileImpactSound(projectile);
             didProjectileHit = true;
+            if (projectile.kind === 'jevil-scythe') {
+              projectile.lastHitAt = now;
+              return true;
+            }
             return false;
           });
 
@@ -4453,6 +6895,7 @@ export default function App() {
         playerKnockbackVelocity.current = 0;
         opponentKnockbackVelocity.current = 0;
         attackRef.current = 'idle';
+        playerAttackFacingRef.current = null;
         cancelPlayerChargeAttack();
         cancelPlayerKnightDarkWave();
         cancelOpponentChargeAttack();
@@ -4469,12 +6912,19 @@ export default function App() {
         updateOpponentAttack('idle');
         updateOpponentStatus('idle');
         projectilesRef.current = [];
+        clearJevilPlatforms();
+        clearJevilAbsorbState('left');
+        clearJevilAbsorbState('right');
+        playerJevilAbsorbRecoverUntilRef.current = 0;
+        opponentJevilAbsorbRecoverUntilRef.current = 0;
         setIsCrouchAttackLocked(false);
         setIsCrouching(false);
         stopPlayerBlock();
         setPlayerSpecialShooting(false);
+        setPlayerSpecialSpriteOverride(null);
         setPlayerAirSpecialWave(false);
         setOpponentSpecialShooting(false);
+        setOpponentSpecialSpriteOverride(null);
         setOpponentAirSpecialWave(false);
         updateOpponentBlock(false);
         updateOpponentCrouch(false);
@@ -4501,10 +6951,14 @@ export default function App() {
         if (opponentStatusTimer.current) window.clearTimeout(opponentStatusTimer.current);
         if (playerDamageFlashTimer.current) window.clearTimeout(playerDamageFlashTimer.current);
         if (opponentDamageFlashTimer.current) window.clearTimeout(opponentDamageFlashTimer.current);
+        if (playerGersonSpinDamageTimer.current) window.clearInterval(playerGersonSpinDamageTimer.current);
+        if (playerGersonSpinMaxTimer.current) window.clearTimeout(playerGersonSpinMaxTimer.current);
         if (playerRecoveryTimer.current) window.clearTimeout(playerRecoveryTimer.current);
         if (opponentRecoveryTimer.current) window.clearTimeout(opponentRecoveryTimer.current);
         setPlayerRecovering(false);
         setOpponentRecovering(false);
+        setPlayerGersonLeapActive(false);
+        playerGersonLeapDirectBoostReadyRef.current = false;
         if (animationFrame.current) window.cancelAnimationFrame(animationFrame.current);
       };
     }
@@ -4514,8 +6968,9 @@ export default function App() {
       if (roundCountdownRef.current > 0 || roundResolvedRef.current) return;
 
       const distance = Math.abs(opponentPositionRef.current.x - positionRef.current.x);
-      const ai = AI_CONFIG[selectedDifficulty];
-      const opponentOnGround = opponentPositionRef.current.y === 0;
+      const ai = getAdaptiveAiConfig(AI_CONFIG[selectedDifficulty]);
+      const opponentOnGround =
+        opponentPositionRef.current.y === 0 || isOnJevilPlatform(opponent, opponentPositionRef.current);
 
       if (opponent.id === 'roaring-knight') {
         if (
@@ -4535,6 +6990,7 @@ export default function App() {
             (spherePlan === 'bird' || Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.72 : 0.44));
 
           if (canBirdDash) {
+            markOpponentPlan('bird');
             startOpponentKnightBirdDash(direction);
             return;
           }
@@ -4574,12 +7030,13 @@ export default function App() {
         distance > 24 &&
         distance <= 72 &&
         window.performance.now() >= opponentAttackReadyAt.current &&
-        Math.random() < ai.attackChance * 0.55
+        Math.random() < ai.attackChance * (0.45 + ai.antiAirBias)
       ) {
         const now = window.performance.now();
         const nextAttack: Exclude<Attack, 'idle'> = 'kick';
 
         opponentAttackReadyAt.current = now + KNIGHT_SWORD_PROJECTILE_COOLDOWN_MS;
+        markOpponentPlan('projectile');
         updateOpponentAttack(nextAttack);
 
         if (opponentAttackHitTimer.current) window.clearTimeout(opponentAttackHitTimer.current);
@@ -4592,6 +7049,7 @@ export default function App() {
             opponentStatusRef.current !== 'idle' ||
             playerHealthRef.current <= 0
           ) {
+            consumeOpponentPlan(false, 'projectile');
             return;
           }
 
@@ -4634,28 +7092,66 @@ export default function App() {
         const isMovingTowardCpu =
           (projectile.direction === 1 && projectile.x < opponentPositionRef.current.x) ||
           (projectile.direction === -1 && projectile.x > opponentPositionRef.current.x);
+        const reactionRange = opponent.id === 'gerson-boom' ? 44 : 24;
 
         return (
           projectile.owner === 'left' &&
           isMovingTowardCpu &&
-          distanceToCpu < 24
+          distanceToCpu < reactionRange
         );
       });
 
+      if (
+        incomingProjectile &&
+        opponent.id === 'gerson-boom' &&
+        window.performance.now() >= opponentAttackReadyAt.current
+      ) {
+        opponentAttackReadyAt.current = window.performance.now() + CPU_ATTACK_COOLDOWN_MS;
+        markOpponentPlan('block');
+        updateOpponentBlock(false);
+        updateOpponentCrouch(false);
+        updateOpponentAttack('kick');
+
+        if (opponentAttackHitTimer.current) window.clearTimeout(opponentAttackHitTimer.current);
+        opponentAttackHitTimer.current = window.setTimeout(() => {
+          opponentAttackHitTimer.current = null;
+
+          if (
+            isArenaPausedRef.current ||
+            opponentAttackRef.current !== 'kick' ||
+            opponentStatusRef.current !== 'idle' ||
+            playerHealthRef.current <= 0
+          ) {
+            consumeOpponentPlan(false, 'block');
+            return;
+          }
+
+          const didParry = useGersonParry('right');
+          consumeOpponentPlan(didParry, 'block');
+        }, CPU_GERSON_PARRY_PROJECTILE_HIT_MS);
+
+        if (opponentAttackTimer.current) window.clearTimeout(opponentAttackTimer.current);
+        opponentAttackTimer.current = window.setTimeout(() => {
+          if (isArenaPausedRef.current) return;
+          updateOpponentAttack('idle');
+        }, GERSON_PARRY_DURATION_MS);
+        return;
+      }
+
       if (incomingProjectile && Math.random() < dodgeChance) {
         if (incomingProjectile.lane === 'low') {
-          opponentJumpVelocity.current =
-            opponent.id === 'roaring-knight'
-              ? KNIGHT_JUMP_POWER
-              : selectedDifficulty === 'hard'
-                ? 10.6
-                : 9.8;
+          markOpponentPlan('jump');
+          opponentJumpVelocity.current = getFighterJumpPower(
+            opponent,
+            selectedDifficulty === 'hard' ? 10.6 : 9.8,
+          );
           return;
         }
 
         if (!canFighterCrouch(opponent)) return;
 
         updateOpponentCrouch(true);
+        markOpponentPlan('crouch');
 
         if (opponentCrouchTimer.current) window.clearTimeout(opponentCrouchTimer.current);
         opponentCrouchTimer.current = window.setTimeout(() => updateOpponentCrouch(false), 520);
@@ -4669,6 +7165,7 @@ export default function App() {
         Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.9 : 0.55);
 
       if (canUseCpuAirSpecial) {
+        markOpponentPlan('airSpecial');
         triggerOpponentAirSpecial();
         return;
       }
@@ -4682,6 +7179,7 @@ export default function App() {
 
       if (canUseCpuHeal) {
         opponentSpecialReadyAt.current = window.performance.now() + QUEEN_HEAL_COOLDOWN_MS;
+        markOpponentPlan('heal');
         startQueenHeal('right');
         return;
       }
@@ -4692,7 +7190,7 @@ export default function App() {
         window.performance.now() >= opponentSpecialReadyAt.current &&
         distance >= 18 &&
         distance <= 64 &&
-        Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.36 : 0.2);
+        Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.36 : 0.2) * getAiConfidence('sphere');
 
       if (canUseCpuKnightSphere) {
         const roll = Math.random();
@@ -4716,6 +7214,7 @@ export default function App() {
                   : 'bird';
 
         startOpponentKnightSphere(spherePlan);
+        markOpponentPlan('sphere');
         return;
       }
 
@@ -4724,9 +7223,10 @@ export default function App() {
         window.performance.now() >= opponentSpecialReadyAt.current &&
         distance >= 22 &&
         distance <= 70 &&
-        Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.7 : 0.42);
+        Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.7 : 0.42) * (1 + ai.projectilePressure * 0.28);
 
       if (canUseCpuKnightDarkWave) {
+        markOpponentPlan('special');
         startOpponentKnightDarkWaveHold();
         return;
       }
@@ -4735,11 +7235,75 @@ export default function App() {
         opponent.id === 'roaring-knight' &&
         window.performance.now() >= opponentAttackReadyAt.current &&
         distance <= KNIGHT_CHARGE_RANGE + 12 &&
-        Math.random() < ai.attackChance * (selectedDifficulty === 'hard' ? 0.72 : 0.48);
+        Math.random() < ai.attackChance * (selectedDifficulty === 'hard' ? 0.72 : 0.48) * getAiConfidence('charge');
 
       if (canUseCpuKnightCharge) {
         opponentAttackReadyAt.current = window.performance.now() + CPU_ATTACK_COOLDOWN_MS + 900;
+        markOpponentPlan('charge');
         startOpponentChargeAttack(selectedDifficulty === 'hard' ? 1700 : 950, { ignoreCooldown: true });
+        return;
+      }
+
+      const canUseCpuJevilPlatforms =
+        opponent.id === 'jevil' &&
+        opponentOnGround &&
+        jevilPlatformsRef.current.length === 0 &&
+        window.performance.now() >= opponentSpecialReadyAt.current &&
+        Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.72 : 0.42);
+
+      if (canUseCpuJevilPlatforms) {
+        markOpponentPlan('special');
+        playRandomJevilVoiceSound();
+        setOpponentSpecialSpriteOverride(jevilPlatformSpecialSprite);
+        lockSpecialShooter('right');
+        spawnJevilPlatforms('right');
+        return;
+      }
+
+      const canUseCpuJevilChaos =
+        opponent.id === 'jevil' &&
+        opponentOnGround &&
+        window.performance.now() >= opponentSpecialReadyAt.current &&
+        distance <= 46 &&
+        Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.6 : 0.34);
+
+      if (canUseCpuJevilChaos) {
+        opponentSpecialReadyAt.current = window.performance.now() + JEVIL_CHAOS_SPECIAL_COOLDOWN_MS;
+        markOpponentPlan('special');
+        playRandomJevilVoiceSound();
+        setOpponentSpecialSpriteOverride(jevilChaosSpecialSprite);
+        lockSpecialShooter('right', JEVIL_CHAOS_SPECIAL_MS);
+        if (opponentSpecialSpawnTimer.current) window.clearTimeout(opponentSpecialSpawnTimer.current);
+        opponentSpecialSpawnTimer.current = window.setTimeout(() => {
+          opponentSpecialSpawnTimer.current = null;
+          spawnJevilScythe('right');
+        }, 160);
+        return;
+      }
+
+      const canUseCpuJevilTeleport =
+        opponent.id === 'jevil' &&
+        opponentOnGround &&
+        window.performance.now() >= opponentSpecialReadyAt.current &&
+        Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.5 : 0.28);
+
+      if (canUseCpuJevilTeleport) {
+        markOpponentPlan('special');
+        startJevilTeleportShot('right');
+        return;
+      }
+
+      const canUseCpuJevilAbsorb =
+        opponent.id === 'jevil' &&
+        opponentOnGround &&
+        !opponentJevilAbsorbActiveRef.current &&
+        window.performance.now() >= opponentSpecialReadyAt.current &&
+        opponentHealthRef.current > 22 &&
+        Math.random() < ai.specialChance * (selectedDifficulty === 'hard' ? 0.32 : 0.16);
+
+      if (canUseCpuJevilAbsorb) {
+        markOpponentPlan('special');
+        startJevilAbsorb('right');
         return;
       }
 
@@ -4756,6 +7320,7 @@ export default function App() {
         const direction: -1 | 1 = positionRef.current.x <= opponentPositionRef.current.x ? -1 : 1;
         const isQueenSpecial = opponent.id === 'queen';
         const lane: ProjectileLane = isQueenSpecial ? 'high' : 'low';
+        markOpponentPlan('special');
 
         if (!isQueenSpecial) {
           playTennaStarSpecialSound();
@@ -4782,13 +7347,22 @@ export default function App() {
         return;
       }
 
-      if (distance <= 30 && Math.random() < ai.jumpChance) {
-        opponentJumpVelocity.current =
-          opponent.id === 'roaring-knight'
-            ? KNIGHT_JUMP_POWER
+      const isGersonStompSetup = opponent.id === 'gerson-boom' && distance <= GERSON_CPU_STOMP_JUMP_RANGE;
+      const jumpAttackChance = isGersonStompSetup
+        ? Math.max(ai.jumpChance, GERSON_CPU_STOMP_JUMP_CHANCE)
+        : ai.jumpChance;
+
+      if (distance <= (isGersonStompSetup ? GERSON_CPU_STOMP_JUMP_RANGE : 30) && Math.random() < jumpAttackChance) {
+        markOpponentPlan('jump');
+        opponentGersonAirStompChainRef.current = opponent.id === 'gerson-boom';
+        opponentJumpVelocity.current = getFighterJumpPower(
+          opponent,
+          opponent.id === 'gerson-boom'
+            ? DEFAULT_JUMP_POWER
             : selectedDifficulty === 'hard'
               ? 10.4
-              : 9.6;
+              : 9.6,
+        );
         return;
       }
 
@@ -4803,6 +7377,7 @@ export default function App() {
         if (!canFighterCrouch(opponent)) return;
 
         updateOpponentCrouch(true);
+        markOpponentPlan('crouch');
 
         if (opponentCrouchTimer.current) window.clearTimeout(opponentCrouchTimer.current);
         opponentCrouchTimer.current = window.setTimeout(() => updateOpponentCrouch(false), 380);
@@ -4815,6 +7390,7 @@ export default function App() {
       ) {
         updateOpponentCrouch(playerAttackIsLow && canFighterCrouch(opponent));
         updateOpponentBlock(true);
+        markOpponentPlan('block');
 
         if (opponentBlockTimer.current) window.clearTimeout(opponentBlockTimer.current);
         opponentBlockTimer.current = window.setTimeout(
@@ -4831,6 +7407,7 @@ export default function App() {
 
       if (!playerIsAttacking && canFighterCrouch(opponent) && Math.random() < ai.crouchChance * 0.35) {
         updateOpponentCrouch(true);
+        markOpponentPlan('crouch');
 
         if (opponentCrouchTimer.current) window.clearTimeout(opponentCrouchTimer.current);
         opponentCrouchTimer.current = window.setTimeout(() => updateOpponentCrouch(false), 360);
@@ -4842,21 +7419,31 @@ export default function App() {
       if (now < opponentAttackReadyAt.current || Math.random() > ai.attackChance) return;
 
       const isRangedKnightSwordShot = opponent.id === 'roaring-knight' && distance > 24;
-      opponentAttackReadyAt.current =
-        now + (isRangedKnightSwordShot ? KNIGHT_SWORD_PROJECTILE_COOLDOWN_MS : CPU_ATTACK_COOLDOWN_MS);
 
       const shouldUseCrouchAttack =
-        canFighterCrouch(opponent) && distance <= 20 && Math.random() < ai.specialChance;
+        canFighterCrouch(opponent) &&
+        distance <= 20 &&
+        Math.random() < clamp(ai.specialChance * (0.65 + ai.lowAttackBias), 0.05, 0.92);
       const nextAttack: Exclude<Attack, 'idle'> = isRangedKnightSwordShot
         ? 'kick'
         : shouldUseCrouchAttack
-          ? Math.random() < 0.55
+          ? Math.random() < ai.lowAttackBias
             ? 'kick'
             : 'punch'
-          : Math.random() < (selectedDifficulty === 'easy' ? 0.68 : 0.5)
+          : Math.random() < clamp(
+              (selectedDifficulty === 'easy' ? 0.68 : 0.5) - ai.lowAttackBias * 0.12 + ai.antiAirBias * 0.1,
+              0.25,
+              0.78,
+            )
             ? 'punch'
             : 'kick';
       const isOpponentKnightSwordShot = opponent.id === 'roaring-knight' && nextAttack === 'kick';
+      const isOpponentGersonParry = opponent.id === 'gerson-boom' && nextAttack === 'kick';
+      opponentAttackReadyAt.current =
+        now +
+        (isRangedKnightSwordShot
+          ? KNIGHT_SWORD_PROJECTILE_COOLDOWN_MS
+          : getFighterAttackCooldown(opponent, nextAttack, true));
       const attackEffect =
         shouldUseCrouchAttack && nextAttack === 'kick'
           ? 'sweep'
@@ -4886,30 +7473,45 @@ export default function App() {
       const attackDuration =
         isOpponentKnightSwordShot
           ? KNIGHT_SWORD_PROJECTILE_COOLDOWN_MS
+          : isOpponentGersonParry
+            ? GERSON_PARRY_DURATION_MS
           : attackEffect === 'uppercut'
           ? CROUCH_UPPERCUT_DURATION_MS + CROUCH_UPPERCUT_RECOVERY_MS
           : nextAttack === 'kick' && attackEffect === 'sweep'
             ? 420
-            : ATTACK_DURATION_MS[nextAttack];
+            : getFighterAttackDuration(opponent, nextAttack);
       const hitFrameRatio = attackEffect === 'none' ? ATTACK_HIT_FRAME_RATIO : CROUCH_HIT_FRAME_RATIO;
+      const opponentHitFrameRatio = isOpponentGersonParry ? GERSON_PARRY_HIT_FRAME_RATIO : hitFrameRatio;
+      const opponentAttackHitDelay = isOpponentKnightSwordShot
+        ? KNIGHT_SWORD_PROJECTILE_SHOOT_MS
+        : Math.max(0, Math.floor(attackDuration * opponentHitFrameRatio));
+      let opponentAttackHitAt = now + opponentAttackHitDelay;
+      let opponentAttackEndsAt = now + attackDuration;
 
       updateOpponentCrouch(shouldUseCrouchAttack);
 
+      markOpponentPlan(
+        isOpponentKnightSwordShot
+          ? 'projectile'
+          : attackEffect === 'sweep'
+            ? 'low'
+            : attackEffect === 'uppercut'
+              ? 'antiHigh'
+              : 'melee',
+      );
       updateOpponentAttack(nextAttack);
       if (!isOpponentKnightSwordShot) {
         playAttackSound(opponent, nextAttack, shouldUseCrouchAttack);
       }
 
       if (opponentAttackHitTimer.current) window.clearTimeout(opponentAttackHitTimer.current);
-      opponentAttackHitTimer.current = window.setTimeout(() => {
-        opponentAttackHitTimer.current = null;
-
-        if (isArenaPausedRef.current) return;
+      const resolveOpponentAttackHit = () => {
         if (
           opponentAttackRef.current !== nextAttack ||
           opponentStatusRef.current !== 'idle' ||
           playerHealthRef.current <= 0
         ) {
+          consumeOpponentPlan(false);
           return;
         }
 
@@ -4924,12 +7526,21 @@ export default function App() {
           return;
         }
 
+        if (isOpponentGersonParry) {
+          const didParry = useGersonParry('right');
+          consumeOpponentPlan(didParry);
+          return;
+        }
+
         const currentAttackRange =
           (nextAttack === 'punch' ? 18 : 22) +
           (isPlayerKnightSpecialHurtboxExpanded() ? KNIGHT_SPECIAL_HURTBOX_BONUS : 0);
         const currentDistance = Math.abs(positionRef.current.x - opponentPositionRef.current.x);
 
-        if (currentDistance > currentAttackRange) return;
+        if (currentDistance > currentAttackRange) {
+          consumeOpponentPlan(false);
+          return;
+        }
         if (
           !canMeleeAttackReachVertical(
             opponentPositionRef.current.y,
@@ -4937,9 +7548,16 @@ export default function App() {
             attackEffect,
             hitLevel,
           )
-        ) return;
+        ) {
+          consumeOpponentPlan(false);
+          return;
+        }
 
         const didDamageThroughBlock = damagePlayer(attackDamage, attackEffect, hitLevel);
+        consumeOpponentPlan(didDamageThroughBlock);
+        if (didDamageThroughBlock && opponent.id === 'jevil') {
+          playRandomJevilVoiceSound();
+        }
 
         if (
           didDamageThroughBlock &&
@@ -4950,18 +7568,53 @@ export default function App() {
           applyProjectileKnockback(
             'left',
             positionRef.current.x <= opponentPositionRef.current.x ? -1 : 1,
-            ATTACK_KNOCKBACK_VELOCITY,
+            getAttackKnockbackStrength(opponent, nextAttack),
           );
         }
-      }, isOpponentKnightSwordShot ? KNIGHT_SWORD_PROJECTILE_SHOOT_MS : Math.max(0, Math.floor(attackDuration * hitFrameRatio)));
+      };
+      const handleOpponentAttackHitTimer = () => {
+        opponentAttackHitTimer.current = null;
+
+        if (isArenaPausedRef.current) {
+          const pausedAt = arenaPauseStartedAtRef.current || window.performance.now();
+          const remainingAfterPause = Math.max(0, opponentAttackHitAt - pausedAt);
+          opponentAttackHitTimer.current = runAfterArenaPause(() => {
+            opponentAttackHitAt += Math.max(0, window.performance.now() - pausedAt);
+            opponentAttackHitTimer.current = window.setTimeout(
+              handleOpponentAttackHitTimer,
+              remainingAfterPause,
+            );
+          });
+          return;
+        }
+        resolveOpponentAttackHit();
+      };
+      opponentAttackHitTimer.current = window.setTimeout(handleOpponentAttackHitTimer, opponentAttackHitDelay);
 
       if (opponentAttackTimer.current) window.clearTimeout(opponentAttackTimer.current);
+      const finishOpponentAttack = () => {
+        updateOpponentAttack('idle');
+        updateOpponentCrouch(false);
+      };
+      const handleOpponentAttackEndTimer = () => {
+        opponentAttackTimer.current = null;
+
+        if (isArenaPausedRef.current) {
+          const pausedAt = arenaPauseStartedAtRef.current || window.performance.now();
+          const remainingAfterPause = Math.max(0, opponentAttackEndsAt - pausedAt);
+          opponentAttackTimer.current = runAfterArenaPause(() => {
+            opponentAttackEndsAt += Math.max(0, window.performance.now() - pausedAt);
+            opponentAttackTimer.current = window.setTimeout(
+              handleOpponentAttackEndTimer,
+              remainingAfterPause,
+            );
+          });
+          return;
+        }
+        finishOpponentAttack();
+      };
       opponentAttackTimer.current = window.setTimeout(
-        () => {
-          if (isArenaPausedRef.current) return;
-          updateOpponentAttack('idle');
-          updateOpponentCrouch(false);
-        },
+        handleOpponentAttackEndTimer,
         attackDuration,
       );
     }, AI_CONFIG[selectedDifficulty].thinkMs);
@@ -4976,6 +7629,7 @@ export default function App() {
       playerKnockbackVelocity.current = 0;
       opponentKnockbackVelocity.current = 0;
       attackRef.current = 'idle';
+      playerAttackFacingRef.current = null;
       cancelPlayerChargeAttack();
       cancelPlayerKnightDarkWave();
       cancelOpponentChargeAttack();
@@ -4992,15 +7646,20 @@ export default function App() {
       updateOpponentAttack('idle');
       updateOpponentStatus('idle');
       projectilesRef.current = [];
+      clearJevilPlatforms();
       setIsCrouchAttackLocked(false);
       setIsCrouching(false);
       stopPlayerBlock();
       setPlayerSpecialShooting(false);
+      setPlayerSpecialSpriteOverride(null);
       setOpponentSpecialShooting(false);
+      setOpponentSpecialSpriteOverride(null);
       updateOpponentBlock(false);
       updateOpponentCrouch(false);
       setProjectiles([]);
       setHealPopups([]);
+      clearKnightExplosionTimers();
+      setKnightExplosions([]);
 
       if (attackTimer.current) window.clearTimeout(attackTimer.current);
       if (attackHitTimer.current) window.clearTimeout(attackHitTimer.current);
@@ -5023,13 +7682,25 @@ export default function App() {
       if (opponentStatusTimer.current) window.clearTimeout(opponentStatusTimer.current);
       if (playerDamageFlashTimer.current) window.clearTimeout(playerDamageFlashTimer.current);
       if (opponentDamageFlashTimer.current) window.clearTimeout(opponentDamageFlashTimer.current);
+      if (playerGersonSpinDamageTimer.current) window.clearInterval(playerGersonSpinDamageTimer.current);
+      if (playerGersonSpinMaxTimer.current) window.clearTimeout(playerGersonSpinMaxTimer.current);
       if (playerRecoveryTimer.current) window.clearTimeout(playerRecoveryTimer.current);
       if (opponentRecoveryTimer.current) window.clearTimeout(opponentRecoveryTimer.current);
+      clearGersonAirCounterHideTimer('left');
+      clearGersonAirCounterHideTimer('right');
       setPlayerRecovering(false);
       setOpponentRecovering(false);
+      if (playerGersonLeapPrepTimer.current) {
+        window.clearTimeout(playerGersonLeapPrepTimer.current);
+        playerGersonLeapPrepTimer.current = null;
+      }
+      setPlayerGersonLeapPreparing(false);
+      setPlayerGersonLeapActive(false);
+      playerGersonLeapDirectBoostReadyRef.current = false;
+      opponentGersonAirStompChainRef.current = false;
       if (animationFrame.current) window.cancelAnimationFrame(animationFrame.current);
     };
-  }, [arenaMode, screen, selectedDifficulty, selectedStage]);
+  }, [arenaMode, controlBindings, screen, selectedDifficulty, selectedStage]);
 
   function resetRound({ clearOpponentLoop = false } = {}) {
     if (attackTimer.current) window.clearTimeout(attackTimer.current);
@@ -5053,12 +7724,19 @@ export default function App() {
     if (opponentStatusTimer.current) window.clearTimeout(opponentStatusTimer.current);
     if (playerDamageFlashTimer.current) window.clearTimeout(playerDamageFlashTimer.current);
     if (opponentDamageFlashTimer.current) window.clearTimeout(opponentDamageFlashTimer.current);
+    if (playerGersonSpinDamageTimer.current) window.clearInterval(playerGersonSpinDamageTimer.current);
+    if (playerGersonSpinMaxTimer.current) window.clearTimeout(playerGersonSpinMaxTimer.current);
+    if (playerGersonLeapPrepTimer.current) window.clearTimeout(playerGersonLeapPrepTimer.current);
     if (playerRecoveryTimer.current) window.clearTimeout(playerRecoveryTimer.current);
     if (opponentRecoveryTimer.current) window.clearTimeout(opponentRecoveryTimer.current);
     if (victoryTimer.current) window.clearTimeout(victoryTimer.current);
     if (roundTransitionTimer.current) window.clearTimeout(roundTransitionTimer.current);
     if (roundCurtainTimer.current) window.clearTimeout(roundCurtainTimer.current);
     if (countdownTimer.current) window.clearTimeout(countdownTimer.current);
+    if (roundClockTimer.current) window.clearInterval(roundClockTimer.current);
+    clearGersonAirCounterHideTimer('left');
+    clearGersonAirCounterHideTimer('right');
+    clearKnightExplosionTimers();
 
     setPlayerPosition(START_POSITION);
     setOpponentPosition(OPPONENT_POSITION);
@@ -5066,6 +7744,26 @@ export default function App() {
     setOpponentHealth(MAX_HEALTH);
     playerHealthRef.current = MAX_HEALTH;
     opponentHealthRef.current = MAX_HEALTH;
+    playerGersonLandingImmuneUntilRef.current = 0;
+    opponentGersonLandingImmuneUntilRef.current = 0;
+    playerGersonSpinDamageTimer.current = null;
+    playerGersonSpinMaxTimer.current = null;
+    playerGersonLeapPrepTimer.current = null;
+    playerGersonAirLandingHitsRef.current = 0;
+    opponentGersonAirLandingHitsRef.current = 0;
+    setPlayerGersonAirLandingHits(0);
+    setOpponentGersonAirLandingHits(0);
+    setPlayerGersonLeapPreparing(false);
+    setPlayerGersonLeapActive(false);
+    playerGersonLeapDirectBoostReadyRef.current = false;
+    opponentGersonAirStompChainRef.current = false;
+    setKnightExplosions([]);
+    setGersonLeapEffects([]);
+    clearJevilPlatforms();
+    clearJevilAbsorbState('left');
+    clearJevilAbsorbState('right');
+    playerJevilAbsorbRecoverUntilRef.current = 0;
+    opponentJevilAbsorbRecoverUntilRef.current = 0;
     roundResolvedRef.current = false;
     positionRef.current = START_POSITION;
     opponentPositionRef.current = OPPONENT_POSITION;
@@ -5083,6 +7781,7 @@ export default function App() {
     resetKnightDarkWaveInput();
     opponentSpecialReadyAt.current = 0;
     attackRef.current = 'idle';
+    playerAttackFacingRef.current = null;
     cancelPlayerChargeAttack();
     cancelPlayerKnightDarkWave();
     cancelOpponentChargeAttack();
@@ -5112,7 +7811,9 @@ export default function App() {
     setIsCrouchAttackLocked(false);
     setIsCrouching(false);
     setPlayerSpecialShooting(false);
+    setPlayerSpecialSpriteOverride(null);
     setOpponentSpecialShooting(false);
+    setOpponentSpecialSpriteOverride(null);
     setPlayerAirSpecialWave(false);
     setOpponentAirSpecialWave(false);
     setPlayerDamageFlash(false);
@@ -5120,11 +7821,17 @@ export default function App() {
     setRoundWinnerPoseSprite(null);
     setRoundCurtainPhase('idle');
     setRoundCountdown(3);
+    setRoundTimeLeft(ROUND_TIME_LIMIT_SECONDS);
     roundCountdownRef.current = 3;
+    roundTimeLeftRef.current = ROUND_TIME_LIMIT_SECONDS;
   }
 
   function resetFight() {
     resetRound({ clearOpponentLoop: true });
+    aiLearningRef.current = createAiLearningMemory();
+    pendingOpponentActionRef.current = null;
+    botCoachAdviceRef.current = DEFAULT_BOT_COACH_ADVICE;
+    botCoachRequestInFlightRef.current = false;
     setRoundNumber(1);
     setPlayerRoundWins(0);
     setOpponentRoundWins(0);
@@ -5145,17 +7852,20 @@ export default function App() {
   function startFightOnStage(stageId: string) {
     setSelectedStageId(stageId);
     resetFight();
+    setSettingsOpen(false);
     playFightStartSound();
     setScreen('arena');
   }
 
   function rematch() {
     resetFight();
+    setSettingsOpen(false);
     playFightStartSound();
     setScreen('arena');
   }
 
   function backToSelect() {
+    setSettingsOpen(false);
     resetFight();
     setLockedFighter(null);
     setLockedOpponent(null);
@@ -5185,6 +7895,136 @@ export default function App() {
     setScreen('menu');
   }
 
+  function resetControlBindings() {
+    setControlBindings(DEFAULT_CONTROL_BINDINGS);
+    setRebindingAction(null);
+    pressedKeys.current.clear();
+  }
+
+  function formatControlKey(code: string) {
+    const labels: Record<string, string> = {
+      Space: 'Space',
+      ShiftLeft: 'Shift L',
+      ShiftRight: 'Shift R',
+      ControlLeft: 'Ctrl L',
+      ControlRight: 'Ctrl R',
+      AltLeft: 'Alt L',
+      AltRight: 'Alt R',
+      ArrowLeft: '←',
+      ArrowRight: '→',
+      ArrowDown: '↓',
+      ArrowUp: '↑',
+    };
+
+    if (labels[code]) return labels[code];
+    if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+    if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+    return code.replace(/^(Numpad|Mouse)/, '');
+  }
+
+  function assignControlBinding(action: GameInput, code: string) {
+    if (code === 'Escape') {
+      setRebindingAction(null);
+      return;
+    }
+
+    if (code === 'Backspace' || code === 'Delete') {
+      setControlBindings((current) => ({
+        ...current,
+        [action]: DEFAULT_CONTROL_BINDINGS[action],
+      }));
+      setRebindingAction(null);
+      pressedKeys.current.clear();
+      return;
+    }
+
+    setControlBindings((current) => {
+      const next = { ...current };
+      const previousCode = current[action];
+      const occupiedAction = (Object.keys(current) as GameInput[]).find(
+        (input) => input !== action && current[input] === code,
+      );
+
+      next[action] = code;
+      if (occupiedAction) next[occupiedAction] = previousCode;
+      return next;
+    });
+    setRebindingAction(null);
+    pressedKeys.current.clear();
+  }
+
+  function handleControlBindingKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, action: GameInput) {
+    event.preventDefault();
+    event.stopPropagation();
+    assignControlBinding(action, event.code);
+  }
+
+  const controlsSettings = controlsSettingsOpen ? (
+    <div className="controls-settings">
+      <div className="controls-settings__header">
+        <button className="controls-back-button" onClick={() => setControlsSettingsOpen(false)} type="button">
+          Назад
+        </button>
+        <span>Управление</span>
+        <button className="controls-reset-button" onClick={resetControlBindings} type="button">
+          Сброс
+        </button>
+      </div>
+      <div className="controls-bindings">
+        {CONTROL_BINDING_LABELS.map(({ action, label }) => (
+          <button
+            className={`control-binding${rebindingAction === action ? ' control-binding--listening' : ''}`}
+            key={action}
+            onClick={() => setRebindingAction(action)}
+            onKeyDown={(event) => handleControlBindingKeyDown(event, action)}
+            type="button"
+          >
+            <span>{label}</span>
+            <strong>{rebindingAction === action ? '...' : formatControlKey(controlBindings[action])}</strong>
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : (
+    <button className="settings-menu-button" onClick={() => setControlsSettingsOpen(true)} type="button">
+      Управление
+    </button>
+  );
+
+  const soundSettings = (
+    <>
+      <label className="settings-control">
+        <span>
+          Эффекты
+          <strong>{Math.round(effectsVolume * 100)}%</strong>
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={Math.round(effectsVolume * 100)}
+          onChange={(event) => setEffectsVolume(Number(event.currentTarget.value) / 100)}
+        />
+      </label>
+      <label className="settings-control">
+        <span>
+          Музыка
+          <strong>{Math.round(musicVolume * 100)}%</strong>
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={Math.round(musicVolume * 100)}
+          onChange={(event) => setMusicVolume(Number(event.currentTarget.value) / 100)}
+        />
+      </label>
+      <button className="settings-menu-button" onClick={() => setControlsSettingsOpen(true)} type="button">
+        Управление
+      </button>
+    </>
+  );
+
   const settingsOverlay = (
     <div className={`settings-widget${isArenaPaused ? ' settings-widget--arena-paused' : ''}`}>
       <button
@@ -5197,8 +8037,12 @@ export default function App() {
         <img src={settingsIcon} alt="" aria-hidden="true" />
       </button>
       {settingsOpen && (
-        <div className="settings-panel" role="dialog" aria-label="Настройки звука">
-          {isArenaPaused && <div className="settings-panel__title">PAUSED</div>}
+        <div
+          className={`settings-panel${controlsSettingsOpen ? ' settings-panel--controls' : ''}`}
+          role="dialog"
+          aria-label="Настройки звука"
+        >
+          {isArenaPaused && <div className="settings-panel__title">ПАУЗА</div>}
           <label className="settings-control">
             <span>
               Эффекты
@@ -5225,10 +8069,51 @@ export default function App() {
               onChange={(event) => setMusicVolume(Number(event.currentTarget.value) / 100)}
             />
           </label>
+          {controlsSettings}
+          {false ? soundSettings : null}
         </div>
       )}
     </div>
   );
+
+  const arenaPauseMenu = isArenaPaused ? (
+    <div className="arena-pause-menu" role="dialog" aria-label="Пауза">
+      <div className="settings-panel__title">ПАУЗА</div>
+      <label className="settings-control">
+        <span>
+          Эффекты
+          <strong>{Math.round(effectsVolume * 100)}%</strong>
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={Math.round(effectsVolume * 100)}
+          onChange={(event) => setEffectsVolume(Number(event.currentTarget.value) / 100)}
+        />
+      </label>
+      <label className="settings-control">
+        <span>
+          Музыка
+          <strong>{Math.round(musicVolume * 100)}%</strong>
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={Math.round(musicVolume * 100)}
+          onChange={(event) => setMusicVolume(Number(event.currentTarget.value) / 100)}
+        />
+      </label>
+      {controlsSettings}
+      <button className="confirm-button arena-pause-menu__button" onClick={() => setSettingsOpen(false)} type="button">
+        Продолжить
+      </button>
+      <button className="back-button arena-pause-menu__button" onClick={backToSelect} type="button">
+        Выбор бойца
+      </button>
+    </div>
+  ) : null;
 
   if (screen === 'victory') {
     const winner = winnerSide === 'left' ? player : opponent;
@@ -5325,7 +8210,6 @@ export default function App() {
           </div>
 
           <div className="stage-select-actions">
-            {settingsOverlay}
             <button className="back-button" onClick={backToSelect} type="button">
               Назад к бойцам
             </button>
@@ -5336,7 +8220,14 @@ export default function App() {
   }
 
   if (screen === 'arena') {
-    const arenaWinnerSide = opponentHealth <= 0 ? 'left' : playerHealth <= 0 ? 'right' : null;
+    const arenaWinnerSide =
+      opponentHealth <= 0
+        ? 'left'
+        : playerHealth <= 0
+          ? 'right'
+          : arenaMode !== 'sandbox' && roundTimeLeft <= 0 && roundResolvedRef.current
+            ? winnerSide
+            : null;
     const arenaWinner = arenaWinnerSide === 'left' ? player : opponent;
     const arenaWinnerLabel = arenaWinnerSide === 'left' ? 'Игрок 1' : 'Игрок 2';
     const playerIsRoundWinner = arenaWinnerSide === 'left';
@@ -5349,9 +8240,36 @@ export default function App() {
       playerVictorySprite === queenVictoryBackdropSprite || opponentVictorySprite === queenVictoryBackdropSprite
         ? queenVictoryBackdropSprite
         : null;
+    const playerBaseFacing: Facing =
+      player.id === 'roaring-knight' &&
+      playerKnightDarkWaveState === 'holding'
+        ? playerKnightDarkWaveDirection === 1
+          ? 'right'
+          : 'left'
+        : player.id === 'roaring-knight' &&
+          (playerKnightSpherePhase === 'bird-transform' || playerKnightSpherePhase === 'bird')
+          ? playerKnightBirdDashDirection.current === 1
+            ? 'right'
+            : 'left'
+          : getFacingToward(playerPosition.x, opponentPosition.x);
+    const opponentBaseFacing: Facing =
+      opponent.id === 'roaring-knight' &&
+      (opponentKnightSpherePhase === 'bird-transform' || opponentKnightSpherePhase === 'bird')
+        ? opponentKnightBirdDashDirection.current === 1
+          ? 'right'
+          : 'left'
+        : getFacingToward(opponentPosition.x, playerPosition.x);
+    const playerRenderedFacing =
+      attack !== 'idle' && playerAttackFacingRef.current
+        ? playerAttackFacingRef.current
+        : playerBaseFacing;
+    const opponentRenderedFacing =
+      opponentAttack !== 'idle' && opponentAttackFacingRef.current
+        ? opponentAttackFacingRef.current
+        : opponentBaseFacing;
 
     return (
-      <main className="game-shell game-shell--menu-bg">
+      <main className="game-shell game-shell--menu-bg game-shell--arena">
         <section
           className={`arena-screen${isArenaPaused ? ' arena-screen--paused' : ''}`}
           aria-label="Игровое поле"
@@ -5361,18 +8279,6 @@ export default function App() {
             } as CSSProperties
           }
         >
-          <div className="arena-hud">
-            <FighterBadge fighter={player} label="P1" health={playerHealth} />
-            <span className="round-label">Round {roundNumber} - {playerRoundWins}:{opponentRoundWins}</span>
-            <FighterBadge
-              fighter={opponent}
-              label={arenaMode === 'sandbox' ? 'DUMMY' : 'CPU'}
-              health={opponentHealth}
-              infiniteHealth={arenaMode === 'sandbox'}
-              alignRight
-            />
-          </div>
-
           <div
             className="arena-stage"
             style={{
@@ -5383,6 +8289,26 @@ export default function App() {
             } as CSSProperties}
           >
             <div className="moon" aria-hidden="true" />
+            <div className="arena-hud">
+              <FighterBadge
+                fighter={player}
+                label="P1"
+                health={playerHealth}
+                gersonAirHitCount={playerGersonAirLandingHits}
+              />
+              <span className="round-label">
+                <span>Round {roundNumber}</span>
+                <strong className="round-timer">{arenaMode === 'sandbox' ? '∞' : roundTimeLeft}</strong>
+                <span>{playerRoundWins}:{opponentRoundWins}</span>
+              </span>
+              <FighterBadge
+                fighter={opponent}
+                label={arenaMode === 'sandbox' ? 'DUMMY' : 'CPU'}
+                health={opponentHealth}
+                gersonAirHitCount={opponentGersonAirLandingHits}
+                alignRight
+              />
+            </div>
             {queenStageVictorySprite && (
               <span
                 className="arena-screen-victory arena-screen-victory--queen"
@@ -5416,6 +8342,7 @@ export default function App() {
               />
             )}
             {isArenaPaused && <div className="arena-pause-scrim" aria-hidden="true" />}
+            {arenaPauseMenu}
             {player.id === 'roaring-knight' && playerKnightDarkWaveState === 'holding' && (
               <div
                 className="knight-channel-rings"
@@ -5453,13 +8380,16 @@ export default function App() {
               </div>
             )}
             {projectiles.map((projectile) => (
-              projectile.kind === 'queen-heal-wave' ? (
+              projectile.kind === 'queen-heal-wave' || projectile.kind === 'jevil-head' ? (
                 <span
-                  className={`special-projectile special-projectile--${projectile.kind} special-projectile--${projectile.lane} special-projectile--${projectile.owner}`}
+                  className={`special-projectile special-projectile--${projectile.kind} special-projectile--${projectile.lane} special-projectile--${projectile.owner} special-projectile--dir-${projectile.direction === 1 ? 'right' : 'left'}`}
                   aria-hidden="true"
                   key={projectile.id}
                   style={{
                     left: `${getArenaScreenX(projectile.x)}%`,
+                    ...(projectile.kind === 'jevil-head'
+                      ? { backgroundImage: `url(${getProjectileSprite(projectile)})` }
+                      : {}),
                     ...(typeof projectile.bottomPx === 'number'
                       ? { bottom: `${projectile.bottomPx + (selectedStage.fighterLift ?? 0)}px` }
                       : {}),
@@ -5467,7 +8397,7 @@ export default function App() {
                 />
               ) : (
                 <img
-                  className={`special-projectile special-projectile--${projectile.kind} special-projectile--${projectile.lane} special-projectile--${projectile.owner}`}
+                  className={`special-projectile special-projectile--${projectile.kind} special-projectile--${projectile.lane} special-projectile--${projectile.owner} special-projectile--dir-${projectile.direction === 1 ? 'right' : 'left'}`}
                   src={getProjectileSprite(projectile)}
                   alt=""
                   aria-hidden="true"
@@ -5515,6 +8445,43 @@ export default function App() {
                 style={{
                   left: `${getArenaScreenX(popup.x + (popup.side === 'left' ? -4 : 4))}%`,
                   bottom: `${168 + (selectedStage.fighterLift ?? 0) + popup.y}px`,
+                }}
+              />
+            ))}
+            {knightExplosions.map((explosion) => (
+              <img
+                className={`knight-dark-wave-explosion knight-dark-wave-explosion--${explosion.side}`}
+                src={knightDarkWaveExplosionSprite}
+                alt=""
+                aria-hidden="true"
+                key={explosion.id}
+                style={{
+                  left: `${getArenaScreenX(explosion.position.x)}%`,
+                  bottom: `${28 + (selectedStage.fighterLift ?? 0) + explosion.position.y}px`,
+                }}
+              />
+            ))}
+            {gersonLeapEffects.map((effect) => (
+              <span
+                className={`gerson-leap-boost-effect gerson-leap-boost-effect--${effect.side} gerson-leap-boost-effect--${effect.direction === 1 ? 'right' : 'left'}`}
+                aria-hidden="true"
+                key={effect.id}
+                style={{
+                  left: `${getArenaScreenX(effect.x)}%`,
+                  bottom: `${-32 + (selectedStage.fighterLift ?? 0)}px`,
+                  backgroundImage: `url(${gersonBoomLeapBoostSprite})`,
+                }}
+              />
+            ))}
+            {jevilPlatforms.map((platform, index) => (
+              <span
+                className={`jevil-platform jevil-platform--${index % 2 === 0 ? 'low' : 'high'}`}
+                aria-hidden="true"
+                key={platform.id}
+                style={{
+                  left: `${getArenaScreenX(platform.x)}%`,
+                  bottom: `${94 + (selectedStage.fighterLift ?? 0) + platform.y}px`,
+                  backgroundImage: `url(${jevilPlatformSprite})`,
                 }}
               />
             ))}
@@ -5571,23 +8538,12 @@ export default function App() {
             <StickFighter
               fighter={player}
               side="left"
-              facing={
-                player.id === 'roaring-knight' &&
-                playerKnightDarkWaveState === 'holding'
-                  ? playerKnightDarkWaveDirection === 1
-                    ? 'right'
-                    : 'left'
-                  : player.id === 'roaring-knight' &&
-                (playerKnightSpherePhase === 'bird-transform' || playerKnightSpherePhase === 'bird')
-                  ? playerKnightBirdDashDirection.current === 1
-                    ? 'right'
-                    : 'left'
-                  : playerPosition.x <= opponentPosition.x
-                    ? 'right'
-                    : 'left'
-              }
+              facing={playerRenderedFacing}
               attack={attack}
-              isCrouching={playerStatus === 'idle' && (isCrouching || isCrouchAttackLocked)}
+              isCrouching={
+                playerStatus === 'idle' &&
+                (isCrouching || isCrouchAttackLocked || isAlwaysCrouchingFighter(player))
+              }
               isBlocking={isBlocking}
               position={playerPosition}
               status={playerStatus}
@@ -5601,8 +8557,14 @@ export default function App() {
               chargeAttackState={playerChargeAttackState}
               chargeReleaseStartedAt={playerChargeReleaseStartedAt.current}
               knightDarkWaveState={player.id === 'roaring-knight' ? playerKnightDarkWaveState : 'idle'}
+              isKnightDarkWaveOverheated={player.id === 'roaring-knight' && playerKnightDarkWaveOverheated}
               hasDarkAura={playerChargeAuraActive}
               knightSpherePhase={player.id === 'roaring-knight' ? playerKnightSpherePhase : 'idle'}
+              isGersonLeapPreparing={player.id === 'gerson-boom' && playerGersonLeapPreparing}
+              isGersonSpecialLeap={player.id === 'gerson-boom' && playerGersonLeapActive}
+              isJevilAbsorbing={player.id === 'jevil' && playerJevilAbsorbing}
+              isJevilHeadlessPose={player.id === 'jevil' && playerJevilHeadlessPose}
+              specialSpriteOverride={playerSpecialSpriteOverride}
               onTennaAirSpecialSpriteStart={playTennaAirWaveSound}
               onTennaStarSpecialSpriteStart={playTennaStarSpecialSound}
               onQueenSpecialSpriteStart={playQueenCupThrowSound}
@@ -5610,18 +8572,9 @@ export default function App() {
             <StickFighter
               fighter={opponent}
               side="right"
-              facing={
-                opponent.id === 'roaring-knight' &&
-                (opponentKnightSpherePhase === 'bird-transform' || opponentKnightSpherePhase === 'bird')
-                  ? opponentKnightBirdDashDirection.current === 1
-                    ? 'right'
-                    : 'left'
-                  : opponentPosition.x <= playerPosition.x
-                    ? 'right'
-                    : 'left'
-              }
+              facing={opponentRenderedFacing}
               attack={opponentAttack}
-              isCrouching={opponentStatus === 'idle' && opponentCrouching}
+              isCrouching={opponentStatus === 'idle' && (opponentCrouching || isAlwaysCrouchingFighter(opponent))}
               isBlocking={opponentBlocking}
               position={opponentPosition}
               status={opponentStatus}
@@ -5635,8 +8588,14 @@ export default function App() {
               chargeAttackState={opponent.id === 'roaring-knight' ? opponentChargeAttackState : 'idle'}
               chargeReleaseStartedAt={opponent.id === 'roaring-knight' ? opponentChargeReleaseStartedAt.current : 0}
               knightDarkWaveState={opponent.id === 'roaring-knight' ? opponentKnightDarkWaveState : 'idle'}
+              isKnightDarkWaveOverheated={opponent.id === 'roaring-knight' && opponentKnightDarkWaveOverheated}
               hasDarkAura={opponentChargeAuraActive}
               knightSpherePhase={opponent.id === 'roaring-knight' ? opponentKnightSpherePhase : 'idle'}
+              isGersonLeapPreparing={false}
+              isGersonSpecialLeap={false}
+              isJevilAbsorbing={opponent.id === 'jevil' && opponentJevilAbsorbing}
+              isJevilHeadlessPose={opponent.id === 'jevil' && opponentJevilHeadlessPose}
+              specialSpriteOverride={opponentSpecialSpriteOverride}
               onTennaAirSpecialSpriteStart={playTennaAirWaveSound}
               onTennaStarSpecialSpriteStart={playTennaStarSpecialSound}
               onQueenSpecialSpriteStart={playQueenCupThrowSound}
@@ -5902,15 +8861,21 @@ function FighterBadge({
   label,
   health,
   infiniteHealth = false,
+  gersonAirHitCount = 0,
   alignRight = false,
 }: {
   fighter: Fighter;
   label: string;
   health: number;
   infiniteHealth?: boolean;
+  gersonAirHitCount?: number;
   alignRight?: boolean;
 }) {
   const visibleHealth = infiniteHealth ? MAX_HEALTH : health;
+  const gersonAirCounterValue =
+    fighter.id === 'gerson-boom' && gersonAirHitCount >= 5
+      ? gersonAirHitCount - 4
+      : 0;
 
   return (
     <div className={`fighter-badge${alignRight ? ' fighter-badge--right' : ''}`}>
@@ -5922,6 +8887,12 @@ function FighterBadge({
         <span className="health-fill" style={{ width: `${visibleHealth}%` }} />
         {infiniteHealth && <span className="health-infinity">∞</span>}
       </div>
+      {gersonAirCounterValue > 0 && (
+        <div className="gerson-air-counter" aria-label={`Gerson air counter x${gersonAirCounterValue}`}>
+          <img src={gersonAirCounterIcon} alt="" aria-hidden="true" />
+          <span>x{gersonAirCounterValue}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -5945,8 +8916,14 @@ function StickFighter({
   chargeAttackState = 'idle',
   chargeReleaseStartedAt = 0,
   knightDarkWaveState = 'idle',
+  isKnightDarkWaveOverheated = false,
   hasDarkAura = false,
   knightSpherePhase = 'idle',
+  isGersonLeapPreparing = false,
+  isGersonSpecialLeap = false,
+  isJevilAbsorbing = false,
+  isJevilHeadlessPose = false,
+  specialSpriteOverride = null,
   onTennaAirSpecialSpriteStart,
   onTennaStarSpecialSpriteStart,
   onQueenSpecialSpriteStart,
@@ -5969,8 +8946,14 @@ function StickFighter({
   chargeAttackState?: ChargeAttackState;
   chargeReleaseStartedAt?: number;
   knightDarkWaveState?: KnightDarkWaveState;
+  isKnightDarkWaveOverheated?: boolean;
   hasDarkAura?: boolean;
   knightSpherePhase?: KnightSpherePhase;
+  isGersonLeapPreparing?: boolean;
+  isGersonSpecialLeap?: boolean;
+  isJevilAbsorbing?: boolean;
+  isJevilHeadlessPose?: boolean;
+  specialSpriteOverride?: string | null;
   onTennaAirSpecialSpriteStart?: () => void;
   onTennaStarSpecialSpriteStart?: () => void;
   onQueenSpecialSpriteStart?: () => void;
@@ -5983,14 +8966,19 @@ function StickFighter({
   const queenVictorySoundRef = useRef<HTMLAudioElement | null>(null);
   const tennaVictoryThreeSoundRef = useRef<HTMLAudioElement | null>(null);
   const knightVictorySoundRef = useRef<HTMLAudioElement | null>(null);
+  const gersonVictorySoundRef = useRef<HTMLAudioElement | null>(null);
   const playedQueenVictorySound = useRef(false);
   const playedTennaVictoryThreeSound = useRef(false);
   const playedKnightVictorySound = useRef(false);
+  const playedGersonVictorySound = useRef(false);
   const playedAirSpecialSound = useRef(false);
   const playedTennaStarSpecialSound = useRef(false);
   const playedQueenSpecialSound = useRef(false);
+  const wasGersonJumpSpriteActive = useRef(false);
   const [walkDirection, setWalkDirection] = useState<'idle' | 'forward' | 'backward'>('idle');
   const [jumpPhase, setJumpPhase] = useState<'rising' | 'falling'>('rising');
+  const [gersonJumpRun, setGersonJumpRun] = useState(0);
+  const [isGersonBounceJump, setIsGersonBounceJump] = useState(false);
   const [canShowVictoryPose, setCanShowVictoryPose] = useState(false);
 
   useEffect(() => {
@@ -6007,11 +8995,16 @@ function StickFighter({
     knightVictorySoundRef.current.volume = 0.85;
     knightVictorySoundRef.current.preload = 'auto';
     knightVictorySoundRef.current.load();
+    gersonVictorySoundRef.current = new Audio(gersonLaughSound);
+    gersonVictorySoundRef.current.volume = 0.9;
+    gersonVictorySoundRef.current.preload = 'auto';
+    gersonVictorySoundRef.current.load();
 
     return () => {
       queenVictorySoundRef.current = null;
       tennaVictoryThreeSoundRef.current = null;
       knightVictorySoundRef.current = null;
+      gersonVictorySoundRef.current = null;
     };
   }, []);
 
@@ -6058,6 +9051,7 @@ function StickFighter({
       playedQueenVictorySound.current = false;
       playedTennaVictoryThreeSound.current = false;
       playedKnightVictorySound.current = false;
+      playedGersonVictorySound.current = false;
       setCanShowVictoryPose(false);
       return;
     }
@@ -6089,15 +9083,21 @@ function StickFighter({
 
     if (position.y === 0) {
       setJumpPhase('rising');
+      setIsGersonBounceJump(false);
       return;
     }
 
     if (deltaY < -0.01) {
       setJumpPhase('falling');
     } else if (deltaY > 0.01) {
+      if (fighter.id === 'gerson-boom' && jumpPhase === 'falling') {
+        setIsGersonBounceJump(true);
+        setGersonJumpRun((run) => run + 1);
+      }
+
       setJumpPhase('rising');
     }
-  }, [position.y]);
+  }, [fighter.id, jumpPhase, position.y]);
 
   const isCrouchPunchSprite =
     isCrouching && attack === 'punch' && Boolean(fighter.crouchPunchSprite);
@@ -6105,15 +9105,34 @@ function StickFighter({
     isCrouching && attack === 'kick' && Boolean(fighter.crouchKickSprite);
   const isStandingPunchStrip =
     attack === 'punch' && !isCrouching && fighter.id === 'queen' && Boolean(fighter.punchSprite);
+  const isGersonSpinStrip =
+    attack === 'punch' && fighter.id === 'gerson-boom' && Boolean(fighter.punchSprite);
   const isKickSprite = attack === 'kick' && !isCrouchKickSprite && Boolean(fighter.kickSprite);
   const isJumpSprite =
-    position.y > 0 && attack === 'idle' && !isCrouching && !isShootingSpecial && Boolean(fighter.jumpSprite);
+    position.y > 0 &&
+    attack === 'idle' &&
+    (!isCrouching || isAlwaysCrouchingFighter(fighter)) &&
+    !isShootingSpecial &&
+    Boolean(fighter.jumpSprite);
+  const isGersonJumpSprite = isJumpSprite && fighter.id === 'gerson-boom';
+  const isGersonLeapBoostSprite = isGersonJumpSprite && isGersonSpecialLeap;
+  const isGersonLeapPrepSprite =
+    fighter.id === 'gerson-boom' && isGersonLeapPreparing && status === 'idle';
   const isLaunchedSprite = status === 'launched' && Boolean(fighter.launchedSprite);
   const isKnockdownSprite = status === 'knockdown' && Boolean(fighter.knockdownSprite);
   const isAirSpecialSprite =
     isShootingSpecial && position.y > 0 && Boolean(fighter.airSpecialSprite);
-  const isSpecialSprite = isShootingSpecial && Boolean(fighter.specialSprite);
+  const isSpecialSprite = isShootingSpecial && Boolean(specialSpriteOverride ?? fighter.specialSprite);
   const isQueenSpecialSprite = isSpecialSprite && !isAirSpecialSprite && fighter.id === 'queen';
+  const isJevilPlatformSpecialStrip = isSpecialSprite && fighter.id === 'jevil';
+  const isJevilChaosSpecialStrip = isJevilPlatformSpecialStrip && specialSpriteOverride === jevilChaosSpecialSprite;
+  const isJevilTeleportSpecialStrip =
+    isJevilPlatformSpecialStrip && specialSpriteOverride === jevilTeleportSpecialSprite;
+  const isJevilTeleportFreezePose =
+    isJevilPlatformSpecialStrip && specialSpriteOverride === jevilTeleportFreezeSprite;
+  const isJevilTeleportShootPose =
+    isJevilPlatformSpecialStrip && specialSpriteOverride === jevilTeleportShootSprite;
+  const isJevilHeadlessAbsorbPose = fighter.id === 'jevil' && isJevilHeadlessPose;
   const isDefeatSprite = isDefeated && Boolean(fighter.defeatSprite);
   const isVictorySprite = !isDefeated && Boolean(victorySprite) && canShowVictoryPose;
   const isQueenVictoryBackdrop =
@@ -6122,6 +9141,8 @@ function StickFighter({
     isVictorySprite && fighter.id === 'queen' && victorySprite === queenVictorySprite;
   const isKnightVictoryStrip =
     isVictorySprite && fighter.id === 'roaring-knight' && victorySprite === roaringKnightVictorySprite;
+  const isGersonVictorySprite =
+    isVictorySprite && fighter.id === 'gerson-boom' && victorySprite === gersonBoomVictorySprite;
   const isChargeHoldSprite =
     chargeAttackState === 'charging' && Boolean(fighter.chargeHoldSprite);
   const isChargeReleaseSprite =
@@ -6142,6 +9163,14 @@ function StickFighter({
   const isKnightSphereSprite = fighter.id === 'roaring-knight' && knightSpherePhase === 'active';
   const isKnightBirdTransformSprite = fighter.id === 'roaring-knight' && knightSpherePhase === 'bird-transform';
   const isKnightBirdSprite = fighter.id === 'roaring-knight' && knightSpherePhase === 'bird';
+
+  useEffect(() => {
+    if (isGersonJumpSprite && !wasGersonJumpSpriteActive.current) {
+      setGersonJumpRun((run) => run + 1);
+    }
+
+    wasGersonJumpSpriteActive.current = isGersonJumpSprite;
+  }, [isGersonJumpSprite]);
 
   useEffect(() => {
     if (!isQueenVictoryStrip) {
@@ -6224,7 +9253,33 @@ function StickFighter({
     };
   }, [isKnightVictoryStrip]);
 
-  const isDefeatStrip = isDefeatSprite && (fighter.id === 'mister-ant-tenna' || fighter.id === 'roaring-knight');
+  useEffect(() => {
+    if (!isGersonVictorySprite) {
+      const sound = gersonVictorySoundRef.current;
+      playedGersonVictorySound.current = false;
+      if (sound) {
+        sound.pause();
+        sound.currentTime = 0;
+      }
+      return;
+    }
+
+    if (playedGersonVictorySound.current) return;
+
+    const sound = gersonVictorySoundRef.current;
+    playedGersonVictorySound.current = true;
+
+    if (!sound) return;
+
+    sound.currentTime = 0;
+    void sound.play().catch(() => {
+      // Victory audio is best-effort if the browser blocks playback.
+    });
+  }, [isGersonVictorySprite]);
+
+  const isDefeatStrip =
+    isDefeatSprite &&
+    (fighter.id === 'mister-ant-tenna' || fighter.id === 'roaring-knight' || fighter.id === 'gerson-boom');
   const isHealingSprite = status === 'healing' && Boolean(fighter.healSprite);
   const isWalkSprite =
     walkDirection !== 'idle' &&
@@ -6277,6 +9332,10 @@ function StickFighter({
   const battleSprite =
     isDefeatSprite
       ? fighter.defeatSprite
+      : isJevilHeadlessAbsorbPose
+        ? jevilHeadlessAbsorbPoseSprite
+      : isQueenVictoryBackdrop
+        ? queenUniqueVictoryPoseSprite
       : isVictorySprite && !isQueenVictoryBackdrop
       ? victorySprite
       : isKnightSphereTransformSprite
@@ -6298,28 +9357,48 @@ function StickFighter({
           : isAirSpecialSprite
             ? fighter.airSpecialSprite
             : isSpecialSprite
-              ? fighter.specialSprite
+              ? specialSpriteOverride ?? fighter.specialSprite
               : isHealingSprite
                 ? fighter.healSprite
                 : isLaunchedSprite
                   ? fighter.launchedSprite
                 : isKnockdownSprite
                   ? fighter.knockdownSprite
-                  : isCrouchPunchSprite
-                    ? fighter.crouchPunchSprite
-                    : isCrouchKickSprite
-                      ? fighter.crouchKickSprite
+                : isCrouchPunchSprite
+                  ? fighter.crouchPunchSprite
+                : isCrouchKickSprite
+                  ? fighter.crouchKickSprite
+                      : isGersonLeapPrepSprite
+                        ? gersonBoomLeapPrepSprite
                       : isCrouching && fighter.crouchSprite
                         ? fighter.crouchSprite
                         : attack === 'punch' && fighter.punchSprite
                           ? fighter.punchSprite
                           : isKickSprite
                             ? fighter.kickSprite
-                            : isJumpSprite
-                              ? fighter.jumpSprite
+                          : isJumpSprite
+                              ? isGersonLeapBoostSprite
+                                ? gersonBoomJumpSlowSprite
+                                : isGersonBounceJump && fighter.id === 'gerson-boom'
+                                ? gersonBoomJumpBounceSprite
+                                : fighter.jumpSprite
                               : isWalkSprite
                                 ? fighter.walkSprite
                                 : fighter.battleSprite;
+  const isGersonBackScarfSprite =
+    fighter.id === 'gerson-boom' &&
+    battleSprite === fighter.battleSprite &&
+    attack === 'idle' &&
+    status === 'idle' &&
+    position.y === 0 &&
+    !isBlocking &&
+    !isShootingSpecial &&
+    !isGersonLeapPreparing &&
+    !isDefeatSprite &&
+    !isVictorySprite;
+  const isClassicBattlePoseStrip =
+    battleSprite === fighter.battleSprite &&
+    (fighter.id === 'mister-ant-tenna' || fighter.id === 'gerson-boom' || fighter.id === 'jevil');
   const spriteClassName = `battle-sprite battle-sprite--${fighter.id}${
     isCrouching && fighter.crouchSprite && !isCrouchPunchSprite && !isCrouchKickSprite
       ? ' battle-sprite--crouch'
@@ -6331,6 +9410,11 @@ function StickFighter({
   }${isCrouchPunchSprite ? ' battle-sprite--crouch-uppercut' : ''}${
     isCrouchKickSprite ? ' battle-sprite--crouch-sweep' : ''
   }${isSpecialSprite ? ' battle-sprite--special' : ''
+  }${isJevilChaosSpecialStrip ? ' battle-sprite--jevil-chaos-special' : ''
+  }${isJevilTeleportSpecialStrip ? ' battle-sprite--jevil-teleport-special' : ''
+  }${isJevilTeleportFreezePose ? ' battle-sprite--jevil-teleport-freeze' : ''
+  }${isJevilTeleportShootPose ? ' battle-sprite--jevil-teleport-shoot' : ''
+  }${isJevilHeadlessAbsorbPose ? ' battle-sprite--jevil-headless-absorb' : ''
   }${isAirSpecialSprite ? ' battle-sprite--air-special' : ''
   }${isQueenSpecialSprite ? ' battle-sprite--queen-special' : ''
   }${isHealingSprite ? ' battle-sprite--healing' : ''
@@ -6343,12 +9427,18 @@ function StickFighter({
   }${isKnockdownSprite ? ' battle-sprite--knockdown' : ''
   }${isDefeatSprite ? ' battle-sprite--defeat' : ''
   }${isVictorySprite && !isQueenVictoryBackdrop ? ' battle-sprite--round-victory' : ''
+  }${isQueenVictoryBackdrop ? ' battle-sprite--queen-unique-victory' : ''
   }${isChargeHoldSprite ? ' battle-sprite--charge-hold' : ''
   }${isChargeReleaseSprite ? ' battle-sprite--charge-release' : ''
   }${isBlockSprite ? ' battle-sprite--block-strip' : ''
   }${isWalkSprite ? ' battle-sprite--walk' : ''
   }${isWalkSprite && walkDirection === 'backward' ? ' battle-sprite--walk-backward' : ''
+  }${isClassicBattlePoseStrip ? ' battle-sprite--battle-pose-strip' : ''
+  }${isGersonLeapPrepSprite ? ' battle-sprite--gerson-leap-prep' : ''
   }${isJumpSprite ? ' battle-sprite--jump' : ''
+  }${isGersonJumpSprite ? ' battle-sprite--gerson-jump-strip' : ''
+  }${isGersonBounceJump && isGersonJumpSprite ? ' battle-sprite--gerson-jump-bounce' : ''
+  }${isGersonLeapBoostSprite ? ' battle-sprite--gerson-jump-slow' : ''
   }${isJumpSprite && jumpPhase === 'falling' ? ' battle-sprite--jump-falling' : ''
   }`;
   const className = `stick-fighter stick-fighter--${fighter.id} stick-fighter--${side} stick-fighter--face-${facing} stick-fighter--${attack}${
@@ -6357,20 +9447,30 @@ function StickFighter({
     status !== 'idle' ? ` stick-fighter--${status}` : ''
   }${isDamageFlashing ? ' stick-fighter--damage-flash' : ''}${isRecovering ? ' stick-fighter--recovering' : ''}${
     hasDarkAura ? ' stick-fighter--dark-aura' : ''
+  }${isKnightDarkWaveOverheated ? ' stick-fighter--dark-wave-overheated' : ''
+  }${isJevilAbsorbing ? ' stick-fighter--jevil-absorbing' : ''
   }`;
 
   return (
     <div className={className} style={getArenaFighterStyle(fighter, position, floorLift, visualLift)}>
       {isBlocking && <div className="block-label">BLOCK</div>}
-      {battleSprite && (isKnightSphereTransformSprite || isKnightSphereSprite || isKnightBirdTransformSprite || isKnightBirdSprite || isKnightDarkWaveSprite || isBlockSprite || isKnightImpactStrip || isKickSprite || isJumpSprite || isCrouchPunchSprite || isDefeatStrip || isWalkSprite || isStandingPunchStrip || isQueenSpecialSprite || isQueenVictoryStrip || isKnightVictoryStrip) ? (
+      {isGersonBackScarfSprite && (
         <span
+          className="gerson-back-scarf"
+          style={{ backgroundImage: `url(${gersonBoomBackScarfSprite})` }}
+          aria-hidden="true"
+        />
+      )}
+      {battleSprite && (isClassicBattlePoseStrip || isKnightSphereTransformSprite || isKnightSphereSprite || isKnightBirdTransformSprite || isKnightBirdSprite || isKnightDarkWaveSprite || isBlockSprite || isKnightImpactStrip || isKickSprite || isJumpSprite || isCrouchPunchSprite || isDefeatStrip || isWalkSprite || isStandingPunchStrip || isGersonSpinStrip || isQueenSpecialSprite || isJevilPlatformSpecialStrip || isQueenVictoryStrip || isKnightVictoryStrip) ? (
+        <span
+          key={`${fighter.id}-${battleSprite}-${isChargeReleaseSprite ? 'charge-release' : 'default'}-${isGersonJumpSprite ? gersonJumpRun : 0}`}
           className={spriteClassName}
           style={{ backgroundImage: `url(${battleSprite})` }}
           aria-hidden="true"
         />
       ) : battleSprite ? (
         <img
-          key={`${fighter.id}-${battleSprite}-${isChargeReleaseSprite ? 'charge-release' : 'default'}`}
+          key={`${fighter.id}-${battleSprite}-${isChargeReleaseSprite ? 'charge-release' : 'default'}-${isGersonJumpSprite ? gersonJumpRun : 0}`}
           className={spriteClassName}
           src={battleSprite}
           alt=""
@@ -6430,8 +9530,8 @@ function clampPlayerX(nextX: number, opponentX: number) {
 function clampAirbornePlayerX(nextX: number, currentX: number, opponentX: number) {
   const wantsToCrossRight = currentX <= opponentX && nextX > opponentX;
   const wantsToCrossLeft = currentX >= opponentX && nextX < opponentX;
-  const hasRightLandingSpace = opponentX + FIGHTER_COLLISION_GAP <= ARENA_RIGHT_LIMIT;
-  const hasLeftLandingSpace = opponentX - FIGHTER_COLLISION_GAP >= ARENA_LEFT_LIMIT;
+  const hasRightLandingSpace = opponentX + AIRBORNE_CROSS_LANDING_SPACE <= ARENA_RIGHT_LIMIT;
+  const hasLeftLandingSpace = opponentX - AIRBORNE_CROSS_LANDING_SPACE >= ARENA_LEFT_LIMIT;
 
   if (wantsToCrossRight && !hasRightLandingSpace) {
     return clamp(nextX, ARENA_LEFT_LIMIT, opponentX - FIGHTER_COLLISION_GAP);
@@ -6455,8 +9555,8 @@ function clampOpponentX(nextX: number, playerX: number) {
 function clampAirborneOpponentX(nextX: number, currentX: number, playerX: number) {
   const wantsToCrossRight = currentX <= playerX && nextX > playerX;
   const wantsToCrossLeft = currentX >= playerX && nextX < playerX;
-  const hasRightLandingSpace = playerX + FIGHTER_COLLISION_GAP <= ARENA_RIGHT_LIMIT;
-  const hasLeftLandingSpace = playerX - FIGHTER_COLLISION_GAP >= ARENA_LEFT_LIMIT;
+  const hasRightLandingSpace = playerX + AIRBORNE_CROSS_LANDING_SPACE <= ARENA_RIGHT_LIMIT;
+  const hasLeftLandingSpace = playerX - AIRBORNE_CROSS_LANDING_SPACE >= ARENA_LEFT_LIMIT;
 
   if (wantsToCrossRight && !hasRightLandingSpace) {
     return clamp(nextX, ARENA_LEFT_LIMIT, playerX - FIGHTER_COLLISION_GAP);
@@ -6473,18 +9573,12 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function getGameKey(event: KeyboardEvent) {
-  const keyByCode: Record<string, string> = {
-    KeyW: 'w',
-    KeyA: 'a',
-    KeyS: 's',
-    KeyD: 'd',
-    ArrowLeft: 'arrowleft',
-    ArrowRight: 'arrowright',
-    ArrowDown: 'arrowdown',
-    ArrowUp: 'arrowup',
-    ShiftRight: 'block',
-  };
+function getGameKey(event: KeyboardEvent, controlBindings: Record<GameInput, string>) {
+  if (event.code === 'Escape') return 'escape';
 
-  return keyByCode[event.code] ?? event.key.toLowerCase();
+  const boundAction = (Object.keys(controlBindings) as GameInput[]).find(
+    (action) => controlBindings[action] === event.code,
+  );
+
+  return boundAction ?? event.key.toLowerCase();
 }
