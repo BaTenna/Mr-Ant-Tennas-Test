@@ -590,40 +590,40 @@ const stages: Stage[] = [
     name: 'Tenna Stage',
     image: stageTennaArena,
     position: 'center calc(100% + 18px)',
-    size: '118% 100%',
-    fighterLift: 70,
+    size: '132% 112%',
+    fighterLift: 0,
   },
   {
     id: 'couch-cliffs',
     name: 'Couch Cliffs',
     image: stageCouchCliffs,
     position: 'center calc(50% + 34px)',
-    size: 'cover',
-    fighterLift: 250,
+    size: '118% auto',
+    fighterLift: 55,
   },
   {
     id: 'cold-place',
     name: 'Cold Place',
     image: stageColdPlace,
     position: 'center center',
-    size: 'cover',
-    fighterLift: 70,
+    size: '118% auto',
+    fighterLift: 0,
   },
   {
     id: 'dark-sanctuaries',
     name: 'Dark Sanctuaries',
     image: stageDarkSanctuaries,
     position: 'center center',
-    size: 'cover',
-    fighterLift: 70,
+    size: '118% auto',
+    fighterLift: 0,
   },
   {
     id: 'queens-mansion',
     name: "Queen's Mansion",
     image: stageQueensMansion,
     position: 'center calc(50% + 96px)',
-    size: 'cover',
-    fighterLift: 250,
+    size: '118% auto',
+    fighterLift: 35,
     arenaHeight: 920,
   },
 ];
@@ -718,6 +718,15 @@ function isProjectileTouchingFighter(
   const fighterBottom = FIGHTER_BASE_BOTTOM_PX + target.y + visualLift;
   const fighterTop = fighterBottom + getFighterProjectileHitboxHeight(fighter, isLowProfile);
 
+  if (
+    projectile.kind === 'queen-wave' &&
+    projectile.lane === 'high' &&
+    isLowProfile &&
+    target.y <= MELEE_AIRBORNE_GRACE_HEIGHT
+  ) {
+    return false;
+  }
+
   return (
     Math.abs(projectile.x - target.x) <= projectileHitbox.halfWidth + fighterHalfWidth &&
     projectileVertical.top >= fighterBottom &&
@@ -768,6 +777,34 @@ function getKnightSphereMaxY(stage: Stage) {
     arenaHeight -
       (94 + floorLift + KNIGHT_SPHERE_BOTTOM_OFFSET_PX + KNIGHT_SPHERE_SIZE_PX + KNIGHT_SPHERE_TOP_PADDING_PX),
   );
+}
+
+function getArenaPixelHeight(stage: Stage) {
+  const viewportArenaHeight =
+    typeof window === 'undefined'
+      ? 0
+      : window.innerHeight;
+
+  return Math.max(stage.arenaHeight ?? 760, viewportArenaHeight);
+}
+
+function getFighterMaxY(stage: Stage, fighter: Fighter, visualLift = 0) {
+  const arenaHeight = getArenaPixelHeight(stage);
+  const floorLift = stage.fighterLift ?? 0;
+  const fighterCeilingHeight = (FIGHTER_CEILING_HEIGHT[fighter.id] ?? 320) * FIGHTER_CEILING_SCALE;
+
+  return Math.max(
+    0,
+    arenaHeight -
+      (FIGHTER_BASE_BOTTOM_PX + floorLift + visualLift + fighterCeilingHeight + FIGHTER_CEILING_PADDING_PX),
+  );
+}
+
+function clampFighterPosition(position: Position, stage: Stage, fighter: Fighter, visualLift = 0): Position {
+  return {
+    x: clamp(position.x, ARENA_LEFT_LIMIT, ARENA_RIGHT_LIMIT),
+    y: clamp(position.y, 0, getFighterMaxY(stage, fighter, visualLift)),
+  };
 }
 
 function canFighterCrouch(fighter: Fighter) {
@@ -868,11 +905,10 @@ const JEVIL_SCYTHE_DAMAGE = 7;
 const JEVIL_SCYTHE_MAX_TRAVEL = 86;
 const JEVIL_SCYTHE_HIT_TICK_MS = 260;
 const JEVIL_SCYTHE_SPEED = 0.78;
-const JEVIL_SCYTHE_SPAWN_OFFSET = 9;
-const JEVIL_SCYTHE_BOTTOM_PX = 168;
+const JEVIL_SCYTHE_SPAWN_OFFSET = 0;
+const JEVIL_SCYTHE_BOTTOM_PX = 128;
 const JEVIL_PLATFORM_DURATION_MS = 10000;
-const JEVIL_PLATFORM_MIN_Y = 96;
-const JEVIL_PLATFORM_CENTER_OFFSET_Y = 210;
+const JEVIL_PLATFORM_SPAWN_Y = 226;
 const JEVIL_PLATFORM_X_OFFSET = 22;
 const JEVIL_PLATFORM_HALF_WIDTH = 20;
 const QUEEN_SPECIAL_COOLDOWN_MS = 3000;
@@ -944,12 +980,24 @@ const QUEEN_PROJECTILE_DAMAGE = 13;
 const PROJECTILE_KNOCKBACK_VELOCITY = 1.25;
 const QUEEN_PROJECTILE_KNOCKBACK_VELOCITY = 2.15;
 const PROJECTILE_KNOCKBACK_FRICTION = 0.9;
+const TARGET_FRAME_MS = 1000 / 144;
+const MAX_FRAME_DELTA_MS = 50;
 const PROJECTILE_SPEED = 0.72;
 const PROJECTILE_BASE_BOTTOM_PX = 76;
 const PROJECTILE_HIGH_BOTTOM_PX = 188;
-const QUEEN_PROJECTILE_HIGH_BOTTOM_PX = 250;
+const QUEEN_PROJECTILE_HIGH_BOTTOM_PX = 160;
 const KNIGHT_SWORD_PROJECTILE_HIGH_BOTTOM_PX = 252;
 const FIGHTER_BASE_BOTTOM_PX = 94;
+const FIGHTER_CEILING_PADDING_PX = 10;
+const FIGHTER_CEILING_SCALE = 0.7;
+const FIGHTER_CEILING_HEIGHT: Record<Fighter['id'], number> = {
+  'mister-ant-tenna': 320,
+  queen: 270,
+  'roaring-knight': 330,
+  'gerson-boom': 395,
+  jevil: 260,
+  shade: 320,
+};
 const ATTACK_KNOCKBACK_VELOCITY = 0.92;
 const KNIGHT_CHARGE_ATTACK_KNOCKBACK = 2.35;
 const ATTACK_HIT_FRAME_RATIO = 0.82;
@@ -971,7 +1019,7 @@ const PROJECTILE_HITBOX: Record<ProjectileKind, { halfWidth: number; height: num
   'knight-sword': { halfWidth: 10.5, height: 42 },
   'jevil-chaos-shot': { halfWidth: 6, height: 54 },
   'jevil-head': { halfWidth: 7, height: 86 },
-  'jevil-scythe': { halfWidth: 11, height: 122 },
+  'jevil-scythe': { halfWidth: 14, height: 154 },
 };
 const ATTACK_DURATION_MS: Record<Exclude<Attack, 'idle'>, number> = {
   punch: 240,
@@ -992,16 +1040,16 @@ const WALK_SPEED = 0.2;
 const JEVIL_WALK_SPEED = 0.29;
 const DEFAULT_JUMP_POWER = 10.2;
 const DEFAULT_JUMP_GRAVITY = 0.28;
-const JEVIL_JUMP_POWER = 15.2;
+const JEVIL_JUMP_POWER = 12.2;
 const GERSON_LANDING_HIT_RANGE = 26;
 const GERSON_LANDING_DIRECT_HIT_RANGE = 10;
 const GERSON_LANDING_VERTICAL_HIT_RANGE = 120;
 const GERSON_LANDING_DAMAGE = 3;
 const GERSON_LANDING_DIRECT_DAMAGE = 5;
 const GERSON_LEAP_DIRECT_DAMAGE_MULTIPLIER = 2;
-const GERSON_LANDING_IMMUNITY_MS = 700;
+const GERSON_LANDING_IMMUNITY_MS = 420;
 const GERSON_AIR_COUNTER_HIDE_DELAY_MS = 3000;
-const GERSON_LANDING_BOUNCE_POWER = 15.8;
+const GERSON_LANDING_BOUNCE_POWER = 12.2;
 const GERSON_LANDING_BOUNCE_START_Y = 24;
 const GERSON_SIDE_BOUNCE_AFTER_AIR_HITS = 4;
 const GERSON_RANDOM_SIDE_BOUNCE_AFTER_AIR_HITS = 5;
@@ -1406,6 +1454,7 @@ export default function App() {
   const isArenaPausedRef = useRef(false);
   const arenaPauseStartedAtRef = useRef(0);
   const animationFrame = useRef<number | null>(null);
+  const lastFrameTimeRef = useRef(0);
   const selectSoundRef = useRef<HTMLAudioElement | null>(null);
   const fightStartSoundRef = useRef<HTMLAudioElement | null>(null);
   const tennaAirWaveSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -4686,15 +4735,7 @@ export default function App() {
     const ownerPosition = owner === 'left' ? positionRef.current : opponentPositionRef.current;
     const leftX = clamp(ownerPosition.x - JEVIL_PLATFORM_X_OFFSET, ARENA_VISIBLE_LEFT, ARENA_VISIBLE_RIGHT);
     const rightX = clamp(ownerPosition.x + JEVIL_PLATFORM_X_OFFSET, ARENA_VISIBLE_LEFT, ARENA_VISIBLE_RIGHT);
-    const arenaHeight =
-      typeof window === 'undefined'
-        ? selectedStage.arenaHeight ?? 760
-        : Math.max(selectedStage.arenaHeight ?? 760, window.innerHeight);
-    const platformY = Math.max(
-      JEVIL_PLATFORM_MIN_Y,
-      Math.round((arenaHeight - FIGHTER_BASE_BOTTOM_PX - (selectedStage.fighterLift ?? 0)) / 2) -
-        JEVIL_PLATFORM_CENTER_OFFSET_Y,
-    );
+    const platformY = JEVIL_PLATFORM_SPAWN_Y;
 
     jevilPlatformOwnerRef.current = owner;
     setJevilPlatformsAndRef([
@@ -4727,11 +4768,17 @@ export default function App() {
 
   function getRandomJevilTeleportPosition(owner: FighterSide) {
     const otherPosition = owner === 'left' ? opponentPositionRef.current : positionRef.current;
-    const maxY = Math.max(JEVIL_TELEPORT_MIN_AIR_Y, getKnightSphereMaxY(selectedStage) - 40);
+    const jevilFighter = owner === 'left' ? player : opponent;
+    const maxY = Math.max(0, getFighterMaxY(selectedStage, jevilFighter) - 18);
+    const minY = Math.min(JEVIL_TELEPORT_MIN_AIR_Y, maxY);
 
     for (let attempt = 0; attempt < 10; attempt += 1) {
-      const x = ARENA_VISIBLE_LEFT + Math.random() * (ARENA_VISIBLE_RIGHT - ARENA_VISIBLE_LEFT);
-      const y = JEVIL_TELEPORT_MIN_AIR_Y + Math.random() * Math.max(0, maxY - JEVIL_TELEPORT_MIN_AIR_Y);
+      const x = clamp(
+        ARENA_VISIBLE_LEFT + Math.random() * (ARENA_VISIBLE_RIGHT - ARENA_VISIBLE_LEFT),
+        ARENA_LEFT_LIMIT,
+        ARENA_RIGHT_LIMIT,
+      );
+      const y = minY + Math.random() * Math.max(0, maxY - minY);
       if (Math.abs(x - otherPosition.x) >= 16) {
         return { x, y };
       }
@@ -4743,8 +4790,8 @@ export default function App() {
         : ARENA_VISIBLE_LEFT + 8;
 
     return {
-      x: fallbackX,
-      y: JEVIL_TELEPORT_MIN_AIR_Y + Math.random() * Math.max(0, maxY - JEVIL_TELEPORT_MIN_AIR_Y),
+      x: clamp(fallbackX, ARENA_LEFT_LIMIT, ARENA_RIGHT_LIMIT),
+      y: minY + Math.random() * Math.max(0, maxY - minY),
     };
   }
 
@@ -4954,7 +5001,11 @@ export default function App() {
         return;
       }
 
-      const nextPosition = getRandomJevilTeleportPosition(owner);
+      const nextPosition = clampFighterPosition(
+        getRandomJevilTeleportPosition(owner),
+        selectedStage,
+        isPlayerSide ? player : opponent,
+      );
 
       if (isPlayerSide) {
         setPlayerSpecialSpriteOverride(jevilTeleportFreezeSprite);
@@ -5126,11 +5177,19 @@ export default function App() {
     opponentSpecialReadyAt.current = window.performance.now() + TENNA_AIR_SPECIAL_COOLDOWN_MS;
     opponentJumpVelocity.current = 0;
     opponentAirSpecialActiveRef.current = true;
-    opponentAirSpecialYRef.current = Math.max(opponentPositionRef.current.y, 42);
-    opponentPositionRef.current = {
-      ...opponentPositionRef.current,
-      y: opponentAirSpecialYRef.current,
-    };
+    opponentAirSpecialYRef.current = clamp(
+      Math.max(opponentPositionRef.current.y, 42),
+      0,
+      getFighterMaxY(selectedStage, opponent),
+    );
+    opponentPositionRef.current = clampFighterPosition(
+      {
+        ...opponentPositionRef.current,
+        y: opponentAirSpecialYRef.current,
+      },
+      selectedStage,
+      opponent,
+    );
     setOpponentPosition(opponentPositionRef.current);
     setOpponentAirSpecialWave(true);
     lockSpecialShooter('right');
@@ -6141,11 +6200,17 @@ export default function App() {
       pressedKeys.current.delete(key);
     }
 
-    function movePlayer() {
+    function movePlayer(frameTime = window.performance.now()) {
       if (isArenaPausedRef.current) {
+        lastFrameTimeRef.current = frameTime;
         animationFrame.current = window.requestAnimationFrame(movePlayer);
         return;
       }
+
+      const previousFrameTime = lastFrameTimeRef.current || frameTime - TARGET_FRAME_MS;
+      const deltaMs = clamp(frameTime - previousFrameTime, 0, MAX_FRAME_DELTA_MS);
+      const deltaScale = deltaMs / TARGET_FRAME_MS;
+      lastFrameTimeRef.current = frameTime;
 
       removeExpiredJevilPlatforms();
 
@@ -6162,7 +6227,7 @@ export default function App() {
         const maxX = ARENA_RIGHT_LIMIT - KNIGHT_SPHERE_HORIZONTAL_MARGIN;
         const nextPosition = {
           ...positionRef.current,
-          x: positionRef.current.x + direction * KNIGHT_BIRD_DASH_SPEED,
+          x: positionRef.current.x + direction * KNIGHT_BIRD_DASH_SPEED * deltaScale,
         };
         const reachedWall = direction === 1 ? nextPosition.x >= maxX : nextPosition.x <= minX;
 
@@ -6204,10 +6269,10 @@ export default function App() {
       if (playerIsSphereActive) {
         const nextPosition = { ...positionRef.current };
 
-        if (keys.has('a')) nextPosition.x -= KNIGHT_SPHERE_SPEED;
-        if (keys.has('d')) nextPosition.x += KNIGHT_SPHERE_SPEED;
-        if (keys.has('w')) nextPosition.y += KNIGHT_SPHERE_SPEED * 7;
-        if (keys.has('s')) nextPosition.y -= KNIGHT_SPHERE_SPEED * 7;
+        if (keys.has('a')) nextPosition.x -= KNIGHT_SPHERE_SPEED * deltaScale;
+        if (keys.has('d')) nextPosition.x += KNIGHT_SPHERE_SPEED * deltaScale;
+        if (keys.has('w')) nextPosition.y += KNIGHT_SPHERE_SPEED * 7 * deltaScale;
+        if (keys.has('s')) nextPosition.y -= KNIGHT_SPHERE_SPEED * 7 * deltaScale;
 
         nextPosition.y = clamp(nextPosition.y, 0, getKnightSphereMaxY(selectedStage));
         nextPosition.x = clamp(
@@ -6222,8 +6287,9 @@ export default function App() {
           nextPosition.x !== positionRef.current.x ||
           nextPosition.y !== positionRef.current.y
         ) {
-          positionRef.current = nextPosition;
-          setPlayerPosition(nextPosition);
+          const boundedPosition = clampFighterPosition(nextPosition, selectedStage, player);
+          positionRef.current = boundedPosition;
+          setPlayerPosition(boundedPosition);
         }
       }
 
@@ -6243,8 +6309,8 @@ export default function App() {
         const nextPosition = { ...positionRef.current };
 
         if (!movementLocked) {
-          if (keys.has('a')) nextPosition.x -= speed;
-          if (keys.has('d')) nextPosition.x += speed;
+          if (keys.has('a')) nextPosition.x -= speed * deltaScale;
+          if (keys.has('d')) nextPosition.x += speed * deltaScale;
         }
 
         if (Math.abs(playerKnockbackVelocity.current) > 0.03) {
@@ -6255,8 +6321,8 @@ export default function App() {
             ? Math.sign(counterwalkKnockback) *
               Math.min(Math.abs(counterwalkKnockback), KNIGHT_DARK_WAVE_COUNTERWALK_MAX_DRIFT)
             : playerKnockbackVelocity.current;
-          nextPosition.x += effectivePlayerKnockback;
-          playerKnockbackVelocity.current *= PROJECTILE_KNOCKBACK_FRICTION;
+          nextPosition.x += effectivePlayerKnockback * deltaScale;
+          playerKnockbackVelocity.current *= Math.pow(PROJECTILE_KNOCKBACK_FRICTION, deltaScale);
         } else {
           playerKnockbackVelocity.current = 0;
         }
@@ -6271,11 +6337,16 @@ export default function App() {
             : clampPlayerX(nextPosition.x, opponentPositionRef.current.x);
 
         if (playerAirSpecialActiveRef.current) {
-          nextPosition.y = playerAirSpecialYRef.current;
+          nextPosition.y = clamp(playerAirSpecialYRef.current, 0, getFighterMaxY(selectedStage, player));
           jumpVelocity.current = 0;
         } else if (jumpVelocity.current !== 0 || nextPosition.y > 0) {
           const previousPosition = positionRef.current;
-          nextPosition.y = Math.max(0, nextPosition.y + jumpVelocity.current);
+          nextPosition.y = Math.max(0, nextPosition.y + jumpVelocity.current * deltaScale);
+          const playerMaxY = getFighterMaxY(selectedStage, player);
+          if (nextPosition.y >= playerMaxY) {
+            nextPosition.y = playerMaxY;
+            if (jumpVelocity.current > 0) jumpVelocity.current = 0;
+          }
           if (
             player.id === 'roaring-knight' &&
             playerStatusRef.current === 'launched' &&
@@ -6284,12 +6355,13 @@ export default function App() {
           ) {
             playerLaunchedFallStartedAt.current = window.performance.now();
           }
-          jumpVelocity.current -= getFighterGravity(
-            player,
-            jumpVelocity.current,
-            DEFAULT_JUMP_GRAVITY,
-            playerStatusRef.current === 'launched' ? playerLaunchedFallStartedAt.current : 0,
-          );
+          jumpVelocity.current -=
+            getFighterGravity(
+              player,
+              jumpVelocity.current,
+              DEFAULT_JUMP_GRAVITY,
+              playerStatusRef.current === 'launched' ? playerLaunchedFallStartedAt.current : 0,
+            ) * deltaScale;
 
           const landedPlatform = getJevilPlatformLanding(
             player,
@@ -6351,8 +6423,9 @@ export default function App() {
           nextPosition.x !== positionRef.current.x ||
           nextPosition.y !== positionRef.current.y
         ) {
-          positionRef.current = nextPosition;
-          setPlayerPosition(nextPosition);
+          const boundedPosition = clampFighterPosition(nextPosition, selectedStage, player);
+          positionRef.current = boundedPosition;
+          setPlayerPosition(boundedPosition);
         }
       }
 
@@ -6365,7 +6438,7 @@ export default function App() {
         const maxX = ARENA_RIGHT_LIMIT - KNIGHT_SPHERE_HORIZONTAL_MARGIN;
         const nextOpponentPosition = {
           ...opponentPositionRef.current,
-          x: opponentPositionRef.current.x + direction * KNIGHT_BIRD_DASH_SPEED,
+          x: opponentPositionRef.current.x + direction * KNIGHT_BIRD_DASH_SPEED * deltaScale,
         };
         const reachedWall = direction === 1 ? nextOpponentPosition.x >= maxX : nextOpponentPosition.x <= minX;
 
@@ -6423,8 +6496,8 @@ export default function App() {
         const distanceToTarget = Math.hypot(dx, dy);
 
         if (distanceToTarget > 0.1) {
-          nextOpponentPosition.x += (dx / distanceToTarget) * KNIGHT_SPHERE_SPEED;
-          nextOpponentPosition.y += (dy / distanceToTarget) * KNIGHT_SPHERE_SPEED * 7;
+          nextOpponentPosition.x += (dx / distanceToTarget) * KNIGHT_SPHERE_SPEED * deltaScale;
+          nextOpponentPosition.y += (dy / distanceToTarget) * KNIGHT_SPHERE_SPEED * 7 * deltaScale;
         }
 
         nextOpponentPosition.y = clamp(nextOpponentPosition.y, 0, getKnightSphereMaxY(selectedStage));
@@ -6456,19 +6529,25 @@ export default function App() {
       if (!opponentIsSphereActive && !opponentIsBirdDashing && opponentAirSpecialActiveRef.current) {
         const nextOpponentPosition = {
           ...opponentPositionRef.current,
-          y: opponentAirSpecialYRef.current,
+          y: clamp(opponentAirSpecialYRef.current, 0, getFighterMaxY(selectedStage, opponent)),
         };
 
         opponentJumpVelocity.current = 0;
 
         if (nextOpponentPosition.y !== opponentPositionRef.current.y) {
-          opponentPositionRef.current = nextOpponentPosition;
-          setOpponentPosition(nextOpponentPosition);
+          const boundedOpponentPosition = clampFighterPosition(nextOpponentPosition, selectedStage, opponent);
+          opponentPositionRef.current = boundedOpponentPosition;
+          setOpponentPosition(boundedOpponentPosition);
         }
       } else if (!opponentIsSphereActive && !opponentIsBirdDashing && (opponentJumpVelocity.current !== 0 || opponentPositionRef.current.y > 0)) {
         const nextOpponentPosition = { ...opponentPositionRef.current };
         const previousOpponentPosition = opponentPositionRef.current;
-        nextOpponentPosition.y = Math.max(0, nextOpponentPosition.y + opponentJumpVelocity.current);
+        nextOpponentPosition.y = Math.max(0, nextOpponentPosition.y + opponentJumpVelocity.current * deltaScale);
+        const opponentMaxY = getFighterMaxY(selectedStage, opponent);
+        if (nextOpponentPosition.y >= opponentMaxY) {
+          nextOpponentPosition.y = opponentMaxY;
+          if (opponentJumpVelocity.current > 0) opponentJumpVelocity.current = 0;
+        }
 
         if (
           arenaMode === 'fight' &&
@@ -6483,7 +6562,7 @@ export default function App() {
 
           if (Math.abs(distanceToPlayer) > GERSON_LANDING_DIRECT_HIT_RANGE) {
             nextOpponentPosition.x = clampAirborneOpponentX(
-              nextOpponentPosition.x + Math.sign(distanceToPlayer) * WALK_SPEED,
+              nextOpponentPosition.x + Math.sign(distanceToPlayer) * WALK_SPEED * deltaScale,
               opponentPositionRef.current.x,
               positionRef.current.x,
             );
@@ -6498,12 +6577,13 @@ export default function App() {
         ) {
           opponentLaunchedFallStartedAt.current = window.performance.now();
         }
-        opponentJumpVelocity.current -= getFighterGravity(
-          opponent,
-          opponentJumpVelocity.current,
-          0.34,
-          opponentStatusRef.current === 'launched' ? opponentLaunchedFallStartedAt.current : 0,
-        );
+        opponentJumpVelocity.current -=
+          getFighterGravity(
+            opponent,
+            opponentJumpVelocity.current,
+            0.34,
+            opponentStatusRef.current === 'launched' ? opponentLaunchedFallStartedAt.current : 0,
+          ) * deltaScale;
 
         const landedPlatform = getJevilPlatformLanding(
           opponent,
@@ -6564,8 +6644,9 @@ export default function App() {
           nextOpponentPosition.y !== opponentPositionRef.current.y ||
           nextOpponentPosition.x !== opponentPositionRef.current.x
         ) {
-          opponentPositionRef.current = nextOpponentPosition;
-          setOpponentPosition(nextOpponentPosition);
+          const boundedOpponentPosition = clampFighterPosition(nextOpponentPosition, selectedStage, opponent);
+          opponentPositionRef.current = boundedOpponentPosition;
+          setOpponentPosition(boundedOpponentPosition);
         }
       }
 
@@ -6582,19 +6663,20 @@ export default function App() {
           x:
             opponentPositionRef.current.y > 0 || positionRef.current.y > 0
               ? clampAirborneOpponentX(
-                  opponentPositionRef.current.x + effectiveOpponentKnockback,
+                  opponentPositionRef.current.x + effectiveOpponentKnockback * deltaScale,
                   opponentPositionRef.current.x,
                   positionRef.current.x,
                 )
               : clampOpponentX(
-                  opponentPositionRef.current.x + effectiveOpponentKnockback,
+                  opponentPositionRef.current.x + effectiveOpponentKnockback * deltaScale,
                   positionRef.current.x,
                 ),
         };
 
-        opponentKnockbackVelocity.current *= PROJECTILE_KNOCKBACK_FRICTION;
-        opponentPositionRef.current = nextOpponentPosition;
-        setOpponentPosition(nextOpponentPosition);
+        opponentKnockbackVelocity.current *= Math.pow(PROJECTILE_KNOCKBACK_FRICTION, deltaScale);
+        const boundedOpponentPosition = clampFighterPosition(nextOpponentPosition, selectedStage, opponent);
+        opponentPositionRef.current = boundedOpponentPosition;
+        setOpponentPosition(boundedOpponentPosition);
       } else if (!opponentIsSphereActive && !opponentIsBirdDashing) {
         opponentKnockbackVelocity.current = 0;
       }
@@ -6619,9 +6701,9 @@ export default function App() {
         const directionToPlayer = Math.sign(distanceToPlayer);
 
         if (absDistance > ai.preferredRange) {
-          nextOpponentPosition.x += directionToPlayer * ai.moveSpeed;
+          nextOpponentPosition.x += directionToPlayer * ai.moveSpeed * deltaScale;
         } else if (selectedDifficulty === 'hard' && absDistance < 12) {
-          nextOpponentPosition.x -= directionToPlayer * ai.moveSpeed * 0.55;
+          nextOpponentPosition.x -= directionToPlayer * ai.moveSpeed * 0.55 * deltaScale;
         }
 
         nextOpponentPosition.x =
@@ -6634,8 +6716,9 @@ export default function App() {
             : clampOpponentX(nextOpponentPosition.x, positionRef.current.x);
 
         if (nextOpponentPosition.x !== opponentPositionRef.current.x) {
-          opponentPositionRef.current = nextOpponentPosition;
-          setOpponentPosition(nextOpponentPosition);
+          const boundedOpponentPosition = clampFighterPosition(nextOpponentPosition, selectedStage, opponent);
+          opponentPositionRef.current = boundedOpponentPosition;
+          setOpponentPosition(boundedOpponentPosition);
         }
       }
 
@@ -6654,15 +6737,15 @@ export default function App() {
                 ...projectile,
                 direction,
                 returning: projectile.returning || shouldReturn,
-                x: projectile.x + direction * JEVIL_SCYTHE_SPEED,
+                x: projectile.x + direction * JEVIL_SCYTHE_SPEED * deltaScale,
               };
             }
 
             const movedProjectile = {
               ...projectile,
-              x: projectile.x + projectile.direction * (projectile.speed ?? PROJECTILE_SPEED),
+              x: projectile.x + projectile.direction * (projectile.speed ?? PROJECTILE_SPEED) * deltaScale,
               ...(typeof projectile.bottomPx === 'number' && typeof projectile.bottomVelocity === 'number'
-                ? { bottomPx: projectile.bottomPx + projectile.bottomVelocity }
+                ? { bottomPx: projectile.bottomPx + projectile.bottomVelocity * deltaScale }
                 : {}),
             };
 
@@ -8134,7 +8217,6 @@ export default function App() {
             <span>Right Shift - блок</span>
             <span>S + D + ←/→ - Special</span>
             <span>Air A + D + left/right - Tenna Wave</span>
-            {settingsOverlay}
             <button className="back-button" onClick={backToSelect} type="button">
               Выбор бойца
             </button>

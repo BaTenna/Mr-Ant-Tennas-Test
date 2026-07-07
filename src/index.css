@@ -110,7 +110,7 @@ button {
   z-index: 120;
   width: min(680px, calc(100vw - 36px));
   padding: 30px;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1);
   border-width: 4px;
   box-shadow:
     0 0 0 4px #241a00 inset,
@@ -307,7 +307,7 @@ button {
   color: #fff8e8;
   background: rgba(0, 0, 0, 0.94);
   border: 4px solid var(--gold);
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1);
   pointer-events: auto;
   box-shadow:
     0 0 0 4px #241a00 inset,
@@ -322,6 +322,30 @@ button {
   justify-content: center;
   font-size: 26px;
   line-height: 1;
+}
+
+.arena-pause-menu > .settings-menu-button,
+.arena-pause-menu > .arena-pause-menu__button {
+  width: 100%;
+  min-height: 62px;
+  padding: 14px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.arena-pause-menu .controls-back-button,
+.arena-pause-menu .controls-reset-button {
+  width: 124px;
+  min-height: 44px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .arena-screen--paused .arena-stage,
@@ -342,12 +366,11 @@ button {
 }
 
 .game-shell--arena {
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
-  height: 100vh;
   padding: 0;
-  place-items: stretch;
-  overflow: hidden;
+  place-items: center;
+  overflow: auto;
 }
 
 .game-shell--menu-bg {
@@ -1185,12 +1208,344 @@ h1 {
   text-transform: uppercase;
 }
 
+.game-shell:not(.game-shell--arena) {
+  padding: 14px;
+}
+
+.select-screen {
+  width: min(100%, 1040px);
+  min-height: min(650px, calc(100vh - 28px));
+  padding: 14px;
+  grid-template-rows: auto minmax(260px, 1fr) auto;
+  gap: 12px;
+}
+
+.stage-select-screen {
+  width: min(100%, 900px);
+  min-height: min(560px, calc(100vh - 28px));
+  padding: 10px;
+  gap: 10px;
+}
+
+.stage-grid {
+  gap: 8px;
+  align-content: center;
+}
+
+.stage-card {
+  padding: 6px;
+  gap: 5px;
+  border-width: 2px;
+  box-shadow: 0 0 0 3px #11164b inset;
+}
+
+.stage-card:hover,
+.stage-card--selected {
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 3px #4a4300 inset,
+    0 0 14px rgba(255, 242, 122, 0.28),
+    0 10px 22px rgba(0, 0, 0, 0.42);
+}
+
+.stage-card__preview {
+  aspect-ratio: 16 / 8.2;
+  border-width: 1px;
+}
+
+.stage-card__name {
+  font-size: clamp(15px, 2vw, 22px);
+  line-height: 0.9;
+}
+
+.stage-select-actions {
+  gap: 6px;
+}
+
+.main-menu {
+  width: min(100%, 1180px);
+  min-height: min(650px, calc(100vh - 28px));
+  padding: 16px;
+  gap: 16px;
+}
+
+.title-menu {
+  min-height: calc(100vh - 28px);
+  padding: 20px;
+}
+
+.title-menu__content {
+  width: min(100%, 500px);
+  gap: 16px;
+}
+
+.title-menu__logo {
+  font-size: clamp(48px, 8vw, 96px);
+}
+
+.title-menu__actions {
+  width: min(100%, 340px);
+  gap: 10px;
+}
+
+.title-menu__button {
+  min-height: 54px;
+  padding: 10px 18px;
+  border-width: 3px;
+  box-shadow:
+    0 0 0 3px #090d32 inset,
+    0 10px 20px rgba(0, 0, 0, 0.4);
+  font-size: clamp(22px, 3vw, 34px);
+}
+
+.title-menu__info {
+  max-width: 500px;
+  padding: 10px 14px;
+  border-width: 2px;
+  font-size: clamp(16px, 2.2vw, 24px);
+}
+
+.mode-menu {
+  gap: 10px;
+}
+
+.mode-menu--doors {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: clamp(10px, 2.2vw, 28px);
+}
+
+.mode-door {
+  gap: 8px;
+}
+
+.mode-door__panel {
+  width: min(100%, 390px);
+}
+
+.mode-door__rope {
+  bottom: 44px;
+  width: min(88%, 380px);
+}
+
+.mode-door__label {
+  min-height: 42px;
+  font-size: clamp(20px, 2.6vw, 32px);
+}
+
+.mode-card {
+  min-height: 150px;
+  padding: 16px;
+  border-width: 2px;
+  box-shadow: 0 0 0 3px #090d32 inset;
+}
+
+.mode-card__title {
+  font-size: 36px;
+}
+
+.mode-card__meta {
+  font-size: 16px;
+}
+
+.select-header {
+  gap: 12px;
+}
+
+.eyebrow {
+  font-size: 14px;
+}
+
+h1 {
+  font-size: clamp(34px, 5vw, 62px);
+}
+
+.combatants {
+  grid-template-columns: minmax(0, 1fr) 260px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.fighter-panel {
+  min-height: 260px;
+  padding: 12px;
+  gap: 10px;
+}
+
+.fighter-panel::after {
+  inset: 22px;
+  border-width: 4px;
+}
+
+.player-label {
+  padding: 5px 9px;
+  font-size: 16px;
+}
+
+.portrait-stage {
+  min-height: 155px;
+  transform: translateY(-10px);
+}
+
+.fighter-orb--portrait {
+  width: min(160px, 28vw);
+}
+
+.fighter-sprite--portrait {
+  height: min(185px, 30vw);
+  max-width: min(200px, 34vw);
+}
+
+.fighter-name {
+  font-size: clamp(22px, 3vw, 38px);
+}
+
+.versus {
+  gap: 14px;
+}
+
+.versus span {
+  font-size: 76px;
+}
+
+.selection-deck {
+  gap: 10px;
+}
+
+.select-actions {
+  gap: 10px;
+  padding: 14px;
+  border-width: 2px;
+  box-shadow: 0 0 0 3px #11164b inset;
+}
+
+.select-targets,
+.difficulty-select {
+  gap: 8px;
+}
+
+.target-button {
+  min-height: 40px;
+  font-size: 18px;
+}
+
+.difficulty-button {
+  min-height: 36px;
+  font-size: 15px;
+}
+
+.versus .confirm-button {
+  min-height: 48px;
+  padding: 12px 16px;
+  font-size: 22px;
+}
+
+.roster {
+  grid-template-columns: repeat(5, minmax(76px, 1fr));
+  gap: 7px;
+}
+
+.fighter-tile {
+  min-height: 92px;
+  padding: 8px 6px;
+  gap: 5px;
+  border-width: 2px;
+}
+
+.fighter-orb--tile {
+  width: 48px;
+}
+
+.fighter-sprite--tile {
+  height: 58px;
+  max-width: 68px;
+}
+
+.fighter-tile__name {
+  font-size: 14px;
+}
+
+.confirm-button {
+  min-height: 38px;
+  padding: 9px 12px;
+  border-width: 2px;
+  font-size: 17px;
+  box-shadow: 0 0 0 3px #5a4f00 inset, 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.sandbox-button {
+  min-height: 34px;
+  padding: 8px 11px;
+  font-size: 13px;
+}
+
+.selection-status {
+  min-height: 14px;
+  font-size: 14px;
+}
+
+.settings-panel {
+  width: min(560px, calc(100vw - 28px));
+  max-height: min(680px, calc(100vh - 28px));
+  padding: 14px;
+  gap: 12px;
+}
+
+.settings-panel__title {
+  font-size: 24px;
+}
+
+.settings-control {
+  gap: 6px;
+}
+
+.settings-control span {
+  font-size: 14px;
+}
+
+.settings-control strong {
+  font-size: 16px;
+}
+
+.settings-menu-button,
+.controls-back-button {
+  min-height: 36px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.controls-settings {
+  gap: 10px;
+}
+
+.controls-bindings {
+  gap: 7px;
+}
+
+.control-binding {
+  min-height: 40px;
+  padding: 8px 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(64px, auto);
+}
+
+.control-binding span,
+.control-binding__label {
+  font-size: 14px;
+}
+
+.control-binding strong,
+.control-binding__key {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
 .arena-screen {
-  --battle-overlay-scale: 1.4;
+  --battle-overlay-scale: 0.7;
+  --arena-ui-scale: 0.9;
   position: relative;
-  width: 100%;
-  min-height: 100vh;
-  height: 100vh;
+  width: min(1920px, 100vw, 177.777vh);
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  height: auto;
   padding: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr);
@@ -1206,26 +1561,28 @@ h1 {
 
 .arena-hud {
   position: absolute;
-  top: 22px;
-  left: 26px;
-  right: 26px;
+  top: 10px;
+  left: 16px;
+  right: 16px;
   z-index: 24;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: start;
-  gap: 24px;
+  gap: 10px;
   pointer-events: none;
+  scale: var(--arena-ui-scale);
+  transform-origin: top center;
 }
 
 .fighter-badge {
-  min-height: 88px;
-  padding: 13px 18px 15px;
+  min-height: 62px;
+  padding: 8px 11px 9px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   align-content: center;
   background: linear-gradient(180deg, rgba(14, 10, 6, 0.94), rgba(0, 0, 0, 0.72));
-  border: 4px solid rgba(255, 232, 184, 0.8);
-  border-left: 13px solid var(--red);
+  border: 2px solid rgba(255, 232, 184, 0.8);
+  border-left: 6px solid var(--red);
   border-radius: 0;
   text-transform: uppercase;
   box-shadow:
@@ -1238,7 +1595,7 @@ h1 {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .fighter-badge--right .badge-topline {
@@ -1247,19 +1604,19 @@ h1 {
 
 .fighter-badge--right {
   text-align: right;
-  border-right: 13px solid #2c5f87;
-  border-left-width: 4px;
+  border-right: 6px solid #2c5f87;
+  border-left-width: 2px;
 }
 
 .badge-label {
   color: var(--gold-bright);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 950;
 }
 
 .badge-name {
   color: #fff8e8;
-  font-size: clamp(21px, 2.4vw, 34px);
+  font-size: clamp(17px, 1.45vw, 22px);
   font-weight: 950;
   line-height: 1;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.72);
@@ -1267,7 +1624,7 @@ h1 {
 
 .health-track {
   position: relative;
-  height: 30px;
+  height: 20px;
   overflow: hidden;
   background: rgba(19, 4, 4, 0.84);
   border: 2px solid rgba(255, 244, 207, 0.72);
@@ -1295,7 +1652,7 @@ h1 {
   display: grid;
   place-items: center;
   color: #fff8e8;
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 950;
   line-height: 1;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
@@ -1307,13 +1664,13 @@ h1 {
 }
 
 .gerson-air-counter {
-  min-height: 34px;
+  min-height: 20px;
   display: inline-flex;
   align-items: center;
   justify-self: start;
   gap: 7px;
   color: #fff8e8;
-  font-size: 28px;
+  font-size: 15px;
   font-weight: 950;
   line-height: 1;
   text-shadow:
@@ -1327,26 +1684,26 @@ h1 {
 }
 
 .gerson-air-counter img {
-  width: 42px;
-  height: 34px;
+  width: 23px;
+  height: 20px;
   object-fit: contain;
   image-rendering: pixelated;
   filter: drop-shadow(2px 2px 0 #000);
 }
 
 .round-label {
-  min-width: 166px;
-  min-height: 102px;
-  padding: 12px 18px;
+  min-width: 106px;
+  min-height: 68px;
+  padding: 7px 10px;
   display: grid;
   place-items: center;
   color: #fff7dd;
   background:
     radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.28), transparent 22%),
     linear-gradient(180deg, #3b1f0b, #05010b 72%);
-  border: 4px solid var(--gold-bright);
+  border: 2px solid var(--gold-bright);
   border-radius: 50%;
-  font-size: 17px;
+  font-size: 12px;
   font-weight: 950;
   line-height: 1.05;
   text-align: center;
@@ -1358,7 +1715,7 @@ h1 {
 
 .round-timer {
   color: #fff8e8;
-  font-size: 36px;
+  font-size: 28px;
   line-height: 0.95;
   text-shadow:
     2px 2px 0 #000,
@@ -1398,6 +1755,8 @@ h1 {
   justify-items: center;
   gap: 2px;
   translate: -50% 0;
+  scale: 1;
+  transform-origin: top center;
   color: #fff5d4;
   text-align: center;
   text-transform: uppercase;
@@ -1426,6 +1785,8 @@ h1 {
   top: 50%;
   left: 50%;
   translate: -50% -50%;
+  scale: 1;
+  transform-origin: center;
   color: var(--gold-bright);
   font-size: clamp(138px, 25vw, 320px);
   font-weight: 950;
@@ -1442,48 +1803,60 @@ h1 {
 .fatality-window {
   position: absolute;
   z-index: 4;
-  top: 84px;
+  top: 64px;
   left: 50%;
-  width: min(820px, calc(100% - 64px));
-  padding: 30px 34px;
+  width: min(420px, calc(100% - 44px));
+  max-height: calc(100% - 100px);
+  padding: 12px 18px 13px;
   display: grid;
   justify-items: center;
-  gap: 6px;
+  gap: 5px;
   translate: -50% 0;
+  scale: 1;
+  transform-origin: top center;
   color: #fff8e8;
   text-align: center;
   text-transform: uppercase;
-  background: linear-gradient(180deg, rgba(20, 14, 9, 0.9), rgba(7, 6, 5, 0.74));
-  border: 1px solid rgba(255, 217, 133, 0.68);
-  border-radius: 6px;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 217, 133, 0.18), transparent) top / 100% 2px no-repeat,
+    linear-gradient(90deg, transparent, rgba(255, 217, 133, 0.16), transparent) bottom / 100% 2px no-repeat,
+    linear-gradient(180deg, rgba(33, 21, 9, 0.94), rgba(6, 5, 5, 0.86));
+  border: 2px solid rgba(255, 217, 133, 0.78);
+  border-radius: 4px;
   box-shadow:
-    0 18px 46px rgba(0, 0, 0, 0.46),
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+    0 0 0 2px rgba(0, 0, 0, 0.82),
+    0 0 0 4px rgba(255, 217, 133, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 -12px 24px rgba(0, 0, 0, 0.28),
+    0 12px 32px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   animation: fatality-window-in 160ms ease both;
 }
 
 .fatality-window__eyebrow {
   color: var(--gold-bright);
-  font-size: 19px;
+  font-size: 12px;
   font-weight: 950;
-  letter-spacing: 0;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 0 #000;
 }
 
 .fatality-window strong {
   color: #fff7dd;
-  font-size: clamp(42px, 6vw, 76px);
+  font-size: clamp(20px, 2.8vw, 32px);
   font-weight: 950;
-  line-height: 0.95;
+  line-height: 1;
   text-shadow:
-    0 2px 0 rgba(0, 0, 0, 0.56),
-    0 0 24px rgba(216, 167, 79, 0.28);
+    2px 2px 0 rgba(0, 0, 0, 0.72),
+    0 0 18px rgba(216, 167, 79, 0.34);
 }
 
 .fatality-window span:last-child {
   color: rgba(255, 248, 232, 0.82);
-  font-size: 19px;
+  font-size: 12px;
   font-weight: 900;
+  line-height: 1;
 }
 
 .round-curtain {
@@ -1607,7 +1980,7 @@ h1 {
 }
 
 .special-projectile--queen-wave.special-projectile--high {
-  bottom: calc(250px + var(--stage-floor-lift, 0px));
+  bottom: calc(160px + var(--stage-floor-lift, 0px));
 }
 
 .special-projectile--knight-sword {
@@ -1629,8 +2002,8 @@ h1 {
 }
 
 .special-projectile--jevil-scythe {
-  width: 132px;
-  height: 128px;
+  width: 168px;
+  height: 164px;
   object-fit: contain;
   transform-origin: 50% 50%;
   animation: jevil-scythe-spin 340ms linear infinite;
@@ -2458,15 +2831,14 @@ h1 {
 
 .battle-sprite--gerson-boom.battle-sprite--punch {
   bottom: -2px;
-  width: 546px;
-  height: 320px;
+  width: 410px;
+  height: 240px;
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 400% 100%;
   image-rendering: crisp-edges;
   image-rendering: pixelated;
   transform-origin: 50% 100%;
-  scale: calc(1 / var(--battle-overlay-scale));
   animation: gerson-spin 360ms steps(3, end) infinite;
 }
 
@@ -2493,15 +2865,14 @@ h1 {
 
 .battle-sprite--gerson-boom.battle-sprite--kick {
   bottom: -6px;
-  width: 520px;
-  height: 492px;
+  width: 390px;
+  height: 368px;
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 900% 100%;
   image-rendering: crisp-edges;
   image-rendering: pixelated;
   transform-origin: 50% 100%;
-  scale: calc(1 / var(--battle-overlay-scale));
   animation: gerson-right-attack 760ms steps(8, end) both;
 }
 
@@ -2539,8 +2910,8 @@ h1 {
 
 .battle-sprite--jevil.battle-sprite--jevil-chaos-special {
   bottom: -6px;
-  width: 270px;
-  height: 256px;
+  width: 220px;
+  height: 206px;
   background-size: 200% 100%;
   animation: jevil-chaos-special 240ms steps(1, end) both;
 }
@@ -2642,7 +3013,7 @@ h1 {
   background-size: 400% 100%;
   image-rendering: crisp-edges;
   image-rendering: pixelated;
-  scale: calc(1 / var(--battle-overlay-scale));
+  scale: calc(0.7 / var(--battle-overlay-scale));
   pointer-events: none;
   filter:
     drop-shadow(0 0 18px rgba(255, 255, 255, 0.28))
@@ -2662,6 +3033,8 @@ h1 {
   width: 390px;
   height: 178px;
   translate: -50% 48%;
+  scale: 0.5;
+  transform-origin: 50% 50%;
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size: 300% 100%;
@@ -3943,9 +4316,8 @@ h1 {
   }
 
   .game-shell--arena {
-    height: 100vh;
     padding: 0;
-    place-items: stretch;
+    place-items: center;
   }
 
   .select-screen {
@@ -4012,8 +4384,9 @@ h1 {
   }
 
   .arena-screen {
-    min-height: 100vh;
-    height: 100vh;
+    width: min(1920px, 100vw, 177.777vh);
+    min-height: 0;
+    height: auto;
     grid-template-rows: minmax(0, 1fr);
   }
 
