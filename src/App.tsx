@@ -3662,14 +3662,15 @@ export default function App() {
         const interaction = getCampaignInteraction(campaignRoom, campaignPositionRef.current);
         if (interaction) {
           campaignPressedKeys.current.clear();
-          setCampaignActiveNpcId('idleSprite' in interaction ? interaction.id : null);
+          const isNpcInteraction = 'idleSprite' in interaction;
+          setCampaignActiveNpcId(isNpcInteraction ? interaction.id : null);
           if ('encounter' in interaction && interaction.encounter === 'bag-battle') {
-            window.setTimeout(() => startBagBattle('bag-npc'), 180);
+            window.setTimeout(() => startBagBattle(isNpcInteraction ? 'bag-npc' : 'campaign-sign'), 180);
             return;
           }
           if (interaction.text.trim()) {
             setCampaignDialogue(interaction.text);
-          } else if ('idleSprite' in interaction) {
+          } else if (isNpcInteraction) {
             window.setTimeout(() => {
               setCampaignActiveNpcId((activeNpcId) => (activeNpcId === interaction.id ? null : activeNpcId));
             }, 900);
