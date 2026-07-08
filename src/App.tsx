@@ -180,6 +180,129 @@ const jevilChaosProjectileSprites = [
   jevilChaosProjectileFourSprite,
 ];
 
+const PRELOAD_IMAGE_SOURCES = [
+  campaignHeartPlayerSprite,
+  campaignNpcOneAIdleSprite,
+  campaignNpcOneATalkSprite,
+  campaignNpcOneBIdleSprite,
+  campaignNpcOneBTalkSprite,
+  campaignNpcOneCIdleSprite,
+  campaignNpcOneCTalkSprite,
+  campaignNpcOneDIdleSprite,
+  campaignNpcOneDTalkSprite,
+  campaignNpcSideBagIdleSprite,
+  campaignNpcSideBagRunPrepSprite,
+  campaignNpcSideBagShootSprite,
+  campaignNpcSideBagTalkSprite,
+  campaignNpcSideBagVictorySprite,
+  campaignKingAttackOneSprite,
+  campaignKingBossSprite,
+  gersonBoomBattleSprite,
+  gersonAirCounterIcon,
+  gersonBoomBackScarfSprite,
+  gersonBoomDefeatSprite,
+  gersonBoomJumpBounceSprite,
+  gersonBoomLeapBoostSprite,
+  gersonBoomLeapPrepSprite,
+  gersonBoomJumpSprite,
+  gersonBoomJumpSlowSprite,
+  gersonBoomKnockdownSprite,
+  gersonBoomPortraitSprite,
+  gersonBoomRightAttackSprite,
+  gersonBoomSpinSprite,
+  gersonBoomVictorySprite,
+  jevilBattleSprite,
+  jevilBlockSprite,
+  jevilChaosSpecialSprite,
+  jevilKickSprite,
+  jevilPlatformSprite,
+  jevilPlatformSpecialSprite,
+  jevilPortraitSprite,
+  ...jevilChaosProjectileSprites,
+  jevilHeadProjectileSprite,
+  jevilHeadlessAbsorbPoseSprite,
+  jevilKnockdownDefeatSprite,
+  jevilScytheProjectileSprite,
+  jevilTeleportFreezeSprite,
+  jevilTeleportShootSprite,
+  jevilTeleportSpecialSprite,
+  misterAntTennaSprite,
+  misterAntTennaBattleSprite,
+  misterAntTennaCrouchSprite,
+  misterAntTennaPunchSprite,
+  misterAntTennaKickSprite,
+  misterAntTennaJumpSprite,
+  misterAntTennaCrouchUppercutSprite,
+  misterAntTennaCrouchSweepSprite,
+  misterAntTennaKnockdownSprite,
+  misterAntTennaProjectileSprite,
+  misterAntTennaShootSprite,
+  misterAntTennaDefeatSprite,
+  misterAntTennaAirSpecialSprite,
+  misterAntTennaVictoryOneSprite,
+  misterAntTennaVictoryTwoSprite,
+  misterAntTennaVictoryThreeSprite,
+  misterAntTennaVictoryFourSprite,
+  queenSprite,
+  queenBattleSprite,
+  queenWalkSprite,
+  queenCrouchSprite,
+  queenUppercutSprite,
+  queenPunchSprite,
+  queenSweepSprite,
+  queenKickSprite,
+  queenJumpSprite,
+  queenSpecialSprite,
+  queenProjectileSprite,
+  queenKnockdownSprite,
+  queenKnockdownPoseSprite,
+  queenHealSprite,
+  queenVictorySprite,
+  queenVictoryBackdropSprite,
+  queenUniqueVictoryPoseSprite,
+  roaringKnightPortraitSprite,
+  roaringKnightSprite,
+  roaringKnightChargeHoldSprite,
+  roaringKnightChargeReleaseSprite,
+  roaringKnightBlockSprite,
+  roaringKnightImpactSprite,
+  roaringKnightVanishSprite,
+  roaringKnightSphereSprite,
+  roaringKnightBirdSprite,
+  roaringKnightBirdDashSprite,
+  roaringKnightDarkWaveSprite,
+  knightDarkWaveExplosionSprite,
+  roaringKnightSwordShotSprite,
+  roaringKnightSwordProjectileSprite,
+  roaringKnightDefeatSprite,
+  roaringKnightVictorySprite,
+  ...knightChargeReleaseFrameSprites,
+  healPlusFiveSprite,
+  deltafightTitleBg,
+  settingsIcon,
+  stageTennaArena,
+  stageCouchCliffs,
+  stageColdPlace,
+  stageDarkSanctuaries,
+  stageQueensMansion,
+];
+
+const preloadedImageCache = new Map<string, HTMLImageElement>();
+
+function preloadImages(sources: string[]) {
+  sources.forEach((source) => {
+    if (!source || preloadedImageCache.has(source)) return;
+
+    const image = new Image();
+    preloadedImageCache.set(source, image);
+    image.decoding = 'async';
+    image.src = source;
+    void image.decode?.().catch(() => {
+      // Some browsers cannot decode animated images this way; loading still warms the cache.
+    });
+  });
+}
+
 const KNIGHT_CHARGE_RELEASE_FRAME_MS = [500, 120, 120, 120, 500];
 
 function getKnightChargeReleaseFrameIndex(elapsedMs: number) {
@@ -2251,6 +2374,10 @@ export default function App() {
     2: null,
     3: null,
   });
+
+  useEffect(() => {
+    preloadImages(PRELOAD_IMAGE_SOURCES);
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(CONTROL_BINDINGS_STORAGE_KEY, JSON.stringify(controlBindings));
