@@ -5,6 +5,23 @@ import {
   type BotCoachSnapshot,
   requestGeminiBotAdvice,
 } from './lib/geminiBotCoach';
+import { supabase } from './lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import campaignHeartPlayerSprite from './assets/campaign-heart-player.png';
+import campaignBossPlaceholderSprite from './assets/campaign-boss-placeholder.png';
+import campaignNpcOneAIdleSprite from './assets/campaign-npc-1a-idle.png';
+import campaignNpcOneATalkSprite from './assets/campaign-npc-1a-talk.png';
+import campaignNpcOneBIdleSprite from './assets/campaign-npc-1b-idle.png';
+import campaignNpcOneBTalkSprite from './assets/campaign-npc-1b-talk.png';
+import campaignNpcOneCIdleSprite from './assets/campaign-npc-1c-idle.png';
+import campaignNpcOneCTalkSprite from './assets/campaign-npc-1c-talk.png';
+import campaignNpcOneDIdleSprite from './assets/campaign-npc-1d-idle.png';
+import campaignNpcOneDTalkSprite from './assets/campaign-npc-1d-talk.png';
+import campaignNpcSideBagIdleSprite from './assets/campaign-npc-side-bag-idle.png';
+import campaignNpcSideBagRunPrepSprite from './assets/campaign-npc-side-bag-run-prep.png';
+import campaignNpcSideBagShootSprite from './assets/campaign-npc-side-bag-shoot.png';
+import campaignNpcSideBagTalkSprite from './assets/campaign-npc-side-bag-talk.png';
+import campaignNpcSideBagVictorySprite from './assets/campaign-npc-side-bag-victory.png';
 import gersonBoomBattleSprite from './assets/gerson-boom-battle-strip.png';
 import gersonAirCounterIcon from './assets/gerson-air-counter-icon.png';
 import gersonBoomBackScarfSprite from './assets/gerson-boom-back-scarf-strip.png';
@@ -227,7 +244,17 @@ type Fighter = {
   chargeReleaseSprite?: string;
 };
 
-type Screen = 'title' | 'menu' | 'select' | 'stage' | 'arena' | 'victory';
+type Screen =
+  | 'title'
+  | 'menu'
+  | 'campaign-saves'
+  | 'campaign'
+  | 'bag-battle'
+  | 'rooms'
+  | 'select'
+  | 'stage'
+  | 'arena'
+  | 'victory';
 type Attack = 'idle' | 'punch' | 'kick';
 type HitLevel = 'high' | 'mid' | 'low';
 type HitEffect = 'none' | 'sweep' | 'uppercut';
@@ -247,11 +274,128 @@ type GersonLeapEffect = {
   x: number;
   direction: -1 | 1;
 };
-type ArenaMode = 'fight' | 'sandbox';
+type ArenaMode = 'fight' | 'sandbox' | 'online';
+type OnlineRole = 'host' | 'guest';
+type OnlineRoomStatus = 'idle' | 'connecting' | 'waiting' | 'ready' | 'playing' | 'error';
 type FighterSide = 'left' | 'right';
 type Facing = 'left' | 'right';
 type Position = { x: number; y: number };
+type BagBattleActor = {
+  x: number;
+  y: number;
+  vy: number;
+  health: number;
+};
+type BagBattleProjectile = {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  owner: 'player' | 'boss';
+  lane?: 'high' | 'mid' | 'low';
+};
+type BagBattleAttack = 'idle' | 'punch' | 'kick' | 'uppercut' | 'sweep';
+type BagBattleBossPattern = 'shooting' | 'run-prep' | 'running' | 'returning';
+type CampaignRoomId = 'room1' | 'room2' | 'room2a' | 'side-room';
+type CampaignRect = { x: number; y: number; width: number; height: number };
+type CampaignTransition = {
+  rect: CampaignRect;
+  target: CampaignRoomId;
+  position: Position;
+};
+type CampaignNpc = {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  hitbox?: {
+    offsetX: number;
+    offsetY: number;
+    width: number;
+    height: number;
+  };
+  text: string;
+  idleSprite?: string;
+  talkSprite?: string;
+  talkOffsetY?: number;
+  encounter?: 'bag-battle';
+};
+type CampaignSign = {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  text: string;
+};
+type CampaignRoom = {
+  id: CampaignRoomId;
+  title: string;
+  allowed: CampaignRect[];
+  transitions: CampaignTransition[];
+  npcs?: CampaignNpc[];
+  signs?: CampaignSign[];
+};
+type CampaignSaveData = {
+  slot: number;
+  roomId: CampaignRoomId;
+  position: Position;
+  isBagDefeated: boolean;
+  isBagCollected: boolean;
+  updatedAt: number | null;
+};
+type CampaignBossCutscenePhase = 'talking' | 'leaving';
 type GameInput = 'w' | 'a' | 's' | 'd' | 'arrowleft' | 'arrowright' | 'arrowdown' | 'arrowup' | 'block';
+type OnlineInputMessage = {
+  playerId: string;
+  key: string;
+  isDown: boolean;
+  sequence: number;
+  sentAt: number;
+};
+type OnlineSnapshotMessage = {
+  playerId: string;
+  sequence: number;
+  playerPosition: Position;
+  opponentPosition: Position;
+  playerHealth: number;
+  opponentHealth: number;
+  attack: Attack;
+  opponentAttack: Attack;
+  playerStatus: OpponentStatus;
+  opponentStatus: OpponentStatus;
+  isCrouching: boolean;
+  opponentCrouching: boolean;
+  playerBlocking: boolean;
+  opponentBlocking: boolean;
+  playerSpecialShooting: boolean;
+  opponentSpecialShooting: boolean;
+  playerSpecialSpriteOverride: string | null;
+  opponentSpecialSpriteOverride: string | null;
+  playerAirSpecialWave: boolean;
+  opponentAirSpecialWave: boolean;
+  playerChargeAttackState: ChargeAttackState;
+  opponentChargeAttackState: ChargeAttackState;
+  playerChargeAuraActive: boolean;
+  opponentChargeAuraActive: boolean;
+  playerKnightSpherePhase: KnightSpherePhase;
+  opponentKnightSpherePhase: KnightSpherePhase;
+  playerKnightDarkWaveState: KnightDarkWaveState;
+  opponentKnightDarkWaveState: KnightDarkWaveState;
+  playerKnightDarkWaveDirection: -1 | 1;
+  playerKnightDarkWaveOverheated: boolean;
+  opponentKnightDarkWaveOverheated: boolean;
+  playerJevilAbsorbing: boolean;
+  opponentJevilAbsorbing: boolean;
+  playerJevilHeadlessPose: boolean;
+  opponentJevilHeadlessPose: boolean;
+  jevilPlatforms: JevilPlatform[];
+  roundTimeLeft: number;
+  roundCountdown: number;
+  projectiles: Projectile[];
+};
 type ProjectileLane = 'low' | 'high';
 type ProjectileKind =
   | 'tenna-star'
@@ -864,6 +1008,94 @@ function canBlockLowWithoutCrouch(fighter: Fighter) {
   return fighter.id === 'jevil';
 }
 
+function isPointInCampaignRect(position: Position, rect: CampaignRect) {
+  return (
+    position.x >= rect.x &&
+    position.x <= rect.x + rect.width &&
+    position.y >= rect.y &&
+    position.y <= rect.y + rect.height
+  );
+}
+
+function getCampaignNpcSize(npc: CampaignNpc) {
+  return {
+    width: npc.width ?? CAMPAIGN_NPC_DEFAULT_WIDTH,
+    height: npc.height ?? CAMPAIGN_NPC_DEFAULT_HEIGHT,
+  };
+}
+
+function getCampaignNpcHitbox(npc: CampaignNpc) {
+  const npcSize = getCampaignNpcSize(npc);
+  const npcHitbox = npc.hitbox ?? {
+    offsetX: 0,
+    offsetY: 0,
+    width: npcSize.width,
+    height: npcSize.height,
+  };
+  const centerX = npc.x + npcHitbox.offsetX;
+  const centerY = npc.y + npcHitbox.offsetY;
+
+  return {
+    left: centerX - npcHitbox.width / 2,
+    right: centerX + npcHitbox.width / 2,
+    top: centerY - npcHitbox.height / 2,
+    bottom: centerY + npcHitbox.height / 2,
+  };
+}
+
+function doCampaignRectsOverlap(
+  first: { left: number; right: number; top: number; bottom: number },
+  second: { left: number; right: number; top: number; bottom: number },
+) {
+  return first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top;
+}
+
+function isCampaignPlayerTouchingNpcSprite(npc: CampaignNpc, position: Position) {
+  return doCampaignRectsOverlap(
+    {
+      left: position.x - CAMPAIGN_PLAYER_HALF_WIDTH,
+      right: position.x + CAMPAIGN_PLAYER_HALF_WIDTH,
+      top: position.y - CAMPAIGN_PLAYER_HALF_HEIGHT,
+      bottom: position.y + CAMPAIGN_PLAYER_HALF_HEIGHT,
+    },
+    getCampaignNpcHitbox(npc),
+  );
+}
+
+function isCampaignPositionAllowed(room: CampaignRoom, position: Position) {
+  const playerFootprint = [
+    { x: position.x - CAMPAIGN_PLAYER_HALF_WIDTH, y: position.y - CAMPAIGN_PLAYER_HALF_HEIGHT },
+    { x: position.x + CAMPAIGN_PLAYER_HALF_WIDTH, y: position.y - CAMPAIGN_PLAYER_HALF_HEIGHT },
+    { x: position.x - CAMPAIGN_PLAYER_HALF_WIDTH, y: position.y + CAMPAIGN_PLAYER_HALF_HEIGHT },
+    { x: position.x + CAMPAIGN_PLAYER_HALF_WIDTH, y: position.y + CAMPAIGN_PLAYER_HALF_HEIGHT },
+    position,
+  ];
+
+  const isInsideWalkableArea = playerFootprint.every((point) => room.allowed.some((rect) => isPointInCampaignRect(point, rect)));
+  if (!isInsideWalkableArea) return false;
+
+  const isTouchingNpc = (room.npcs ?? []).some((npc) => isCampaignPlayerTouchingNpcSprite(npc, position));
+
+  return !isTouchingNpc;
+}
+
+function getCampaignTransition(room: CampaignRoom, position: Position) {
+  return room.transitions.find((transition) => isPointInCampaignRect(position, transition.rect));
+}
+
+function getCampaignInteraction(room: CampaignRoom, position: Position) {
+  const npcInteraction = (room.npcs ?? []).find((npc) => {
+    const hitbox = getCampaignNpcHitbox(npc);
+    const closestX = clamp(position.x, hitbox.left, hitbox.right);
+    const closestY = clamp(position.y, hitbox.top, hitbox.bottom);
+
+    return Math.hypot(closestX - position.x, closestY - position.y) <= CAMPAIGN_INTERACTION_RANGE;
+  });
+  if (npcInteraction) return npcInteraction;
+
+  return (room.signs ?? []).find((item) => Math.hypot(item.x - position.x, item.y - position.y) <= CAMPAIGN_INTERACTION_RANGE);
+}
+
 function getFacingToward(fromX: number, targetX: number): Facing {
   return fromX <= targetX ? 'right' : 'left';
 }
@@ -982,6 +1214,230 @@ const QUEEN_PROJECTILE_KNOCKBACK_VELOCITY = 2.15;
 const PROJECTILE_KNOCKBACK_FRICTION = 0.9;
 const TARGET_FRAME_MS = 1000 / 144;
 const MAX_FRAME_DELTA_MS = 50;
+const ONLINE_SNAPSHOT_INTERVAL_MS = 1000 / 60;
+const ONLINE_RECONCILE_LERP = 0.28;
+const ONLINE_RECONCILE_SNAP_DISTANCE = 82;
+const CAMPAIGN_MOVE_SPEED = 24;
+const CAMPAIGN_INTERACTION_RANGE = 9;
+const CAMPAIGN_DIALOGUE_TYPE_INTERVAL_MS = 28;
+const CAMPAIGN_PLAYER_HALF_WIDTH = 3.1;
+const CAMPAIGN_PLAYER_HALF_HEIGHT = 4.5;
+const CAMPAIGN_NPC_DEFAULT_WIDTH = 12;
+const CAMPAIGN_NPC_DEFAULT_HEIGHT = 22;
+const CAMPAIGN_ROOM_2A_NPC_WALL_Y = 17;
+const CAMPAIGN_ROOM_2A_NPC_FLOWER_WALL_Y = 18.1;
+const CAMPAIGN_ROOM_2A_NPC_BODY_HITBOX = { offsetX: 0, offsetY: 5.7, width: 14.2, height: 15.6 };
+const CAMPAIGN_ROOM_2A_NPC_FLOWER_BODY_HITBOX = { offsetX: 0, offsetY: 7.6, width: 14, height: 13.6 };
+const CAMPAIGN_ROOM_2A_NPC_BAG_HITBOX = { offsetX: 0, offsetY: 2.8, width: 15.6, height: 10.8 };
+const BAG_BATTLE_PLAYER_START: BagBattleActor = { x: 82, y: 0, vy: 0, health: 100 };
+const BAG_BATTLE_BOSS_START: BagBattleActor = { x: 18, y: 0, vy: 0, health: 160 };
+const BAG_BATTLE_PLAYER_SPEED = 0.42;
+const BAG_BATTLE_JUMP_POWER = 1.45;
+const BAG_BATTLE_MAX_JUMPS = 2;
+const BAG_BATTLE_GRAVITY = 0.068;
+const BAG_BATTLE_BOSS_DAMAGE = 7;
+const BAG_BATTLE_ATTACK_COOLDOWN_MS = 340;
+const BAG_BATTLE_ATTACK_DURATION_MS = 180;
+const BAG_BATTLE_BOSS_SHOT_INTERVAL_MS = 820;
+const BAG_BATTLE_BOSS_VULNERABLE_MS = 1050;
+const BAG_BATTLE_BOSS_BURST_SHOTS = 5;
+const BAG_BATTLE_BOSS_BURST_REST_MS = 4000;
+const BAG_BATTLE_BOSS_REST_DAMAGE_CAP = BAG_BATTLE_BOSS_START.health * 0.25;
+const BAG_BATTLE_BOSS_RUN_PREP_MS = 3000;
+const BAG_BATTLE_BOSS_RUN_SPEED = 0.82;
+const BAG_BATTLE_BOSS_RUN_DAMAGE = 18;
+const BAG_BATTLE_BOSS_AFTER_RUN_REST_MS = 1200;
+const BAG_BATTLE_BOSS_RETURN_START_X = -10;
+const BAG_BATTLE_INTRO_MS = 1800;
+const CAMPAIGN_BOSS_CUTSCENE_LINES = [
+  'Ты уничтожил моего питомца.',
+  'Этот мешок был мне дороже, чем тебе кажется. Теперь я должен стереть тебя с дороги.',
+  'Но... сделаем иначе. Ты соберешь для меня артефакты боссов.',
+  'Принесешь их мне, и я оставлю тебя в живых. Пока что.',
+];
+const CAMPAIGN_SAVE_STORAGE_KEY = 'deltafight-campaign-saves-v1';
+const CAMPAIGN_SAVE_SLOTS = [1, 2, 3] as const;
+const CAMPAIGN_START_POSITION: Position = { x: 50, y: 70 };
+const CAMPAIGN_ROOMS: Record<CampaignRoomId, CampaignRoom> = {
+  room1: {
+    id: 'room1',
+    title: 'Комната 1',
+    allowed: [
+      { x: 20, y: 43, width: 58, height: 39 },
+      { x: 43, y: 0, width: 15, height: 43 },
+    ],
+    transitions: [
+      { rect: { x: 43, y: 0, width: 15, height: 5 }, target: 'room2', position: { x: 47, y: 94 } },
+    ],
+  },
+  room2: {
+    id: 'room2',
+    title: 'Комната 2',
+    allowed: [
+      { x: 14, y: 18, width: 58, height: 62 },
+      { x: 36, y: 0, width: 16, height: 18 },
+      { x: 39, y: 80, width: 16, height: 20 },
+      { x: 0, y: 42, width: 14, height: 14 },
+    ],
+    transitions: [
+      { rect: { x: 36, y: 0, width: 16, height: 5 }, target: 'room2a', position: { x: 43, y: 92 } },
+      { rect: { x: 39, y: 95, width: 16, height: 5 }, target: 'room1', position: { x: 50, y: 8 } },
+      { rect: { x: 0, y: 42, width: 5, height: 14 }, target: 'side-room', position: { x: 92, y: 49 } },
+    ],
+  },
+  room2a: {
+    id: 'room2a',
+    title: 'Комната 2A',
+    allowed: [
+      { x: 4, y: 6, width: 92, height: 74 },
+      { x: 28, y: 80, width: 30, height: 20 },
+    ],
+    transitions: [
+      { rect: { x: 28, y: 95, width: 30, height: 5 }, target: 'room2', position: { x: 44, y: 8 } },
+    ],
+    npcs: [
+      {
+        id: 'npc-1a',
+        label: '1A',
+        x: 13,
+        y: CAMPAIGN_ROOM_2A_NPC_WALL_Y,
+        hitbox: CAMPAIGN_ROOM_2A_NPC_BODY_HITBOX,
+        text: '1A: В бою важна дистанция. Подойди ближе для обычных ударов, но не стой вплотную слишком долго: противник может подсечь, ударить сверху или поймать спецприемом.',
+        idleSprite: campaignNpcOneAIdleSprite,
+        talkSprite: campaignNpcOneATalkSprite,
+      },
+      {
+        id: 'npc-1b',
+        label: '1B',
+        x: 38,
+        y: CAMPAIGN_ROOM_2A_NPC_FLOWER_WALL_Y,
+        hitbox: CAMPAIGN_ROOM_2A_NPC_FLOWER_BODY_HITBOX,
+        text: '1B: Блок спасает от многих атак, но не от всего. Высокий блок держит удары сверху, а против низких атак лучше вовремя приседать или отходить.',
+        idleSprite: campaignNpcOneBIdleSprite,
+        talkSprite: campaignNpcOneBTalkSprite,
+      },
+      {
+        id: 'npc-1c',
+        label: '1C',
+        x: 62,
+        y: CAMPAIGN_ROOM_2A_NPC_WALL_Y,
+        hitbox: CAMPAIGN_ROOM_2A_NPC_BODY_HITBOX,
+        text: '1C: В бою у каждого персонажа есть сильные и слабые стороны. Смотри, как противник двигается, и меняй тактику: иногда лучше атаковать, иногда отступить и переждать.',
+        idleSprite: campaignNpcOneCIdleSprite,
+        talkSprite: campaignNpcOneCTalkSprite,
+      },
+      {
+        id: 'npc-1d',
+        label: '1D',
+        x: 84,
+        y: CAMPAIGN_ROOM_2A_NPC_WALL_Y,
+        hitbox: CAMPAIGN_ROOM_2A_NPC_BODY_HITBOX,
+        text: '1D: Спецприемы часто требуют комбинаций кнопок. Если прием не выходит, нажимай команды по порядку и не отпускай нужное направление раньше времени.',
+        idleSprite: campaignNpcOneDIdleSprite,
+        talkSprite: campaignNpcOneDTalkSprite,
+      },
+    ],
+    signs: [
+      { id: 'sign-1', label: '1', x: 44, y: 50, text: 'Табличка 1: пока это тестовая надпись. Здесь можно написать подсказку или сюжет.' },
+    ],
+  },
+  'side-room': {
+    id: 'side-room',
+    title: 'Боковой проход',
+    allowed: [
+      { x: 0, y: 40, width: 100, height: 18 },
+    ],
+    transitions: [
+      { rect: { x: 95, y: 40, width: 5, height: 18 }, target: 'room2', position: { x: 8, y: 49 } },
+    ],
+    npcs: [
+      {
+        id: 'npc-e1',
+        label: 'E1',
+        x: 32,
+        y: 43,
+        width: 15,
+        height: 13,
+        hitbox: CAMPAIGN_ROOM_2A_NPC_BAG_HITBOX,
+        text: '',
+        idleSprite: campaignNpcSideBagIdleSprite,
+        talkSprite: campaignNpcSideBagTalkSprite,
+        talkOffsetY: -18,
+        encounter: 'bag-battle',
+      },
+    ],
+  },
+};
+
+function getCampaignRoomWithProgress(roomId: CampaignRoomId, isBagDefeated: boolean): CampaignRoom {
+  const room = CAMPAIGN_ROOMS[roomId];
+  if (!isBagDefeated || roomId !== 'side-room') return room;
+
+  return {
+    ...room,
+    npcs: room.npcs?.filter((npc) => npc.id !== 'npc-e1'),
+  };
+}
+
+function createEmptyCampaignSave(slot: number): CampaignSaveData {
+  return {
+    slot,
+    roomId: 'room1',
+    position: CAMPAIGN_START_POSITION,
+    isBagDefeated: false,
+    isBagCollected: false,
+    updatedAt: null,
+  };
+}
+
+function createDefaultCampaignSaves() {
+  return CAMPAIGN_SAVE_SLOTS.map((slot) => createEmptyCampaignSave(slot));
+}
+
+function readCampaignSaves(): CampaignSaveData[] {
+  try {
+    const rawSaves = window.localStorage.getItem(CAMPAIGN_SAVE_STORAGE_KEY);
+    if (!rawSaves) return createDefaultCampaignSaves();
+    const parsed = JSON.parse(rawSaves) as Partial<CampaignSaveData>[];
+
+    return CAMPAIGN_SAVE_SLOTS.map((slot) => {
+      const savedSlot = parsed.find((save) => save.slot === slot);
+      if (!savedSlot || !savedSlot.updatedAt) return createEmptyCampaignSave(slot);
+
+      return {
+        slot,
+        roomId: savedSlot.roomId && CAMPAIGN_ROOMS[savedSlot.roomId] ? savedSlot.roomId : 'room1',
+        position:
+          typeof savedSlot.position?.x === 'number' && typeof savedSlot.position?.y === 'number'
+            ? savedSlot.position
+            : CAMPAIGN_START_POSITION,
+        isBagDefeated: Boolean(savedSlot.isBagDefeated),
+        isBagCollected: Boolean(savedSlot.isBagCollected),
+        updatedAt: savedSlot.updatedAt,
+      };
+    });
+  } catch {
+    return createDefaultCampaignSaves();
+  }
+}
+
+function writeCampaignSaves(saves: CampaignSaveData[]) {
+  try {
+    window.localStorage.setItem(CAMPAIGN_SAVE_STORAGE_KEY, JSON.stringify(saves));
+  } catch {
+    // If storage is blocked, the game still works for the current session.
+  }
+}
+
+function getCampaignSaveLabel(save: CampaignSaveData) {
+  if (!save.updatedAt) return 'Пустое сохранение';
+  if (save.isBagCollected) return 'Сделка с боссом';
+  if (save.isBagDefeated) return 'Мешок побежден';
+  if (save.roomId === 'side-room') return 'Боковой проход';
+  if (save.roomId === 'room2a') return 'Комната с подсказками';
+  if (save.roomId === 'room2') return 'Комната 2';
+  return 'Начало кампании';
+}
 const PROJECTILE_SPEED = 0.72;
 const PROJECTILE_BASE_BOTTOM_PX = 76;
 const PROJECTILE_HIGH_BOTTOM_PX = 188;
@@ -1224,6 +1680,37 @@ export default function App() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('normal');
   const [selectedStageId, setSelectedStageId] = useState(stages[0].id);
   const [arenaMode, setArenaMode] = useState<ArenaMode>('fight');
+  const [campaignRoomId, setCampaignRoomId] = useState<CampaignRoomId>('room1');
+  const [campaignPosition, setCampaignPosition] = useState<Position>(CAMPAIGN_START_POSITION);
+  const [campaignDialogue, setCampaignDialogue] = useState<string | null>(null);
+  const [campaignDialogueVisibleChars, setCampaignDialogueVisibleChars] = useState(0);
+  const [campaignActiveNpcId, setCampaignActiveNpcId] = useState<string | null>(null);
+  const [isCampaignMenuOpen, setIsCampaignMenuOpen] = useState(false);
+  const [isCampaignBagDefeated, setIsCampaignBagDefeated] = useState(false);
+  const [isCampaignBagCollected, setIsCampaignBagCollected] = useState(false);
+  const [campaignBossCutsceneStep, setCampaignBossCutsceneStep] = useState<number | null>(null);
+  const [campaignBossCutscenePhase, setCampaignBossCutscenePhase] =
+    useState<CampaignBossCutscenePhase>('talking');
+  const [campaignSaves, setCampaignSaves] = useState<CampaignSaveData[]>(readCampaignSaves);
+  const [selectedCampaignSaveSlot, setSelectedCampaignSaveSlot] = useState<number | null>(null);
+  const [bagBattlePlayer, setBagBattlePlayer] = useState<BagBattleActor>(BAG_BATTLE_PLAYER_START);
+  const [bagBattleBoss, setBagBattleBoss] = useState<BagBattleActor>(BAG_BATTLE_BOSS_START);
+  const [bagBattleProjectiles, setBagBattleProjectiles] = useState<BagBattleProjectile[]>([]);
+  const [bagBattleResult, setBagBattleResult] = useState<'playing' | 'won' | 'lost'>('playing');
+  const [bagBattleAttack, setBagBattleAttack] = useState<BagBattleAttack>('idle');
+  const [isBagBattleCrouching, setIsBagBattleCrouching] = useState(false);
+  const [isBagBattleBlocking, setIsBagBattleBlocking] = useState(false);
+  const [isBagBattleBossVulnerable, setIsBagBattleBossVulnerable] = useState(false);
+  const [isBagBattleBossShooting, setIsBagBattleBossShooting] = useState(false);
+  const [bagBattleBossShotLane, setBagBattleBossShotLane] = useState<BagBattleProjectile['lane']>('mid');
+  const [bagBattleBossPattern, setBagBattleBossPattern] = useState<BagBattleBossPattern>('shooting');
+  const [isBagBattleIntro, setIsBagBattleIntro] = useState(false);
+  const [roomCode, setRoomCode] = useState('');
+  const [joinRoomCode, setJoinRoomCode] = useState('');
+  const [onlineRole, setOnlineRole] = useState<OnlineRole | null>(null);
+  const [onlineRoomStatus, setOnlineRoomStatus] = useState<OnlineRoomStatus>('idle');
+  const [onlineRoomMessage, setOnlineRoomMessage] = useState('Создай комнату или введи код друга.');
+  const [onlinePeerReady, setOnlinePeerReady] = useState(false);
   const [lockedFighter, setLockedFighter] = useState<Fighter | null>(null);
   const [lockedOpponent, setLockedOpponent] = useState<Fighter | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1290,6 +1777,21 @@ export default function App() {
   const [opponentKnightDarkWaveOverheated, setOpponentKnightDarkWaveOverheated] = useState(false);
   const [knightExplosions, setKnightExplosions] = useState<KnightExplosion[]>([]);
   const [gersonLeapEffects, setGersonLeapEffects] = useState<GersonLeapEffect[]>([]);
+
+  const playerSpecialShootingRef = useRef(false);
+  const opponentSpecialShootingRef = useRef(false);
+  const playerSpecialSpriteOverrideRef = useRef<string | null>(null);
+  const opponentSpecialSpriteOverrideRef = useRef<string | null>(null);
+  const playerAirSpecialWaveRef = useRef(false);
+  const opponentAirSpecialWaveRef = useRef(false);
+  const playerChargeAuraActiveRef = useRef(false);
+  const opponentChargeAuraActiveRef = useRef(false);
+  const playerKnightDarkWaveOverheatedRef = useRef(false);
+  const opponentKnightDarkWaveOverheatedRef = useRef(false);
+  const playerJevilAbsorbingRef = useRef(false);
+  const opponentJevilAbsorbingRef = useRef(false);
+  const playerJevilHeadlessPoseRef = useRef(false);
+  const opponentJevilHeadlessPoseRef = useRef(false);
 
   const attackTimer = useRef<number | null>(null);
   const attackHitTimer = useRef<number | null>(null);
@@ -1428,6 +1930,37 @@ export default function App() {
   const opponentJumpVelocity = useRef(0);
   const isBlockingRef = useRef(false);
   const pressedKeys = useRef(new Set<string>());
+  const campaignPressedKeys = useRef(new Set<string>());
+  const campaignPositionRef = useRef<Position>(CAMPAIGN_START_POSITION);
+  const bagBattlePressedKeys = useRef(new Set<string>());
+  const bagBattlePlayerRef = useRef<BagBattleActor>(BAG_BATTLE_PLAYER_START);
+  const bagBattleBossRef = useRef<BagBattleActor>(BAG_BATTLE_BOSS_START);
+  const bagBattleProjectilesRef = useRef<BagBattleProjectile[]>([]);
+  const bagBattleProjectileIdRef = useRef(0);
+  const bagBattleAttackReadyAtRef = useRef(0);
+  const bagBattleAttackTimer = useRef<number | null>(null);
+  const bagBattleLastBossShotRef = useRef(0);
+  const bagBattleBossVulnerableUntilRef = useRef(0);
+  const bagBattleBossShootingTimer = useRef<number | null>(null);
+  const bagBattleBossBurstShotsRef = useRef(0);
+  const bagBattleBossRestUntilRef = useRef(0);
+  const bagBattleBossRestDamageRef = useRef(0);
+  const bagBattleBossPatternRef = useRef<BagBattleBossPattern>('shooting');
+  const bagBattleBossRunPrepUntilRef = useRef(0);
+  const bagBattleBossRunHitRef = useRef(false);
+  const bagBattleBossNextPatternRef = useRef<BagBattleBossPattern>('shooting');
+  const bagBattleJumpsRemainingRef = useRef(BAG_BATTLE_MAX_JUMPS);
+  const bagBattleIntroUntilRef = useRef(0);
+  const remotePressedKeys = useRef(new Set<string>());
+  const onlineChannelRef = useRef<RealtimeChannel | null>(null);
+  const onlinePlayerIdRef = useRef(`p-${Math.random().toString(36).slice(2, 10)}`);
+  const onlineRoleRef = useRef<OnlineRole | null>(null);
+  const onlineRoomStatusRef = useRef<OnlineRoomStatus>('idle');
+  const lastOnlineSnapshotAt = useRef(0);
+  const onlineInputSequenceRef = useRef(0);
+  const onlineSnapshotSequenceRef = useRef(0);
+  const lastRemoteInputSequenceRef = useRef(0);
+  const lastAppliedOnlineSnapshotRef = useRef(0);
   const jumpVelocity = useRef(0);
   const playerAirSpecialActiveRef = useRef(false);
   const playerAirSpecialYRef = useRef(0);
@@ -2478,6 +3011,741 @@ export default function App() {
   useEffect(() => {
     roundTimeLeftRef.current = roundTimeLeft;
   }, [roundTimeLeft]);
+
+  useEffect(() => {
+    playerSpecialShootingRef.current = playerSpecialShooting;
+    opponentSpecialShootingRef.current = opponentSpecialShooting;
+    playerSpecialSpriteOverrideRef.current = playerSpecialSpriteOverride;
+    opponentSpecialSpriteOverrideRef.current = opponentSpecialSpriteOverride;
+    playerAirSpecialWaveRef.current = playerAirSpecialWave;
+    opponentAirSpecialWaveRef.current = opponentAirSpecialWave;
+    playerChargeAuraActiveRef.current = playerChargeAuraActive;
+    opponentChargeAuraActiveRef.current = opponentChargeAuraActive;
+    playerKnightDarkWaveOverheatedRef.current = playerKnightDarkWaveOverheated;
+    opponentKnightDarkWaveOverheatedRef.current = opponentKnightDarkWaveOverheated;
+    playerJevilAbsorbingRef.current = playerJevilAbsorbing;
+    opponentJevilAbsorbingRef.current = opponentJevilAbsorbing;
+    playerJevilHeadlessPoseRef.current = playerJevilHeadlessPose;
+    opponentJevilHeadlessPoseRef.current = opponentJevilHeadlessPose;
+  }, [
+    opponentAirSpecialWave,
+    opponentChargeAuraActive,
+    opponentJevilAbsorbing,
+    opponentJevilHeadlessPose,
+    opponentKnightDarkWaveOverheated,
+    opponentSpecialShooting,
+    opponentSpecialSpriteOverride,
+    playerAirSpecialWave,
+    playerChargeAuraActive,
+    playerJevilAbsorbing,
+    playerJevilHeadlessPose,
+    playerKnightDarkWaveOverheated,
+    playerSpecialShooting,
+    playerSpecialSpriteOverride,
+  ]);
+
+  useEffect(() => {
+    onlineRoleRef.current = onlineRole;
+  }, [onlineRole]);
+
+  useEffect(() => {
+    onlineRoomStatusRef.current = onlineRoomStatus;
+  }, [onlineRoomStatus]);
+
+  useEffect(() => {
+    campaignPositionRef.current = campaignPosition;
+  }, [campaignPosition]);
+
+  useEffect(() => {
+    if (selectedCampaignSaveSlot === null || screen !== 'campaign') return;
+
+    setCampaignSaves((currentSaves) => {
+      const nextSaves = currentSaves.map((save) =>
+        save.slot === selectedCampaignSaveSlot
+          ? {
+              slot: selectedCampaignSaveSlot,
+              roomId: campaignRoomId,
+              position: campaignPosition,
+              isBagDefeated: isCampaignBagDefeated,
+              isBagCollected: isCampaignBagCollected,
+              updatedAt: Date.now(),
+            }
+          : save,
+      );
+      writeCampaignSaves(nextSaves);
+
+      return nextSaves;
+    });
+  }, [
+    campaignPosition,
+    campaignRoomId,
+    isCampaignBagCollected,
+    isCampaignBagDefeated,
+    screen,
+    selectedCampaignSaveSlot,
+  ]);
+
+  useEffect(() => {
+    bagBattlePlayerRef.current = bagBattlePlayer;
+  }, [bagBattlePlayer]);
+
+  useEffect(() => {
+    bagBattleBossRef.current = bagBattleBoss;
+  }, [bagBattleBoss]);
+
+  useEffect(() => {
+    bagBattleProjectilesRef.current = bagBattleProjectiles;
+  }, [bagBattleProjectiles]);
+
+  function startCampaignBossLeaving() {
+    if (campaignBossCutscenePhase === 'leaving') return;
+    setCampaignBossCutscenePhase('leaving');
+    campaignPressedKeys.current.clear();
+    window.setTimeout(() => {
+      setCampaignBossCutsceneStep(null);
+      setCampaignBossCutscenePhase('talking');
+      setIsCampaignBagCollected(true);
+    }, 1850);
+  }
+
+  function advanceCampaignBossCutscene() {
+    setCampaignBossCutsceneStep((step) => {
+      if (step === null) return step;
+      if (step >= CAMPAIGN_BOSS_CUTSCENE_LINES.length - 1) {
+        startCampaignBossLeaving();
+        return step;
+      }
+
+      return step + 1;
+    });
+  }
+
+  function startBagBattle() {
+    campaignPressedKeys.current.clear();
+    bagBattlePressedKeys.current.clear();
+    bagBattlePlayerRef.current = BAG_BATTLE_PLAYER_START;
+    bagBattleBossRef.current = BAG_BATTLE_BOSS_START;
+    bagBattleProjectilesRef.current = [];
+    bagBattleProjectileIdRef.current = 0;
+    bagBattleAttackReadyAtRef.current = 0;
+    if (bagBattleAttackTimer.current) {
+      window.clearTimeout(bagBattleAttackTimer.current);
+      bagBattleAttackTimer.current = null;
+    }
+    if (bagBattleBossShootingTimer.current) {
+      window.clearTimeout(bagBattleBossShootingTimer.current);
+      bagBattleBossShootingTimer.current = null;
+    }
+    bagBattleLastBossShotRef.current = 0;
+    bagBattleBossVulnerableUntilRef.current = 0;
+    bagBattleBossBurstShotsRef.current = 0;
+    bagBattleBossRestUntilRef.current = 0;
+    bagBattleBossRestDamageRef.current = 0;
+    bagBattleBossPatternRef.current = 'shooting';
+    bagBattleBossRunPrepUntilRef.current = 0;
+    bagBattleBossRunHitRef.current = false;
+    bagBattleBossNextPatternRef.current = 'shooting';
+    bagBattleJumpsRemainingRef.current = BAG_BATTLE_MAX_JUMPS;
+    bagBattleIntroUntilRef.current = window.performance.now() + BAG_BATTLE_INTRO_MS;
+    setBagBattlePlayer(BAG_BATTLE_PLAYER_START);
+    setBagBattleBoss(BAG_BATTLE_BOSS_START);
+    setBagBattleProjectiles([]);
+    setBagBattleResult('playing');
+    setBagBattleAttack('idle');
+    setIsBagBattleCrouching(false);
+    setIsBagBattleBlocking(false);
+    setIsBagBattleBossVulnerable(false);
+    setIsBagBattleBossShooting(false);
+    setBagBattleBossShotLane('mid');
+    setBagBattleBossPattern('shooting');
+    setIsBagBattleIntro(true);
+    setCampaignDialogue(null);
+    setCampaignActiveNpcId(null);
+    setIsCampaignMenuOpen(false);
+    setScreen('bag-battle');
+  }
+
+  useEffect(() => {
+    if (screen !== 'campaign' || !campaignDialogue) {
+      setCampaignDialogueVisibleChars(0);
+      return undefined;
+    }
+
+    setCampaignDialogueVisibleChars(0);
+    const intervalId = window.setInterval(() => {
+      setCampaignDialogueVisibleChars((visibleChars) => {
+        if (visibleChars >= campaignDialogue.length) {
+          window.clearInterval(intervalId);
+          return visibleChars;
+        }
+
+        return visibleChars + 1;
+      });
+    }, CAMPAIGN_DIALOGUE_TYPE_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [campaignDialogue, screen]);
+
+  useEffect(() => {
+    if (screen !== 'campaign') {
+      campaignPressedKeys.current.clear();
+      return undefined;
+    }
+
+    const campaignRoom = getCampaignRoomWithProgress(campaignRoomId, isCampaignBagDefeated);
+    let animationFrameId = 0;
+    let lastFrame = window.performance.now();
+
+    const getCampaignInputKey = (event: KeyboardEvent): 'w' | 'a' | 's' | 'd' | null => {
+      const gameKey = getGameKey(event, controlBindings);
+      if (gameKey === 'w' || gameKey === 'a' || gameKey === 's' || gameKey === 'd') return gameKey;
+
+      if (event.key === 'ArrowUp') return 'w';
+      if (event.key === 'ArrowLeft') return 'a';
+      if (event.key === 'ArrowDown') return 's';
+      if (event.key === 'ArrowRight') return 'd';
+
+      return null;
+    };
+
+    const handleCampaignKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        campaignPressedKeys.current.clear();
+        setIsCampaignMenuOpen((isOpen) => !isOpen);
+        return;
+      }
+
+      if (isCampaignMenuOpen) return;
+
+      if (campaignBossCutsceneStep !== null) {
+        if (event.key === 'Enter' || event.key === ' ' || event.key.toLowerCase() === 'e') {
+          event.preventDefault();
+          advanceCampaignBossCutscene();
+        }
+        return;
+      }
+
+      if (event.key === 'Enter' || event.key === ' ' || event.key.toLowerCase() === 'e') {
+        event.preventDefault();
+
+        if (campaignDialogue) {
+          if (campaignDialogueVisibleChars < campaignDialogue.length) {
+            setCampaignDialogueVisibleChars(campaignDialogue.length);
+            return;
+          }
+
+          setCampaignDialogue(null);
+          setCampaignActiveNpcId(null);
+          return;
+        }
+
+        const interaction = getCampaignInteraction(campaignRoom, campaignPositionRef.current);
+        if (interaction) {
+          campaignPressedKeys.current.clear();
+          setCampaignActiveNpcId('idleSprite' in interaction ? interaction.id : null);
+          if ('encounter' in interaction && interaction.encounter === 'bag-battle') {
+            window.setTimeout(startBagBattle, 180);
+            return;
+          }
+          if (interaction.text.trim()) {
+            setCampaignDialogue(interaction.text);
+          } else if ('idleSprite' in interaction) {
+            window.setTimeout(() => {
+              setCampaignActiveNpcId((activeNpcId) => (activeNpcId === interaction.id ? null : activeNpcId));
+            }, 900);
+          }
+        }
+        return;
+      }
+
+      if (campaignDialogue || campaignBossCutsceneStep !== null) return;
+
+      const key = getCampaignInputKey(event);
+      if (!key) return;
+      event.preventDefault();
+      campaignPressedKeys.current.add(key);
+    };
+
+    const handleCampaignKeyUp = (event: KeyboardEvent) => {
+      const key = getCampaignInputKey(event);
+      if (!key) return;
+      event.preventDefault();
+      campaignPressedKeys.current.delete(key);
+    };
+
+    const moveCampaignPlayer = (frameTime: number) => {
+      const deltaScale = clamp(frameTime - lastFrame, 0, MAX_FRAME_DELTA_MS) / TARGET_FRAME_MS;
+      lastFrame = frameTime;
+
+      setCampaignPosition((position) => {
+        if (campaignDialogue || isCampaignMenuOpen || campaignBossCutsceneStep !== null) return position;
+
+        let dx = 0;
+        let dy = 0;
+
+        if (campaignPressedKeys.current.has('a')) dx -= 1;
+        if (campaignPressedKeys.current.has('d')) dx += 1;
+        if (campaignPressedKeys.current.has('w')) dy -= 1;
+        if (campaignPressedKeys.current.has('s')) dy += 1;
+
+        if (dx === 0 && dy === 0) return position;
+
+        const diagonal = dx !== 0 && dy !== 0 ? Math.SQRT1_2 : 1;
+
+        const intendedPosition = {
+          x: clamp(position.x + dx * CAMPAIGN_MOVE_SPEED * diagonal * deltaScale * 0.01, 0, 100),
+          y: clamp(position.y + dy * CAMPAIGN_MOVE_SPEED * diagonal * deltaScale * 0.01, 0, 100),
+        };
+
+        const transition = getCampaignTransition(campaignRoom, intendedPosition);
+        if (transition) {
+          campaignPositionRef.current = transition.position;
+          setCampaignRoomId(transition.target);
+          setCampaignDialogue(null);
+          setCampaignActiveNpcId(null);
+          return transition.position;
+        }
+
+        if (isCampaignPositionAllowed(campaignRoom, intendedPosition)) {
+          campaignPositionRef.current = intendedPosition;
+          return intendedPosition;
+        }
+
+        const xOnlyPosition = { ...position, x: intendedPosition.x };
+        if (isCampaignPositionAllowed(campaignRoom, xOnlyPosition)) {
+          campaignPositionRef.current = xOnlyPosition;
+          return xOnlyPosition;
+        }
+
+        const yOnlyPosition = { ...position, y: intendedPosition.y };
+        if (isCampaignPositionAllowed(campaignRoom, yOnlyPosition)) {
+          campaignPositionRef.current = yOnlyPosition;
+          return yOnlyPosition;
+        }
+
+        return position;
+      });
+
+      animationFrameId = window.requestAnimationFrame(moveCampaignPlayer);
+    };
+
+    window.addEventListener('keydown', handleCampaignKeyDown);
+    window.addEventListener('keyup', handleCampaignKeyUp);
+    animationFrameId = window.requestAnimationFrame(moveCampaignPlayer);
+
+    return () => {
+      window.removeEventListener('keydown', handleCampaignKeyDown);
+      window.removeEventListener('keyup', handleCampaignKeyUp);
+      window.cancelAnimationFrame(animationFrameId);
+      campaignPressedKeys.current.clear();
+    };
+  }, [
+    campaignBossCutscenePhase,
+    campaignBossCutsceneStep,
+    campaignDialogue,
+    campaignDialogueVisibleChars,
+    campaignRoomId,
+    controlBindings,
+    isCampaignBagDefeated,
+    isCampaignMenuOpen,
+    screen,
+  ]);
+
+  useEffect(() => {
+    if (screen !== 'bag-battle') {
+      bagBattlePressedKeys.current.clear();
+      return undefined;
+    }
+
+    let animationFrameId = 0;
+    let lastFrame = window.performance.now();
+
+    const getBagBattleInputKey = (event: KeyboardEvent) => {
+      const gameKey = getGameKey(event, controlBindings);
+      if (
+        gameKey === 'a' ||
+        gameKey === 'd' ||
+        gameKey === 'w' ||
+        gameKey === 's' ||
+        gameKey === 'arrowleft' ||
+        gameKey === 'arrowright' ||
+        gameKey === 'arrowdown' ||
+        gameKey === 'block'
+      ) {
+        return gameKey;
+      }
+
+      if (event.key === 'ArrowLeft') return 'a';
+      if (event.key === 'ArrowRight') return 'd';
+      if (event.key === 'ArrowUp') return 'w';
+      if (event.key === 'ArrowDown') return 's';
+      if (event.key.toLowerCase() === ' ') return 'arrowright';
+
+      return null;
+    };
+
+    const leaveBagBattle = () => {
+      bagBattlePressedKeys.current.clear();
+      if (bagBattleResult === 'won') {
+        const returnPosition = { x: 68, y: 49 };
+        setIsCampaignBagDefeated(true);
+        setIsCampaignBagCollected(false);
+        setCampaignRoomId('side-room');
+        setCampaignPosition(returnPosition);
+        campaignPositionRef.current = returnPosition;
+        setCampaignDialogue(null);
+        setCampaignActiveNpcId(null);
+        setCampaignBossCutscenePhase('talking');
+        setCampaignBossCutsceneStep(0);
+      }
+      setScreen('campaign');
+    };
+
+    const triggerBagBattleAttack = (button: 'punch' | 'kick') => {
+      const now = window.performance.now();
+      if (now < bagBattleAttackReadyAtRef.current || bagBattleAttackTimer.current) return;
+
+      const isCrouchAttack =
+        bagBattlePlayerRef.current.y <= 0.01 &&
+        (bagBattlePressedKeys.current.has('s') || bagBattlePressedKeys.current.has('arrowdown'));
+      const nextAttack: BagBattleAttack =
+        isCrouchAttack && button === 'punch'
+          ? 'uppercut'
+          : isCrouchAttack && button === 'kick'
+            ? 'sweep'
+            : button;
+      const damage =
+        nextAttack === 'uppercut' ? 13 : nextAttack === 'sweep' ? 6 : nextAttack === 'kick' ? 8 : 5;
+      const range = nextAttack === 'kick' || nextAttack === 'sweep' ? 16 : 12;
+      const hitY =
+        nextAttack === 'uppercut'
+          ? bagBattlePlayerRef.current.y + 21
+          : nextAttack === 'sweep'
+            ? bagBattlePlayerRef.current.y + 5
+            : bagBattlePlayerRef.current.y + 13;
+      const bossY = 14;
+
+      bagBattleAttackReadyAtRef.current = now + BAG_BATTLE_ATTACK_COOLDOWN_MS;
+      setBagBattleAttack(nextAttack);
+      setIsBagBattleBlocking(false);
+
+      if (
+        bagBattleBossVulnerableUntilRef.current > now &&
+        Math.abs(bagBattleBossRef.current.x - bagBattlePlayerRef.current.x) <= range &&
+        Math.abs(hitY - bossY) <= (nextAttack === 'uppercut' ? 22 : 15)
+      ) {
+        const isBossInBurstRest = now < bagBattleBossRestUntilRef.current;
+        const availableRestDamage = isBossInBurstRest
+          ? Math.max(0, BAG_BATTLE_BOSS_REST_DAMAGE_CAP - bagBattleBossRestDamageRef.current)
+          : damage;
+        const appliedDamage = Math.min(damage, availableRestDamage);
+        if (appliedDamage > 0) {
+          if (isBossInBurstRest) {
+            bagBattleBossRestDamageRef.current += appliedDamage;
+          }
+          const nextBoss = {
+            ...bagBattleBossRef.current,
+            health: Math.max(0, bagBattleBossRef.current.health - appliedDamage),
+            x: clamp(bagBattleBossRef.current.x - 1.3, 14, 22),
+          };
+          bagBattleBossRef.current = nextBoss;
+          setBagBattleBoss(nextBoss);
+        }
+      }
+
+      bagBattleAttackTimer.current = window.setTimeout(() => {
+        bagBattleAttackTimer.current = null;
+        setBagBattleAttack('idle');
+      }, BAG_BATTLE_ATTACK_DURATION_MS);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        leaveBagBattle();
+        return;
+      }
+
+      if (bagBattleResult !== 'playing') {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          leaveBagBattle();
+        }
+        return;
+      }
+
+      const key = getBagBattleInputKey(event);
+      if (!key) return;
+      event.preventDefault();
+      if (window.performance.now() < bagBattleIntroUntilRef.current) return;
+      bagBattlePressedKeys.current.add(key);
+
+      const isCrouchingNow =
+        bagBattlePlayerRef.current.y <= 0.01 &&
+        (bagBattlePressedKeys.current.has('s') || bagBattlePressedKeys.current.has('arrowdown'));
+      setIsBagBattleCrouching(isCrouchingNow);
+      if (key === 'block') {
+        setIsBagBattleBlocking(true);
+        return;
+      }
+
+      if (key === 'w' && !event.repeat && bagBattleJumpsRemainingRef.current > 0) {
+        const nextPlayer = { ...bagBattlePlayerRef.current, vy: BAG_BATTLE_JUMP_POWER };
+        bagBattleJumpsRemainingRef.current -= 1;
+        bagBattlePlayerRef.current = nextPlayer;
+        setBagBattlePlayer(nextPlayer);
+      }
+
+      if (key === 'arrowleft' || key === 'arrowright') {
+        triggerBagBattleAttack(key === 'arrowleft' ? 'punch' : 'kick');
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const key = getBagBattleInputKey(event);
+      if (!key) return;
+      event.preventDefault();
+      bagBattlePressedKeys.current.delete(key);
+      if (key === 's' || key === 'arrowdown') {
+        setIsBagBattleCrouching(
+          bagBattlePlayerRef.current.y <= 0.01 &&
+            (bagBattlePressedKeys.current.has('s') || bagBattlePressedKeys.current.has('arrowdown')),
+        );
+      }
+      if (key === 'block') setIsBagBattleBlocking(false);
+    };
+
+    const tickBagBattle = (frameTime: number) => {
+      const deltaMs = clamp(frameTime - lastFrame, 0, MAX_FRAME_DELTA_MS);
+      const deltaScale = deltaMs / TARGET_FRAME_MS;
+      lastFrame = frameTime;
+
+      if (bagBattleResult !== 'playing') {
+        animationFrameId = window.requestAnimationFrame(tickBagBattle);
+        return;
+      }
+
+      if (frameTime < bagBattleIntroUntilRef.current) {
+        animationFrameId = window.requestAnimationFrame(tickBagBattle);
+        return;
+      }
+      if (isBagBattleIntro) setIsBagBattleIntro(false);
+
+      let nextPlayer = bagBattlePlayerRef.current;
+      let nextBoss = bagBattleBossRef.current;
+      let nextProjectiles = bagBattleProjectilesRef.current;
+      let playerWasHit = false;
+
+      let horizontal = 0;
+      const isBlockingNow = bagBattlePressedKeys.current.has('block');
+      const isCrouchingInput =
+        bagBattlePressedKeys.current.has('s') || bagBattlePressedKeys.current.has('arrowdown');
+      if (!isBlockingNow && !(nextPlayer.y <= 0.01 && isCrouchingInput)) {
+        if (bagBattlePressedKeys.current.has('a')) horizontal -= 1;
+        if (bagBattlePressedKeys.current.has('d')) horizontal += 1;
+      }
+
+      nextPlayer = {
+        ...nextPlayer,
+        x: clamp(nextPlayer.x + horizontal * BAG_BATTLE_PLAYER_SPEED * deltaScale, 26, 94),
+        y: Math.max(0, nextPlayer.y + nextPlayer.vy * deltaScale),
+        vy: nextPlayer.vy - BAG_BATTLE_GRAVITY * deltaScale,
+      };
+      if (nextPlayer.y <= 0 && nextPlayer.vy < 0) {
+        nextPlayer = { ...nextPlayer, y: 0, vy: 0 };
+        bagBattleJumpsRemainingRef.current = BAG_BATTLE_MAX_JUMPS;
+      }
+      setIsBagBattleCrouching(
+        nextPlayer.y <= 0.01 && isCrouchingInput,
+      );
+
+      if (
+        bagBattleBossPatternRef.current === 'shooting' &&
+        bagBattleBossNextPatternRef.current === 'running' &&
+        frameTime >= bagBattleBossRestUntilRef.current
+      ) {
+        bagBattleBossPatternRef.current = 'run-prep';
+        bagBattleBossRunPrepUntilRef.current = frameTime + BAG_BATTLE_BOSS_RUN_PREP_MS;
+        bagBattleBossRunHitRef.current = false;
+        bagBattleBossVulnerableUntilRef.current = 0;
+        setBagBattleBossPattern('run-prep');
+        setIsBagBattleBossVulnerable(false);
+        setIsBagBattleBossShooting(false);
+        nextProjectiles = [];
+      }
+
+      if (bagBattleBossPatternRef.current === 'run-prep' && frameTime >= bagBattleBossRunPrepUntilRef.current) {
+        bagBattleBossPatternRef.current = 'running';
+        bagBattleBossRunHitRef.current = false;
+        setBagBattleBossPattern('running');
+      }
+
+      if (bagBattleBossPatternRef.current === 'running') {
+        nextBoss = {
+          ...nextBoss,
+          x: nextBoss.x + BAG_BATTLE_BOSS_RUN_SPEED * deltaScale,
+        };
+
+        const didCollideWithRun =
+          !bagBattleBossRunHitRef.current &&
+          Math.abs(nextBoss.x - nextPlayer.x) < 8.5 &&
+          nextPlayer.y < 12;
+
+        if (didCollideWithRun) {
+          bagBattleBossRunHitRef.current = true;
+          nextPlayer = {
+            ...nextPlayer,
+            health: Math.max(0, nextPlayer.health - BAG_BATTLE_BOSS_RUN_DAMAGE),
+            x: clamp(nextPlayer.x + 4.2, 26, 94),
+            vy: Math.max(nextPlayer.vy, 0.42),
+          };
+          playerWasHit = true;
+        }
+
+        if (nextBoss.x >= 110) {
+          nextBoss = { ...nextBoss, x: BAG_BATTLE_BOSS_RETURN_START_X };
+          bagBattleBossPatternRef.current = 'returning';
+          bagBattleBossRunHitRef.current = false;
+          setBagBattleBossPattern('returning');
+        }
+      }
+
+      if (bagBattleBossPatternRef.current === 'returning') {
+        nextBoss = {
+          ...nextBoss,
+          x: nextBoss.x + BAG_BATTLE_BOSS_RUN_SPEED * deltaScale,
+        };
+
+        if (nextBoss.x >= BAG_BATTLE_BOSS_START.x) {
+          nextBoss = { ...nextBoss, x: BAG_BATTLE_BOSS_START.x };
+          bagBattleBossPatternRef.current = 'shooting';
+          bagBattleBossNextPatternRef.current = 'shooting';
+          bagBattleBossRestUntilRef.current = frameTime + BAG_BATTLE_BOSS_AFTER_RUN_REST_MS;
+          bagBattleLastBossShotRef.current = frameTime;
+          setBagBattleBossPattern('shooting');
+        }
+      }
+
+      if (
+        bagBattleBossPatternRef.current === 'shooting' &&
+        bagBattleBossNextPatternRef.current === 'shooting' &&
+        frameTime >= bagBattleBossRestUntilRef.current &&
+        frameTime - bagBattleLastBossShotRef.current >= BAG_BATTLE_BOSS_SHOT_INTERVAL_MS
+      ) {
+        bagBattleLastBossShotRef.current = frameTime;
+        bagBattleBossBurstShotsRef.current += 1;
+        if (bagBattleBossBurstShotsRef.current >= BAG_BATTLE_BOSS_BURST_SHOTS) {
+          bagBattleBossBurstShotsRef.current = 0;
+          bagBattleBossRestUntilRef.current = frameTime + BAG_BATTLE_BOSS_BURST_REST_MS;
+          bagBattleBossRestDamageRef.current = 0;
+          bagBattleBossNextPatternRef.current = 'running';
+        }
+        bagBattleBossVulnerableUntilRef.current = Math.max(
+          frameTime + BAG_BATTLE_BOSS_VULNERABLE_MS,
+          bagBattleBossRestUntilRef.current,
+        );
+        setIsBagBattleBossVulnerable(true);
+        setIsBagBattleBossShooting(true);
+        if (bagBattleBossShootingTimer.current) window.clearTimeout(bagBattleBossShootingTimer.current);
+        bagBattleBossShootingTimer.current = window.setTimeout(() => {
+          bagBattleBossShootingTimer.current = null;
+          setIsBagBattleBossShooting(false);
+          setBagBattleBossShotLane('mid');
+        }, 360);
+        const projectileLane = (['high', 'mid', 'low'] as const)[Math.floor(Math.random() * 3)];
+        setBagBattleBossShotLane(projectileLane);
+        const projectileY = projectileLane === 'high' ? 32 : projectileLane === 'mid' ? 18 : 5;
+        nextProjectiles = [
+          ...nextProjectiles,
+          {
+            id: ++bagBattleProjectileIdRef.current,
+            x: nextBoss.x + 5.5,
+            y: projectileY,
+            vx: 0.31 + Math.random() * 0.1,
+            vy: 0,
+            owner: 'boss',
+            lane: projectileLane,
+          },
+        ];
+      }
+      if (frameTime >= bagBattleBossVulnerableUntilRef.current) {
+        setIsBagBattleBossVulnerable(false);
+      }
+
+      const keptProjectiles: BagBattleProjectile[] = [];
+
+      for (const projectile of nextProjectiles) {
+        const movedProjectile = {
+          ...projectile,
+          x: projectile.x + projectile.vx * deltaScale,
+          y: projectile.y + projectile.vy * deltaScale,
+        };
+
+        if (movedProjectile.x < -6 || movedProjectile.x > 106 || movedProjectile.y < -8 || movedProjectile.y > 76) {
+          continue;
+        }
+
+        const playerIsCrouching =
+          nextPlayer.y <= 0.01 &&
+          (bagBattlePressedKeys.current.has('s') || bagBattlePressedKeys.current.has('arrowdown'));
+        const bossProjectileLane = movedProjectile.lane ?? 'mid';
+        const isPlayerInLane =
+          bossProjectileLane === 'high'
+            ? nextPlayer.y >= 8
+            : bossProjectileLane === 'mid'
+              ? !playerIsCrouching && nextPlayer.y < 14
+              : nextPlayer.y < 9;
+
+        if (movedProjectile.owner === 'boss' && Math.abs(movedProjectile.x - nextPlayer.x) < 4.2 && isPlayerInLane) {
+          if (isBlockingNow) {
+            nextPlayer = { ...nextPlayer, health: Math.max(0, nextPlayer.health - 1) };
+          } else {
+            nextPlayer = { ...nextPlayer, health: Math.max(0, nextPlayer.health - BAG_BATTLE_BOSS_DAMAGE) };
+            playerWasHit = true;
+          }
+          continue;
+        }
+
+        keptProjectiles.push(movedProjectile);
+      }
+
+      if (playerWasHit) {
+        nextPlayer = { ...nextPlayer, x: clamp(nextPlayer.x + 2.6, 26, 94), vy: Math.max(nextPlayer.vy, 0.28) };
+      }
+      if (bagBattleBossPatternRef.current === 'shooting') {
+        nextBoss = { ...nextBoss, x: BAG_BATTLE_BOSS_START.x + Math.sin(frameTime / 700) * 1.6 };
+      }
+
+      bagBattlePlayerRef.current = nextPlayer;
+      bagBattleBossRef.current = nextBoss;
+      bagBattleProjectilesRef.current = keptProjectiles;
+      setBagBattlePlayer(nextPlayer);
+      setBagBattleBoss(nextBoss);
+      setBagBattleProjectiles(keptProjectiles);
+
+      if (nextBoss.health <= 0) {
+        setBagBattleResult('won');
+        bagBattlePressedKeys.current.clear();
+      } else if (nextPlayer.health <= 0) {
+        setBagBattleResult('lost');
+        bagBattlePressedKeys.current.clear();
+      }
+
+      animationFrameId = window.requestAnimationFrame(tickBagBattle);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    animationFrameId = window.requestAnimationFrame(tickBagBattle);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.cancelAnimationFrame(animationFrameId);
+      bagBattlePressedKeys.current.clear();
+    };
+  }, [bagBattleResult, controlBindings, isBagBattleIntro, screen]);
 
   useEffect(() => {
     const wasPaused = isArenaPausedRef.current;
@@ -4160,6 +5428,181 @@ export default function App() {
     setOpponentCrouching(isActive);
   }
 
+  function triggerOnlineOpponentAttack(nextAttack: Exclude<Attack, 'idle'>) {
+    const now = window.performance.now();
+    const opponentOnGround = opponentPositionRef.current.y === 0 || isOnJevilPlatform(opponent, opponentPositionRef.current);
+    const isCrouchAttack = canFighterCrouch(opponent) && remotePressedKeys.current.has('s') && opponentOnGround;
+    const isOpponentKnightSwordShot = opponent.id === 'roaring-knight' && nextAttack === 'kick';
+    const isOpponentGersonParry = opponent.id === 'gerson-boom' && nextAttack === 'kick';
+
+    if (
+      now < opponentAttackReadyAt.current ||
+      opponentAttackRef.current !== 'idle' ||
+      opponentBlockingRef.current ||
+      opponentSpecialLockRef.current ||
+      opponentStatusRef.current !== 'idle' ||
+      (!opponentOnGround && !isOpponentKnightSwordShot) ||
+      playerHealthRef.current <= 0
+    ) {
+      return;
+    }
+
+    opponentAttackReadyAt.current =
+      now + (isOpponentKnightSwordShot ? KNIGHT_SWORD_PROJECTILE_COOLDOWN_MS : getFighterAttackCooldown(opponent, nextAttack, true));
+
+    const attackEffect: HitEffect =
+      isCrouchAttack && nextAttack === 'kick'
+        ? 'sweep'
+        : isCrouchAttack && nextAttack === 'punch'
+          ? 'uppercut'
+          : 'none';
+    const hitLevel: HitLevel =
+      attackEffect === 'sweep'
+        ? 'low'
+        : attackEffect === 'uppercut'
+          ? 'mid'
+          : nextAttack === 'punch'
+            ? getStandingPunchHitLevel(opponent)
+            : getStandingKickHitLevel(opponent);
+    const attackDamage =
+      attackEffect === 'sweep'
+        ? 2
+        : attackEffect === 'uppercut'
+          ? 12
+          : nextAttack === 'punch'
+            ? 4
+            : 6;
+    const attackDuration =
+      isOpponentKnightSwordShot
+        ? KNIGHT_SWORD_PROJECTILE_COOLDOWN_MS
+        : isOpponentGersonParry
+          ? GERSON_PARRY_DURATION_MS
+          : attackEffect === 'uppercut'
+            ? CROUCH_UPPERCUT_DURATION_MS + CROUCH_UPPERCUT_RECOVERY_MS
+            : nextAttack === 'kick' && attackEffect === 'sweep'
+              ? 420
+              : getFighterAttackDuration(opponent, nextAttack);
+    const hitFrameRatio = isOpponentGersonParry
+      ? GERSON_PARRY_HIT_FRAME_RATIO
+      : attackEffect === 'none'
+        ? ATTACK_HIT_FRAME_RATIO
+        : CROUCH_HIT_FRAME_RATIO;
+    const hitDelay = isOpponentKnightSwordShot
+      ? KNIGHT_SWORD_PROJECTILE_SHOOT_MS
+      : Math.max(0, Math.floor(attackDuration * hitFrameRatio));
+
+    updateOpponentCrouch(isCrouchAttack);
+    updateOpponentAttack(nextAttack);
+    if (!isOpponentKnightSwordShot) playAttackSound(opponent, nextAttack, isCrouchAttack);
+
+    if (opponentAttackHitTimer.current) window.clearTimeout(opponentAttackHitTimer.current);
+    opponentAttackHitTimer.current = window.setTimeout(() => {
+      opponentAttackHitTimer.current = null;
+      if (
+        isArenaPausedRef.current ||
+        opponentAttackRef.current !== nextAttack ||
+        opponentStatusRef.current !== 'idle' ||
+        playerHealthRef.current <= 0
+      ) {
+        return;
+      }
+
+      if (isOpponentKnightSwordShot) {
+        const direction: -1 | 1 = positionRef.current.x >= opponentPositionRef.current.x ? 1 : -1;
+        spawnProjectile('right', opponentPositionRef.current.x, direction, 'high', 'knight-sword', {
+          bottomPx: getKnightSwordProjectileBottom(
+            opponentPositionRef.current,
+            opponent.id === 'roaring-knight' ? knightVisualLiftRef.current : 0,
+          ),
+        });
+        return;
+      }
+
+      if (isOpponentGersonParry) {
+        useGersonParry('right');
+        return;
+      }
+
+      const range =
+        (nextAttack === 'punch' ? 18 : 22) +
+        (isPlayerKnightSpecialHurtboxExpanded() ? KNIGHT_SPECIAL_HURTBOX_BONUS : 0);
+      if (Math.abs(positionRef.current.x - opponentPositionRef.current.x) > range) return;
+      if (!canMeleeAttackReachVertical(opponentPositionRef.current.y, positionRef.current.y, attackEffect, hitLevel)) return;
+
+      const didDamageThroughBlock = damagePlayer(attackDamage, attackEffect, hitLevel);
+      if (
+        didDamageThroughBlock &&
+        attackEffect === 'none' &&
+        !isPlayerKnightSphereActive() &&
+        !isPlayerKnightDarkWaveHolding()
+      ) {
+        applyProjectileKnockback(
+          'left',
+          positionRef.current.x <= opponentPositionRef.current.x ? -1 : 1,
+          getAttackKnockbackStrength(opponent, nextAttack),
+        );
+      }
+    }, hitDelay);
+
+    if (opponentAttackTimer.current) window.clearTimeout(opponentAttackTimer.current);
+    opponentAttackTimer.current = window.setTimeout(() => {
+      if (isArenaPausedRef.current) return;
+      updateOpponentAttack('idle');
+      updateOpponentCrouch(false);
+    }, attackDuration);
+  }
+
+  function handleOnlineOpponentInput(key: string, isDown: boolean) {
+    if (!['w', 'a', 's', 'd', 'arrowleft', 'arrowright', 'arrowdown', 'arrowup', 'block'].includes(key)) return;
+
+    if (!isDown) {
+      remotePressedKeys.current.delete(key);
+      if (key === 'block') updateOpponentBlock(false);
+      return;
+    }
+
+    if (remotePressedKeys.current.has(key)) return;
+    remotePressedKeys.current.add(key);
+
+    if (isArenaPausedRef.current || roundCountdownRef.current > 0 || roundResolvedRef.current) return;
+
+    const opponentOnGround = opponentPositionRef.current.y === 0 || isOnJevilPlatform(opponent, opponentPositionRef.current);
+    if (key === 'block') {
+      if (
+        opponentOnGround &&
+        opponentAttackRef.current === 'idle' &&
+        !opponentSpecialLockRef.current &&
+        opponentStatusRef.current === 'idle'
+      ) {
+        updateOpponentBlock(true);
+      }
+      return;
+    }
+
+    if (key === 'w') {
+      if (
+        opponentOnGround &&
+        opponentJumpVelocity.current === 0 &&
+        opponentAttackRef.current === 'idle' &&
+        !opponentSpecialLockRef.current &&
+        !opponentBlockingRef.current &&
+        opponentStatusRef.current === 'idle'
+      ) {
+        opponentJumpVelocity.current = getFighterJumpPower(opponent);
+      }
+      return;
+    }
+
+    if (key === 's') {
+      if (canFighterCrouch(opponent) && opponentOnGround) updateOpponentCrouch(true);
+      return;
+    }
+
+    if (key === 'arrowleft' || key === 'arrowright') {
+      triggerOnlineOpponentAttack(key === 'arrowleft' ? 'punch' : 'kick');
+    }
+  }
+
   function updateOpponentStatus(nextStatus: OpponentStatus) {
     if (nextStatus !== 'idle') {
       opponentGersonAirStompChainRef.current = false;
@@ -4225,7 +5668,7 @@ export default function App() {
       ? Math.ceil(baseDamage * (opponent.id === 'roaring-knight' ? 0.1 : 0.25))
       : baseDamage;
 
-    if (arenaMode === 'sandbox') {
+    if (arenaMode === 'sandbox' || arenaMode === 'online') {
       flashDamage('right');
       applyOpponentHealthDamage(damage);
       return blockOutcome === 'none';
@@ -6015,6 +7458,38 @@ export default function App() {
       if (!handledKeys.includes(key)) return;
       event.preventDefault();
 
+      if (arenaMode === 'online' && onlineRoleRef.current === 'guest') {
+        if (!isArenaPausedRef.current && !event.repeat) {
+          pressedKeys.current.add(key);
+          broadcastOnlineInput(key, true);
+          if (key === 'w' && opponentJumpVelocity.current === 0) {
+            opponentJumpVelocity.current = getFighterJumpPower(opponent);
+          }
+          if (key === 's' && canFighterCrouch(opponent)) {
+            updateOpponentCrouch(true);
+          }
+          if (key === 'block') {
+            updateOpponentBlock(true);
+          }
+          if (
+            (key === 'arrowleft' || key === 'arrowright') &&
+            opponentAttackRef.current === 'idle' &&
+            opponentStatusRef.current === 'idle' &&
+            !opponentSpecialLockRef.current
+          ) {
+            const predictedAttack = key === 'arrowleft' ? 'punch' : 'kick';
+            updateOpponentAttack(predictedAttack);
+            playAttackSound(opponent, predictedAttack, pressedKeys.current.has('s'));
+            if (opponentAttackTimer.current) window.clearTimeout(opponentAttackTimer.current);
+            opponentAttackTimer.current = window.setTimeout(() => {
+              if (onlineRoleRef.current !== 'guest') return;
+              updateOpponentAttack('idle');
+            }, getFighterAttackDuration(opponent, predictedAttack));
+          }
+        }
+        return;
+      }
+
       if (isArenaPausedRef.current) return;
       if (roundCountdownRef.current > 0 || roundResolvedRef.current) return;
       if (event.repeat) return;
@@ -6166,6 +7641,14 @@ export default function App() {
 
     function handleKeyUp(event: KeyboardEvent) {
       const key = getGameKey(event, controlBindings);
+
+      if (arenaMode === 'online' && onlineRoleRef.current === 'guest') {
+        pressedKeys.current.delete(key);
+        broadcastOnlineInput(key, false);
+        if (key === 's') updateOpponentCrouch(false);
+        if (key === 'block') updateOpponentBlock(false);
+        return;
+      }
 
       if (isArenaPausedRef.current) {
         pressedKeys.current.delete(key);
@@ -6685,6 +8168,86 @@ export default function App() {
 
       if (
         !isRoundLocked &&
+        arenaMode === 'online' &&
+        onlineRoleRef.current === 'guest' &&
+        opponentStatusRef.current === 'idle' &&
+        opponentAttackRef.current === 'idle' &&
+        !opponentSpecialLockRef.current &&
+        !opponentBlockingRef.current &&
+        !opponentIsSphereActive &&
+        !opponentIsBirdDashing &&
+        opponentHealthRef.current > 0
+      ) {
+        const nextOpponentPosition = { ...opponentPositionRef.current };
+        const speed = getFighterWalkSpeed(opponent);
+
+        if (pressedKeys.current.has('a')) nextOpponentPosition.x -= speed * deltaScale;
+        if (pressedKeys.current.has('d')) nextOpponentPosition.x += speed * deltaScale;
+
+        nextOpponentPosition.x =
+          nextOpponentPosition.y > 0 || positionRef.current.y > 0
+            ? clampAirborneOpponentX(
+                nextOpponentPosition.x,
+                opponentPositionRef.current.x,
+                positionRef.current.x,
+              )
+            : clampOpponentX(nextOpponentPosition.x, positionRef.current.x);
+
+        const shouldCrouch =
+          pressedKeys.current.has('s') &&
+          canFighterCrouch(opponent) &&
+          nextOpponentPosition.y === 0;
+        updateOpponentCrouch(shouldCrouch);
+
+        if (nextOpponentPosition.x !== opponentPositionRef.current.x) {
+          const boundedOpponentPosition = clampFighterPosition(nextOpponentPosition, selectedStage, opponent);
+          opponentPositionRef.current = boundedOpponentPosition;
+          setOpponentPosition(boundedOpponentPosition);
+        }
+      }
+
+      if (
+        !isRoundLocked &&
+        arenaMode === 'online' &&
+        onlineRoleRef.current === 'host' &&
+        opponentStatusRef.current === 'idle' &&
+        opponentAttackRef.current === 'idle' &&
+        !opponentSpecialLockRef.current &&
+        !opponentBlockingRef.current &&
+        !opponentIsSphereActive &&
+        !opponentIsBirdDashing &&
+        opponentHealthRef.current > 0
+      ) {
+        const nextOpponentPosition = { ...opponentPositionRef.current };
+        const speed = getFighterWalkSpeed(opponent);
+
+        if (remotePressedKeys.current.has('a')) nextOpponentPosition.x -= speed * deltaScale;
+        if (remotePressedKeys.current.has('d')) nextOpponentPosition.x += speed * deltaScale;
+
+        nextOpponentPosition.x =
+          nextOpponentPosition.y > 0 || positionRef.current.y > 0
+            ? clampAirborneOpponentX(
+                nextOpponentPosition.x,
+                opponentPositionRef.current.x,
+                positionRef.current.x,
+              )
+            : clampOpponentX(nextOpponentPosition.x, positionRef.current.x);
+
+        const shouldCrouch =
+          remotePressedKeys.current.has('s') &&
+          canFighterCrouch(opponent) &&
+          nextOpponentPosition.y === 0;
+        updateOpponentCrouch(shouldCrouch);
+
+        if (nextOpponentPosition.x !== opponentPositionRef.current.x) {
+          const boundedOpponentPosition = clampFighterPosition(nextOpponentPosition, selectedStage, opponent);
+          opponentPositionRef.current = boundedOpponentPosition;
+          setOpponentPosition(boundedOpponentPosition);
+        }
+      }
+
+      if (
+        !isRoundLocked &&
         arenaMode === 'fight' &&
         opponentStatusRef.current === 'idle' &&
         opponentAttackRef.current === 'idle' &&
@@ -6952,6 +8515,59 @@ export default function App() {
       }
 
       setIsCrouching(isRoundLocked ? false : nextIsCrouching);
+      if (
+        arenaMode === 'online' &&
+        onlineRoleRef.current === 'host' &&
+        onlineChannelRef.current &&
+        frameTime - lastOnlineSnapshotAt.current >= ONLINE_SNAPSHOT_INTERVAL_MS
+      ) {
+        lastOnlineSnapshotAt.current = frameTime;
+        void onlineChannelRef.current.send({
+          type: 'broadcast',
+          event: 'snapshot',
+          payload: {
+            playerId: onlinePlayerIdRef.current,
+            sequence: ++onlineSnapshotSequenceRef.current,
+            playerPosition: positionRef.current,
+            opponentPosition: opponentPositionRef.current,
+            playerHealth: playerHealthRef.current,
+            opponentHealth: opponentHealthRef.current,
+            attack: attackRef.current,
+            opponentAttack: opponentAttackRef.current,
+            playerStatus: playerStatusRef.current,
+            opponentStatus: opponentStatusRef.current,
+            isCrouching: nextIsCrouching,
+            opponentCrouching: opponentCrouchingRef.current,
+            playerBlocking: isBlockingRef.current,
+            opponentBlocking: opponentBlockingRef.current,
+            playerSpecialShooting: playerSpecialShootingRef.current,
+            opponentSpecialShooting: opponentSpecialShootingRef.current,
+            playerSpecialSpriteOverride: playerSpecialSpriteOverrideRef.current,
+            opponentSpecialSpriteOverride: opponentSpecialSpriteOverrideRef.current,
+            playerAirSpecialWave: playerAirSpecialWaveRef.current,
+            opponentAirSpecialWave: opponentAirSpecialWaveRef.current,
+            playerChargeAttackState: playerChargeAttackStateRef.current,
+            opponentChargeAttackState: opponentChargeAttackStateRef.current,
+            playerChargeAuraActive: playerChargeAuraActiveRef.current,
+            opponentChargeAuraActive: opponentChargeAuraActiveRef.current,
+            playerKnightSpherePhase: knightSpherePhaseRef.current,
+            opponentKnightSpherePhase: opponentKnightSpherePhaseRef.current,
+            playerKnightDarkWaveState: playerKnightDarkWaveStateRef.current,
+            opponentKnightDarkWaveState: opponentKnightDarkWaveStateRef.current,
+            playerKnightDarkWaveDirection: playerKnightDarkWaveDirectionRef.current,
+            playerKnightDarkWaveOverheated: playerKnightDarkWaveOverheatedRef.current,
+            opponentKnightDarkWaveOverheated: opponentKnightDarkWaveOverheatedRef.current,
+            playerJevilAbsorbing: playerJevilAbsorbingRef.current,
+            opponentJevilAbsorbing: opponentJevilAbsorbingRef.current,
+            playerJevilHeadlessPose: playerJevilHeadlessPoseRef.current,
+            opponentJevilHeadlessPose: opponentJevilHeadlessPoseRef.current,
+            jevilPlatforms: jevilPlatformsRef.current,
+            roundTimeLeft: roundTimeLeftRef.current,
+            roundCountdown: roundCountdownRef.current,
+            projectiles: projectilesRef.current,
+          } satisfies OnlineSnapshotMessage,
+        });
+      }
       animationFrame.current = window.requestAnimationFrame(movePlayer);
     }
 
@@ -6967,7 +8583,7 @@ export default function App() {
     window.addEventListener('blur', releaseHeldPlayerInputs);
     animationFrame.current = window.requestAnimationFrame(movePlayer);
 
-    if (arenaMode === 'sandbox') {
+    if (arenaMode === 'sandbox' || arenaMode === 'online') {
       return () => {
         window.removeEventListener('keydown', handleKeyDown);
         window.removeEventListener('keyup', handleKeyUp);
@@ -7926,6 +9542,288 @@ export default function App() {
     setScreen('select');
   }
 
+  function makeRoomCode() {
+    return Math.random().toString(36).slice(2, 6).toUpperCase();
+  }
+
+  function cleanupOnlineRoom() {
+    if (onlineChannelRef.current) {
+      void supabase.removeChannel(onlineChannelRef.current);
+      onlineChannelRef.current = null;
+    }
+    remotePressedKeys.current.clear();
+    onlineInputSequenceRef.current = 0;
+    onlineSnapshotSequenceRef.current = 0;
+    lastRemoteInputSequenceRef.current = 0;
+    lastAppliedOnlineSnapshotRef.current = 0;
+    lastOnlineSnapshotAt.current = 0;
+    setOnlinePeerReady(false);
+    setOnlineRole(null);
+    setOnlineRoomStatus('idle');
+    setOnlineRoomMessage('Создай комнату или введи код друга.');
+  }
+
+  function applyOnlineSnapshot(snapshot: OnlineSnapshotMessage) {
+    if (snapshot.playerId === onlinePlayerIdRef.current || onlineRoleRef.current !== 'guest') return;
+    if (snapshot.sequence <= lastAppliedOnlineSnapshotRef.current) return;
+    lastAppliedOnlineSnapshotRef.current = snapshot.sequence;
+
+    const reconcilePosition = (current: Position, target: Position) => {
+      const distance = Math.hypot(target.x - current.x, target.y - current.y);
+      if (distance >= ONLINE_RECONCILE_SNAP_DISTANCE) return target;
+      return {
+        x: current.x + (target.x - current.x) * ONLINE_RECONCILE_LERP,
+        y: current.y + (target.y - current.y) * ONLINE_RECONCILE_LERP,
+      };
+    };
+    const nextPlayerPosition = reconcilePosition(positionRef.current, snapshot.playerPosition);
+    const nextOpponentPosition = reconcilePosition(opponentPositionRef.current, snapshot.opponentPosition);
+
+    positionRef.current = nextPlayerPosition;
+    opponentPositionRef.current = nextOpponentPosition;
+    setPlayerPosition(nextPlayerPosition);
+    setOpponentPosition(nextOpponentPosition);
+    setPlayerHealth(snapshot.playerHealth);
+    setOpponentHealth(snapshot.opponentHealth);
+    attackRef.current = snapshot.attack;
+    opponentAttackRef.current = snapshot.opponentAttack;
+    setAttack(snapshot.attack);
+    setOpponentAttack(snapshot.opponentAttack);
+    playerStatusRef.current = snapshot.playerStatus;
+    opponentStatusRef.current = snapshot.opponentStatus;
+    setPlayerStatus(snapshot.playerStatus);
+    setOpponentStatus(snapshot.opponentStatus);
+    setIsCrouching(snapshot.isCrouching);
+    opponentCrouchingRef.current = snapshot.opponentCrouching;
+    setOpponentCrouching(snapshot.opponentCrouching);
+    playerBlockHeldRef.current = snapshot.playerBlocking;
+    setIsBlocking(snapshot.playerBlocking);
+    opponentBlockingRef.current = snapshot.opponentBlocking;
+    setOpponentBlocking(snapshot.opponentBlocking);
+    setPlayerSpecialShooting(snapshot.playerSpecialShooting);
+    setOpponentSpecialShooting(snapshot.opponentSpecialShooting);
+    setPlayerSpecialSpriteOverride(snapshot.playerSpecialSpriteOverride);
+    setOpponentSpecialSpriteOverride(snapshot.opponentSpecialSpriteOverride);
+    setPlayerAirSpecialWave(snapshot.playerAirSpecialWave);
+    setOpponentAirSpecialWave(snapshot.opponentAirSpecialWave);
+    setPlayerChargeAuraActive(snapshot.playerChargeAuraActive);
+    setOpponentChargeAuraActive(snapshot.opponentChargeAuraActive);
+    if (playerChargeAttackStateRef.current !== snapshot.playerChargeAttackState) {
+      playerChargeAttackStateRef.current = snapshot.playerChargeAttackState;
+      if (snapshot.playerChargeAttackState === 'charging') playerChargeAttackStartedAt.current = window.performance.now();
+      if (snapshot.playerChargeAttackState === 'releasing') playerChargeReleaseStartedAt.current = window.performance.now();
+    }
+    if (opponentChargeAttackStateRef.current !== snapshot.opponentChargeAttackState) {
+      opponentChargeAttackStateRef.current = snapshot.opponentChargeAttackState;
+      if (snapshot.opponentChargeAttackState === 'charging') opponentChargeAttackStartedAt.current = window.performance.now();
+      if (snapshot.opponentChargeAttackState === 'releasing') opponentChargeReleaseStartedAt.current = window.performance.now();
+    }
+    setPlayerChargeAttackState(snapshot.playerChargeAttackState);
+    setOpponentChargeAttackState(snapshot.opponentChargeAttackState);
+    if (knightSpherePhaseRef.current !== snapshot.playerKnightSpherePhase) {
+      knightSpherePhaseRef.current = snapshot.playerKnightSpherePhase;
+      playerKnightSpherePhaseStartedAt.current = window.performance.now();
+    }
+    if (opponentKnightSpherePhaseRef.current !== snapshot.opponentKnightSpherePhase) {
+      opponentKnightSpherePhaseRef.current = snapshot.opponentKnightSpherePhase;
+      opponentKnightSpherePhaseStartedAt.current = window.performance.now();
+    }
+    setPlayerKnightSpherePhase(snapshot.playerKnightSpherePhase);
+    setOpponentKnightSpherePhase(snapshot.opponentKnightSpherePhase);
+    if (playerKnightDarkWaveStateRef.current !== snapshot.playerKnightDarkWaveState) {
+      playerKnightDarkWaveStartedAt.current =
+        snapshot.playerKnightDarkWaveState === 'holding' ? window.performance.now() : 0;
+    }
+    if (opponentKnightDarkWaveStateRef.current !== snapshot.opponentKnightDarkWaveState) {
+      opponentKnightDarkWaveStartedAt.current =
+        snapshot.opponentKnightDarkWaveState === 'holding' ? window.performance.now() : 0;
+    }
+    playerKnightDarkWaveStateRef.current = snapshot.playerKnightDarkWaveState;
+    opponentKnightDarkWaveStateRef.current = snapshot.opponentKnightDarkWaveState;
+    playerKnightDarkWaveDirectionRef.current = snapshot.playerKnightDarkWaveDirection;
+    setPlayerKnightDarkWaveState(snapshot.playerKnightDarkWaveState);
+    setOpponentKnightDarkWaveState(snapshot.opponentKnightDarkWaveState);
+    setPlayerKnightDarkWaveDirection(snapshot.playerKnightDarkWaveDirection);
+    setPlayerKnightDarkWaveOverheated(snapshot.playerKnightDarkWaveOverheated);
+    setOpponentKnightDarkWaveOverheated(snapshot.opponentKnightDarkWaveOverheated);
+    playerJevilAbsorbActiveRef.current = snapshot.playerJevilAbsorbing;
+    opponentJevilAbsorbActiveRef.current = snapshot.opponentJevilAbsorbing;
+    setPlayerJevilAbsorbing(snapshot.playerJevilAbsorbing);
+    setOpponentJevilAbsorbing(snapshot.opponentJevilAbsorbing);
+    setPlayerJevilHeadlessPose(snapshot.playerJevilHeadlessPose);
+    setOpponentJevilHeadlessPose(snapshot.opponentJevilHeadlessPose);
+    setJevilPlatformsAndRef(snapshot.jevilPlatforms);
+    roundTimeLeftRef.current = snapshot.roundTimeLeft;
+    setRoundTimeLeft(snapshot.roundTimeLeft);
+    roundCountdownRef.current = snapshot.roundCountdown;
+    setRoundCountdown(snapshot.roundCountdown);
+    projectilesRef.current = snapshot.projectiles;
+    setProjectiles(snapshot.projectiles);
+  }
+
+  function createOnlineChannel(code: string, role: OnlineRole) {
+    cleanupOnlineRoom();
+    setRoomCode(code);
+    setOnlineRole(role);
+    setOnlineRoomStatus('connecting');
+    setOnlineRoomMessage('Подключаемся к комнате...');
+
+    const channel = supabase.channel(`deltafight-room-${code}`, {
+      config: { broadcast: { self: false } },
+    });
+
+    channel
+      .on('broadcast', { event: 'peer-ready' }, ({ payload }) => {
+        const message = payload as { playerId?: string };
+        if (message.playerId === onlinePlayerIdRef.current) return;
+        setOnlinePeerReady(true);
+        setOnlineRoomStatus('ready');
+        setOnlineRoomMessage(role === 'host' ? 'Игрок подключился. Можно начинать бой.' : 'Комната готова. Ждем старт от хоста.');
+        if (role === 'host') {
+          void channel.send({
+            type: 'broadcast',
+            event: 'host-ready',
+            payload: { playerId: onlinePlayerIdRef.current },
+          });
+        }
+      })
+      .on('broadcast', { event: 'host-ready' }, ({ payload }) => {
+        const message = payload as { playerId?: string };
+        if (message.playerId === onlinePlayerIdRef.current) return;
+        setOnlinePeerReady(true);
+        setOnlineRoomStatus('ready');
+        setOnlineRoomMessage('Комната готова. Ждем старт от хоста.');
+      })
+      .on('broadcast', { event: 'start' }, ({ payload }) => {
+        const message = payload as { playerId?: string; stageId?: string; fighterId?: string; opponentId?: string };
+        if (message.playerId === onlinePlayerIdRef.current) return;
+        if (message.stageId) setSelectedStageId(message.stageId);
+        if (message.fighterId) setSelectedFighterId(message.fighterId);
+        if (message.opponentId) setSelectedOpponentId(message.opponentId);
+        setArenaMode('online');
+        setOnlineRoomStatus('playing');
+        resetFight();
+        playFightStartSound();
+        setScreen('arena');
+      })
+      .on('broadcast', { event: 'input' }, ({ payload }) => {
+        const message = payload as OnlineInputMessage;
+        if (message.playerId === onlinePlayerIdRef.current || onlineRoleRef.current !== 'host') return;
+        if (message.sequence <= lastRemoteInputSequenceRef.current) return;
+        lastRemoteInputSequenceRef.current = message.sequence;
+        handleOnlineOpponentInput(message.key, message.isDown);
+      })
+      .on('broadcast', { event: 'snapshot' }, ({ payload }) => {
+        applyOnlineSnapshot(payload as OnlineSnapshotMessage);
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setOnlineRoomStatus(role === 'host' ? 'waiting' : 'waiting');
+          setOnlineRoomMessage(role === 'host' ? `Комната ${code} создана. Ждем второго игрока.` : `Подключились к ${code}.`);
+          void channel.send({
+            type: 'broadcast',
+            event: role === 'host' ? 'host-ready' : 'peer-ready',
+            payload: { playerId: onlinePlayerIdRef.current },
+          });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setOnlineRoomStatus('error');
+          setOnlineRoomMessage('Не получилось подключиться к комнате.');
+        }
+      });
+
+    onlineChannelRef.current = channel;
+  }
+
+  function createOnlineRoom() {
+    createOnlineChannel(makeRoomCode(), 'host');
+  }
+
+  function joinOnlineRoom() {
+    const code = joinRoomCode.trim().toUpperCase();
+    if (code.length < 3) {
+      setOnlineRoomStatus('error');
+      setOnlineRoomMessage('Введи код комнаты.');
+      return;
+    }
+    createOnlineChannel(code, 'guest');
+  }
+
+  function startOnlineRoomMatch() {
+    if (!onlineChannelRef.current || onlineRole !== 'host') return;
+    setArenaMode('online');
+    setOnlineRoomStatus('playing');
+    setLockedFighter(selectedFighter);
+    setLockedOpponent(selectedOpponent);
+    void onlineChannelRef.current.send({
+      type: 'broadcast',
+      event: 'start',
+      payload: {
+        playerId: onlinePlayerIdRef.current,
+        stageId: selectedStageId,
+        fighterId: selectedFighter.id,
+        opponentId: selectedOpponent.id,
+      },
+    });
+    resetFight();
+    playFightStartSound();
+    setScreen('arena');
+  }
+
+  function broadcastOnlineInput(key: string, isDown: boolean) {
+    if (arenaMode !== 'online' || onlineRoleRef.current !== 'guest' || !onlineChannelRef.current) return;
+    void onlineChannelRef.current.send({
+      type: 'broadcast',
+      event: 'input',
+      payload: {
+        playerId: onlinePlayerIdRef.current,
+        key,
+        isDown,
+        sequence: ++onlineInputSequenceRef.current,
+        sentAt: window.performance.now(),
+      } satisfies OnlineInputMessage,
+    });
+  }
+
+  function openRoomsScreen() {
+    setArenaMode('online');
+    setScreen('rooms');
+  }
+
+  function openCampaignSaveSelect() {
+    if (doorTransitionMode || doorTransitionTimer.current) return;
+    playBufferedSound('doorClick', doorClickSoundRef.current, 0.85);
+    campaignPressedKeys.current.clear();
+    setCampaignSaves(readCampaignSaves());
+    setScreen('campaign-saves');
+  }
+
+  function openCampaignMap(slot: number) {
+    const campaignSave = campaignSaves.find((save) => save.slot === slot) ?? createEmptyCampaignSave(slot);
+    campaignPressedKeys.current.clear();
+    campaignPositionRef.current = campaignSave.position;
+    setSelectedCampaignSaveSlot(slot);
+    setCampaignRoomId(campaignSave.roomId);
+    setCampaignPosition(campaignSave.position);
+    setIsCampaignBagDefeated(campaignSave.isBagDefeated);
+    setIsCampaignBagCollected(campaignSave.isBagCollected);
+    setCampaignDialogue(null);
+    setCampaignActiveNpcId(null);
+    setIsCampaignMenuOpen(false);
+    setCampaignBossCutsceneStep(null);
+    setCampaignBossCutscenePhase('talking');
+    setScreen('campaign');
+  }
+
+  function resetCampaignSave(slot: number) {
+    const nextSaves = campaignSaves.map((save) => (save.slot === slot ? createEmptyCampaignSave(slot) : save));
+    setCampaignSaves(nextSaves);
+    writeCampaignSaves(nextSaves);
+
+    if (selectedCampaignSaveSlot === slot) {
+      setSelectedCampaignSaveSlot(null);
+    }
+  }
+
   function startFight() {
     setLockedFighter(selectedFighter);
     setLockedOpponent(selectedOpponent);
@@ -7948,6 +9846,7 @@ export default function App() {
   }
 
   function backToSelect() {
+    if (arenaMode === 'online') cleanupOnlineRoom();
     setSettingsOpen(false);
     resetFight();
     setLockedFighter(null);
@@ -7956,6 +9855,7 @@ export default function App() {
   }
 
   function backToMainMenu() {
+    if (arenaMode === 'online') cleanupOnlineRoom();
     resetFight();
     setArenaMode('fight');
     setLockedFighter(null);
@@ -7993,10 +9893,10 @@ export default function App() {
       ControlRight: 'Ctrl R',
       AltLeft: 'Alt L',
       AltRight: 'Alt R',
-      ArrowLeft: '←',
-      ArrowRight: '→',
-      ArrowDown: '↓',
-      ArrowUp: '↑',
+      ArrowLeft: '<',
+      ArrowRight: '>',
+      ArrowDown: 'v',
+      ArrowUp: '^',
     };
 
     if (labels[code]) return labels[code];
@@ -8261,6 +10161,341 @@ export default function App() {
     );
   }
 
+  if (screen === 'campaign') {
+    const campaignRoom = getCampaignRoomWithProgress(campaignRoomId, isCampaignBagDefeated);
+
+    return (
+      <main className="game-shell game-shell--campaign">
+        <section className="campaign-screen" aria-label="Кампания">
+          <div className={`campaign-room campaign-room--${campaignRoom.id}`}>
+            {campaignRoom.allowed.map((rect, index) => (
+              <span
+                className="campaign-walk-area"
+                aria-hidden="true"
+                key={`${campaignRoom.id}-area-${index}`}
+                style={{
+                  left: `${rect.x}%`,
+                  top: `${rect.y}%`,
+                  width: `${rect.width}%`,
+                  height: `${rect.height}%`,
+                }}
+              />
+            ))}
+            {campaignRoom.npcs?.map((npc) => {
+              const npcSize = getCampaignNpcSize(npc);
+              const isNpcTalking = npc.id === campaignActiveNpcId && Boolean(npc.talkSprite);
+
+              return (
+                <button
+                  className={`campaign-npc${npc.id === campaignActiveNpcId ? ' campaign-npc--talking' : ''}`}
+                  key={npc.id}
+                  aria-label={npc.label}
+                  style={{
+                    left: `${npc.x}%`,
+                    top: `${npc.y}%`,
+                    width: `${npcSize.width}%`,
+                    height: `${npcSize.height}%`,
+                  }}
+                  tabIndex={-1}
+                  type="button"
+                >
+                  {npc.idleSprite ? (
+                    <img
+                      className="campaign-npc-sprite"
+                      src={isNpcTalking && npc.talkSprite ? npc.talkSprite : npc.idleSprite}
+                      style={
+                        isNpcTalking && npc.talkOffsetY
+                          ? { transform: `translateY(${npc.talkOffsetY}%)` }
+                          : undefined
+                      }
+                      alt=""
+                    />
+                  ) : (
+                    npc.label
+                  )}
+                </button>
+              );
+            })}
+            {campaignRoom.signs?.map((sign) => (
+              <button
+                className="campaign-sign"
+                key={sign.id}
+                onClick={() => {
+                  setCampaignDialogue(sign.text);
+                  setCampaignActiveNpcId(null);
+                }}
+                style={{ left: `${sign.x}%`, top: `${sign.y}%` }}
+                type="button"
+              >
+                {sign.label}
+              </button>
+            ))}
+            {campaignRoomId === 'side-room' && isCampaignBagDefeated && !isCampaignBagCollected && (
+              <img
+                className={`campaign-defeated-bag${
+                  campaignBossCutscenePhase === 'leaving' ? ' campaign-defeated-bag--collected' : ''
+                }`}
+                src={campaignNpcSideBagVictorySprite}
+                alt=""
+              />
+            )}
+            {campaignRoomId === 'side-room' && campaignBossCutsceneStep !== null && campaignBossCutsceneStep > 0 && (
+              <img
+                className={`campaign-room-boss-emerge${
+                  campaignBossCutscenePhase === 'leaving' ? ' campaign-room-boss-emerge--leaving' : ''
+                }`}
+                src={campaignBossPlaceholderSprite}
+                alt=""
+              />
+            )}
+            <img
+              className="campaign-player"
+              src={campaignHeartPlayerSprite}
+              alt=""
+              style={{
+                left: `${campaignPosition.x}%`,
+                top: `${campaignPosition.y}%`,
+              }}
+            />
+          </div>
+          {campaignDialogue && (
+            <button
+              className="campaign-dialogue"
+              onClick={() => {
+                if (campaignDialogueVisibleChars < campaignDialogue.length) {
+                  setCampaignDialogueVisibleChars(campaignDialogue.length);
+                  return;
+                }
+
+                setCampaignDialogue(null);
+                setCampaignActiveNpcId(null);
+              }}
+              type="button"
+            >
+              {campaignDialogue.slice(0, campaignDialogueVisibleChars)}
+            </button>
+          )}
+          {campaignBossCutsceneStep !== null && (
+            <button
+              className={`campaign-boss-cutscene${
+                campaignBossCutscenePhase === 'leaving' ? ' campaign-boss-cutscene--leaving' : ''
+              }`}
+              onClick={advanceCampaignBossCutscene}
+              type="button"
+            >
+              <span className="campaign-boss-cutscene__dialogue">
+                {CAMPAIGN_BOSS_CUTSCENE_LINES[campaignBossCutsceneStep]}
+              </span>
+            </button>
+          )}
+          {isCampaignMenuOpen && (
+            <div className="campaign-pause-menu" role="dialog" aria-label="Меню кампании">
+              <div className="settings-panel__title">ПАУЗА</div>
+              <button
+                className="confirm-button campaign-pause-menu__button"
+                onClick={() => setIsCampaignMenuOpen(false)}
+                type="button"
+              >
+                Продолжить
+              </button>
+              <button
+                className="back-button campaign-pause-menu__button"
+                onClick={() => {
+                  campaignPressedKeys.current.clear();
+                  setCampaignDialogue(null);
+                  setCampaignActiveNpcId(null);
+                  setIsCampaignMenuOpen(false);
+                  setScreen('menu');
+                }}
+                type="button"
+              >
+                В меню
+              </button>
+            </div>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+  if (screen === 'bag-battle') {
+    const playerHealthPercent = Math.max(0, bagBattlePlayer.health);
+    const bossHealthPercent = (Math.max(0, bagBattleBoss.health) / BAG_BATTLE_BOSS_START.health) * 100;
+    const bagBattleBossSprite =
+      bagBattleResult === 'won'
+        ? campaignNpcSideBagVictorySprite
+      : bagBattleResult !== 'playing'
+        ? campaignNpcSideBagTalkSprite
+        : bagBattleBossPattern === 'run-prep'
+          ? campaignNpcSideBagRunPrepSprite
+        : isBagBattleBossShooting
+          ? campaignNpcSideBagShootSprite
+          : campaignNpcSideBagTalkSprite;
+
+    return (
+      <main className="game-shell game-shell--bag-battle">
+        <section
+          className={`bag-battle-screen${isBagBattleIntro ? ' bag-battle-screen--intro' : ''}`}
+          aria-label="Р‘РѕР№ СЃ РјРµС€РєРѕРј"
+        >
+          <div className="bag-battle-hud">
+            <div className="bag-battle-health">
+              <span>HEART SHADE</span>
+              <strong>{Math.ceil(bagBattlePlayer.health)}</strong>
+              <i style={{ width: `${playerHealthPercent}%` }} />
+            </div>
+            <div className="bag-battle-health bag-battle-health--boss">
+              <span>BAG</span>
+              <strong>{Math.ceil(bagBattleBoss.health)}</strong>
+              <i style={{ width: `${bossHealthPercent}%` }} />
+            </div>
+          </div>
+          <div className="bag-battle-arena">
+            <div
+              className={`bag-battle-player bag-battle-player--${bagBattleAttack}${
+                isBagBattleCrouching ? ' bag-battle-player--crouch' : ''
+              }${isBagBattleBlocking ? ' bag-battle-player--block' : ''}`}
+              style={{
+                left: `${bagBattlePlayer.x}%`,
+                bottom: `${12 + bagBattlePlayer.y}%`,
+              }}
+            >
+              <span className="bag-battle-player__body" aria-hidden="true">
+                <span className="bag-battle-player__head">
+                  <img src={campaignHeartPlayerSprite} alt="" />
+                </span>
+                <span className="stick-torso" />
+                <span className="stick-arm stick-arm--front" />
+                <span className="stick-arm stick-arm--back" />
+                <span className="stick-leg stick-leg--front" />
+                <span className="stick-leg stick-leg--back" />
+              </span>
+            </div>
+            <img
+              className={`bag-battle-boss${isBagBattleBossVulnerable ? ' bag-battle-boss--vulnerable' : ''}${
+                isBagBattleBossShooting ? ' bag-battle-boss--shooting' : ''
+              }${isBagBattleBossShooting && bagBattleBossShotLane === 'high' ? ' bag-battle-boss--shoot-high' : ''}${
+                isBagBattleBossShooting && bagBattleBossShotLane === 'low' ? ' bag-battle-boss--shoot-low' : ''
+              }${bagBattleResult === 'won' ? ' bag-battle-boss--victory' : ''}${
+                bagBattleResult !== 'playing' ? ' bag-battle-boss--result' : ''
+              }${bagBattleBossPattern === 'run-prep' ? ' bag-battle-boss--run-prep' : ''}${
+                bagBattleBossPattern === 'running' || bagBattleBossPattern === 'returning'
+                  ? ' bag-battle-boss--running'
+                  : ''
+              }`}
+              src={bagBattleBossSprite}
+              alt=""
+              style={{ left: `${bagBattleBoss.x}%` }}
+            />
+            {bagBattleProjectiles.map((projectile) => (
+              <span
+                className={`bag-battle-projectile bag-battle-projectile--${projectile.owner}${
+                  projectile.lane ? ` bag-battle-projectile--${projectile.lane}` : ''
+                }`}
+                key={projectile.id}
+                style={{
+                  left: `${projectile.x}%`,
+                  bottom: `${14 + projectile.y}%`,
+                }}
+              />
+            ))}
+            {bagBattleResult === 'won' && (
+              <div className="bag-battle-knockout" aria-hidden="true">
+                KNOCKOUT!
+              </div>
+            )}
+            {bagBattleResult !== 'playing' && (
+              <button
+                className="bag-battle-result"
+                onClick={() => {
+                  bagBattlePressedKeys.current.clear();
+                  if (bagBattleResult === 'won') {
+                    const returnPosition = { x: 68, y: 49 };
+                    setIsCampaignBagDefeated(true);
+                    setIsCampaignBagCollected(false);
+                    setCampaignRoomId('side-room');
+                    setCampaignPosition(returnPosition);
+                    campaignPositionRef.current = returnPosition;
+                    setCampaignDialogue(null);
+                    setCampaignActiveNpcId(null);
+                    setCampaignBossCutscenePhase('talking');
+                    setCampaignBossCutsceneStep(0);
+                  }
+                  setScreen('campaign');
+                }}
+                type="button"
+              >
+                <span>{bagBattleResult === 'won' ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}</span>
+                <strong>Нажми Enter</strong>
+              </button>
+            )}
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (screen === 'rooms') {
+    const canStartOnline = onlineRole === 'host' && onlinePeerReady && onlineRoomStatus !== 'connecting';
+
+    return (
+      <main className="game-shell game-shell--menu-bg">
+        <section className="rooms-screen" aria-labelledby="rooms-title">
+          <div className="select-header">
+            <span className="header-rule" />
+            <div>
+              <p className="eyebrow">Online</p>
+              <h1 id="rooms-title">Комнаты</h1>
+            </div>
+            <span className="header-rule" />
+          </div>
+
+          <div className="rooms-panel">
+            <div className="room-card">
+              <span className="room-card__label">Твоя комната</span>
+              <strong className="room-code">{roomCode || '----'}</strong>
+              <button className="confirm-button" onClick={createOnlineRoom} type="button">
+                Создать
+              </button>
+            </div>
+
+            <div className="room-card">
+              <span className="room-card__label">Код друга</span>
+              <input
+                className="room-input"
+                maxLength={8}
+                onChange={(event) => setJoinRoomCode(event.currentTarget.value.toUpperCase())}
+                placeholder="ABCD"
+                value={joinRoomCode}
+              />
+              <button className="confirm-button" onClick={joinOnlineRoom} type="button">
+                Подключиться
+              </button>
+            </div>
+          </div>
+
+          <p className={`room-status room-status--${onlineRoomStatus}`}>{onlineRoomMessage}</p>
+
+          <div className="room-actions">
+            <button className="confirm-button" disabled={!canStartOnline} onClick={startOnlineRoomMatch} type="button">
+              Начать бой
+            </button>
+            <button
+              className="back-button"
+              onClick={() => {
+                cleanupOnlineRoom();
+                setScreen('menu');
+              }}
+              type="button"
+            >
+              Назад
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (screen === 'stage') {
     return (
       <main className="game-shell game-shell--menu-bg">
@@ -8380,7 +10615,7 @@ export default function App() {
               />
               <span className="round-label">
                 <span>Round {roundNumber}</span>
-                <strong className="round-timer">{arenaMode === 'sandbox' ? '∞' : roundTimeLeft}</strong>
+                <strong className="round-timer">{arenaMode === 'sandbox' ? '?' : roundTimeLeft}</strong>
                 <span>{playerRoundWins}:{opponentRoundWins}</span>
               </span>
               <FighterBadge
@@ -8715,12 +10950,13 @@ export default function App() {
 
           <div className="mode-menu mode-menu--doors">
             <button
-              className="mode-door mode-door--campaign mode-door--locked"
-              disabled
+              className="mode-door mode-door--campaign"
+              disabled={Boolean(doorTransitionMode)}
+              onClick={openCampaignSaveSelect}
+              onMouseEnter={playDoorHoverSound}
               type="button"
             >
               <span className="mode-door__panel" aria-hidden="true" />
-              <span className="mode-door__rope" aria-hidden="true" />
               <span className="mode-door__label">Кампания</span>
             </button>
             <button
@@ -8742,6 +10978,72 @@ export default function App() {
             >
               <span className="mode-door__panel" aria-hidden="true" />
               <span className="mode-door__label">Тренировка</span>
+            </button>
+            <button
+              className="mode-door mode-door--online"
+              disabled={Boolean(doorTransitionMode)}
+              onClick={openRoomsScreen}
+              onMouseEnter={playDoorHoverSound}
+              type="button"
+            >
+              <span className="mode-door__panel" aria-hidden="true" />
+              <span className="mode-door__label">Комнаты</span>
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (screen === 'campaign-saves') {
+    return (
+      <main className="game-shell game-shell--menu-bg">
+        <section className="campaign-save-screen" aria-labelledby="campaign-save-title">
+          <div className="select-header">
+            <span className="header-rule" />
+            <div>
+              <p className="eyebrow">Кампания</p>
+              <h1 id="campaign-save-title">Выберите сохранение</h1>
+            </div>
+            <span className="header-rule" />
+          </div>
+
+          <div className="campaign-save-list">
+            {campaignSaves.map((save) => (
+              <div className="campaign-save-slot" key={save.slot}>
+                <button
+                  className="campaign-save-slot__load"
+                  onClick={() => openCampaignMap(save.slot)}
+                  type="button"
+                >
+                  <span className="campaign-save-slot__number">СЛОТ {save.slot}</span>
+                  <strong>{getCampaignSaveLabel(save)}</strong>
+                  <span>
+                    {save.updatedAt
+                      ? new Date(save.updatedAt).toLocaleString('ru-RU', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : 'Новая игра'}
+                  </span>
+                </button>
+                <button
+                  className="campaign-save-slot__reset"
+                  disabled={!save.updatedAt}
+                  onClick={() => resetCampaignSave(save.slot)}
+                  type="button"
+                >
+                  Сброс
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="menu-actions">
+            <button className="back-button" onClick={() => setScreen('menu')} type="button">
+              Назад
             </button>
           </div>
         </section>
@@ -8967,7 +11269,7 @@ function FighterBadge({
       </div>
       <div className="health-track" aria-label={`Здоровье ${fighter.name}: ${health}`}>
         <span className="health-fill" style={{ width: `${visibleHealth}%` }} />
-        {infiniteHealth && <span className="health-infinity">∞</span>}
+        {infiniteHealth && <span className="health-infinity">?</span>}
       </div>
       {gersonAirCounterValue > 0 && (
         <div className="gerson-air-counter" aria-label={`Gerson air counter x${gersonAirCounterValue}`}>
