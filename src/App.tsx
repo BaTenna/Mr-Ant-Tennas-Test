@@ -6,9 +6,8 @@ import {
   requestGeminiBotAdvice,
 } from './lib/geminiBotCoach';
 import { supabase } from './lib/supabase';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, Session } from '@supabase/supabase-js';
 import campaignHeartPlayerSprite from './assets/campaign-heart-player.png';
-import campaignBossPlaceholderSprite from './assets/campaign-boss-placeholder.png';
 import campaignNpcOneAIdleSprite from './assets/campaign-npc-1a-idle.png';
 import campaignNpcOneATalkSprite from './assets/campaign-npc-1a-talk.png';
 import campaignNpcOneBIdleSprite from './assets/campaign-npc-1b-idle.png';
@@ -22,6 +21,8 @@ import campaignNpcSideBagRunPrepSprite from './assets/campaign-npc-side-bag-run-
 import campaignNpcSideBagShootSprite from './assets/campaign-npc-side-bag-shoot.png';
 import campaignNpcSideBagTalkSprite from './assets/campaign-npc-side-bag-talk.png';
 import campaignNpcSideBagVictorySprite from './assets/campaign-npc-side-bag-victory.png';
+import campaignKingAttackOneSprite from './assets/campaign-king-attack1-strip.png';
+import campaignKingBossSprite from './assets/campaign-king-boss.png';
 import gersonBoomBattleSprite from './assets/gerson-boom-battle-strip.png';
 import gersonAirCounterIcon from './assets/gerson-air-counter-icon.png';
 import gersonBoomBackScarfSprite from './assets/gerson-boom-back-scarf-strip.png';
@@ -245,6 +246,7 @@ type Fighter = {
 };
 
 type Screen =
+  | 'auth'
   | 'title'
   | 'menu'
   | 'campaign-saves'
@@ -255,6 +257,7 @@ type Screen =
   | 'stage'
   | 'arena'
   | 'victory';
+type AuthView = 'home' | 'login' | 'signup' | 'profile';
 type Attack = 'idle' | 'punch' | 'kick';
 type HitLevel = 'high' | 'mid' | 'low';
 type HitEffect = 'none' | 'sweep' | 'uppercut';
@@ -277,6 +280,8 @@ type GersonLeapEffect = {
 type ArenaMode = 'fight' | 'sandbox' | 'online';
 type OnlineRole = 'host' | 'guest';
 type OnlineRoomStatus = 'idle' | 'connecting' | 'waiting' | 'ready' | 'playing' | 'error';
+type OnlineRoomVisibility = 'public' | 'private';
+type OnlineRoomsView = 'menu' | 'create' | 'join' | 'public';
 type FighterSide = 'left' | 'right';
 type Facing = 'left' | 'right';
 type Position = { x: number; y: number };
@@ -294,9 +299,18 @@ type BagBattleProjectile = {
   vy: number;
   owner: 'player' | 'boss';
   lane?: 'high' | 'mid' | 'low';
+  kind?: 'shot' | 'spade';
 };
 type BagBattleAttack = 'idle' | 'punch' | 'kick' | 'uppercut' | 'sweep';
-type BagBattleBossPattern = 'shooting' | 'run-prep' | 'running' | 'returning';
+type BagBattleBossPattern =
+  | 'shooting'
+  | 'run-prep'
+  | 'running'
+  | 'returning'
+  | 'spade-rain'
+  | 'spade-crossfire'
+  | 'ground';
+type BagBattleSource = 'bag-npc' | 'campaign-sign';
 type CampaignRoomId = 'room1' | 'room2' | 'room2a' | 'side-room';
 type CampaignRect = { x: number; y: number; width: number; height: number };
 type CampaignTransition = {
@@ -329,6 +343,15 @@ type CampaignSign = {
   x: number;
   y: number;
   text: string;
+  encounter?: 'bag-battle';
+};
+type CampaignRoomDetail = {
+  id: string;
+  kind: 'crack' | 'tile' | 'chip' | 'shadow' | 'rune' | 'dust';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 type CampaignRoom = {
   id: CampaignRoomId;
@@ -337,6 +360,7 @@ type CampaignRoom = {
   transitions: CampaignTransition[];
   npcs?: CampaignNpc[];
   signs?: CampaignSign[];
+  details?: CampaignRoomDetail[];
 };
 type CampaignSaveData = {
   slot: number;
@@ -354,6 +378,31 @@ type OnlineInputMessage = {
   isDown: boolean;
   sequence: number;
   sentAt: number;
+};
+type OnlinePauseMessage = {
+  playerId: string;
+  nickname: string;
+  isPaused: boolean;
+};
+type OnlineLeaveMessage = {
+  playerId: string;
+  nickname: string;
+};
+type OnlineSelectionMessage = {
+  playerId: string;
+  nickname: string;
+  role: OnlineRole;
+  fighterId: string;
+  stageId?: string;
+};
+type OnlinePublicRoom = {
+  playerId: string;
+  code: string;
+  hostName: string;
+  fighterName: string;
+  stageName: string;
+  status: OnlineRoomStatus;
+  updatedAt: number;
 };
 type OnlineSnapshotMessage = {
   playerId: string;
@@ -645,30 +694,6 @@ const fighters: Fighter[] = [
     specialSprite: jevilPlatformSpecialSprite,
     knockdownSprite: jevilKnockdownDefeatSprite,
     defeatSprite: jevilKnockdownDefeatSprite,
-  },
-  {
-    id: 'moss',
-    name: 'Moss',
-    title: 'Iron Grappler',
-    realm: 'Green Pit',
-    color: '#37a66b',
-    shadow: '#155a34',
-  },
-  {
-    id: 'wave',
-    name: 'Wave',
-    title: 'Tide Sentinel',
-    realm: 'Blue Gate',
-    color: '#3f8dd8',
-    shadow: '#183f78',
-  },
-  {
-    id: 'shade',
-    name: 'Shade',
-    title: 'Silent Counter',
-    realm: 'Moon Arena',
-    color: '#7b5bd6',
-    shadow: '#38217a',
   },
   {
     id: 'gerson-boom',
@@ -1217,6 +1242,11 @@ const MAX_FRAME_DELTA_MS = 50;
 const ONLINE_SNAPSHOT_INTERVAL_MS = 1000 / 60;
 const ONLINE_RECONCILE_LERP = 0.28;
 const ONLINE_RECONCILE_SNAP_DISTANCE = 82;
+const ONLINE_LOBBY_CHANNEL = 'deltafight-public-lobby';
+const ONLINE_PUBLIC_ROOM_TTL_MS = 8000;
+const ONLINE_PUBLIC_ROOM_ANNOUNCE_MS = 2500;
+const ONLINE_NICKNAME_STORAGE_KEY = 'deltafight-online-nickname';
+const LOCAL_AUTH_ACCOUNTS_STORAGE_KEY = 'deltafight-local-auth-accounts';
 const CAMPAIGN_MOVE_SPEED = 24;
 const CAMPAIGN_INTERACTION_RANGE = 9;
 const CAMPAIGN_DIALOGUE_TYPE_INTERVAL_MS = 28;
@@ -1228,10 +1258,14 @@ const CAMPAIGN_ROOM_2A_NPC_WALL_Y = 17;
 const CAMPAIGN_ROOM_2A_NPC_FLOWER_WALL_Y = 18.1;
 const CAMPAIGN_ROOM_2A_NPC_BODY_HITBOX = { offsetX: 0, offsetY: 5.7, width: 14.2, height: 15.6 };
 const CAMPAIGN_ROOM_2A_NPC_FLOWER_BODY_HITBOX = { offsetX: 0, offsetY: 7.6, width: 14, height: 13.6 };
-const CAMPAIGN_ROOM_2A_NPC_BAG_HITBOX = { offsetX: 0, offsetY: 2.8, width: 15.6, height: 10.8 };
+const CAMPAIGN_ROOM_2A_NPC_BAG_HITBOX = { offsetX: 0, offsetY: 0.8, width: 14.8, height: 20.2 };
 const BAG_BATTLE_PLAYER_START: BagBattleActor = { x: 82, y: 0, vy: 0, health: 100 };
 const BAG_BATTLE_BOSS_START: BagBattleActor = { x: 18, y: 0, vy: 0, health: 160 };
-const BAG_BATTLE_PLAYER_SPEED = 0.42;
+const BAG_BATTLE_BOSS_GROUND_X = 31;
+const BAG_BATTLE_PLAYER_ARENA_MIN_X = 26;
+const BAG_BATTLE_PLAYER_WALL_MIN_X = 40;
+const BAG_BATTLE_PLAYER_MAX_X = 94;
+const BAG_BATTLE_PLAYER_SPEED = 0.32;
 const BAG_BATTLE_JUMP_POWER = 1.45;
 const BAG_BATTLE_MAX_JUMPS = 2;
 const BAG_BATTLE_GRAVITY = 0.068;
@@ -1249,11 +1283,32 @@ const BAG_BATTLE_BOSS_RUN_DAMAGE = 18;
 const BAG_BATTLE_BOSS_AFTER_RUN_REST_MS = 1200;
 const BAG_BATTLE_BOSS_RETURN_START_X = -10;
 const BAG_BATTLE_INTRO_MS = 1800;
+const BAG_BATTLE_BOSS_SPADE_RAIN_DURATION_MS = 10000;
+const BAG_BATTLE_BOSS_SPADE_RAIN_INTERVAL_MS = 310;
+const BAG_BATTLE_BOSS_SPADE_RAIN_REST_MS = 2600;
+const BAG_BATTLE_BOSS_SPADE_DAMAGE = 6;
+const BAG_BATTLE_BOSS_CROSSFIRE_DURATION_MS = 10000;
+const BAG_BATTLE_BOSS_CROSSFIRE_INTERVAL_MS = 720;
+const BAG_BATTLE_BOSS_CROSSFIRE_REST_MS = 2600;
+const BAG_BATTLE_BOSS_CROSSFIRE_LANES = [6, 28, 52] as const;
+const BAG_BATTLE_BOSS_CROSSFIRE_SPEEDS = [0.24, 0.31, 0.38] as const;
+const BAG_BATTLE_PROJECTILE_CEILING_Y = 96;
+const BAG_BATTLE_WALL_BASE_HEIGHT = 58;
+const BAG_BATTLE_WALL_BOTTOM = 8;
+const BAG_BATTLE_WALL_HIT_REDUCTION = 5;
+const BAG_BATTLE_WALL_REST_REDUCTION_CAP = 20;
+const BAG_BATTLE_WALL_MAX_REDUCTION = 100;
 const CAMPAIGN_BOSS_CUTSCENE_LINES = [
-  'Ты уничтожил моего питомца.',
-  'Этот мешок был мне дороже, чем тебе кажется. Теперь я должен стереть тебя с дороги.',
-  'Но... сделаем иначе. Ты соберешь для меня артефакты боссов.',
+  'Ты победил моего мешка.',
+  'Мешочек... мой круглый маленький комочек ярости. Кто у нас был самым злым хорошим мальчиком? Да, ты.',
+  'Не бойся, малыш. Папочка заберет тебя отсюда. Только не шурши так трагично.',
+  'А ты... признаю, я впечатлен твоей силой.',
+  'Обычно после такого я стираю героя с пола, стен и пары соседних измерений.',
+  'Но сегодня у меня настроение деловое. И мешочек, кажется, тоже кивает. Или это судорога. Неважно.',
+  'Я дам тебе особый амулет. С ним ты сможешь принимать облик героев.',
+  'Побеждай боссов, забирай их артефакты и приноси их мне.',
   'Принесешь их мне, и я оставлю тебя в живых. Пока что.',
+  'А теперь идем, мой маленький тканевый кошмар. Тебе нужен отдых и, возможно, новая завязочка.',
 ];
 const CAMPAIGN_SAVE_STORAGE_KEY = 'deltafight-campaign-saves-v1';
 const CAMPAIGN_SAVE_SLOTS = [1, 2, 3] as const;
@@ -1269,6 +1324,21 @@ const CAMPAIGN_ROOMS: Record<CampaignRoomId, CampaignRoom> = {
     transitions: [
       { rect: { x: 43, y: 0, width: 15, height: 5 }, target: 'room2', position: { x: 47, y: 94 } },
     ],
+    details: [
+      { id: 'room1-chip-1', kind: 'chip', x: 24, y: 47, width: 5, height: 7 },
+      { id: 'room1-crack-1', kind: 'crack', x: 62, y: 57, width: 11, height: 4 },
+      { id: 'room1-tile-1', kind: 'tile', x: 36, y: 69, width: 7, height: 5 },
+      { id: 'room1-dust-1', kind: 'dust', x: 53, y: 34, width: 8, height: 8 },
+      { id: 'room1-rune-1', kind: 'rune', x: 48, y: 76, width: 5, height: 5 },
+      { id: 'room1-shadow-1', kind: 'shadow', x: 45, y: 8, width: 12, height: 24 },
+      { id: 'room1-dust-2', kind: 'dust', x: 29, y: 73, width: 9, height: 7 },
+      { id: 'room1-chip-2', kind: 'chip', x: 70, y: 45, width: 4, height: 5 },
+      { id: 'room1-crack-2', kind: 'crack', x: 31, y: 54, width: 9, height: 3 },
+      { id: 'room1-tile-2', kind: 'tile', x: 58, y: 72, width: 6, height: 4 },
+      { id: 'room1-dust-3', kind: 'dust', x: 74, y: 75, width: 7, height: 6 },
+      { id: 'room1-chip-3', kind: 'chip', x: 46, y: 27, width: 4, height: 5 },
+      { id: 'room1-rune-2', kind: 'rune', x: 25, y: 59, width: 4, height: 4 },
+    ],
   },
   room2: {
     id: 'room2',
@@ -1283,6 +1353,25 @@ const CAMPAIGN_ROOMS: Record<CampaignRoomId, CampaignRoom> = {
       { rect: { x: 36, y: 0, width: 16, height: 5 }, target: 'room2a', position: { x: 43, y: 92 } },
       { rect: { x: 39, y: 95, width: 16, height: 5 }, target: 'room1', position: { x: 50, y: 8 } },
       { rect: { x: 0, y: 42, width: 5, height: 14 }, target: 'side-room', position: { x: 92, y: 49 } },
+    ],
+    details: [
+      { id: 'room2-crack-1', kind: 'crack', x: 20, y: 27, width: 13, height: 4 },
+      { id: 'room2-crack-2', kind: 'crack', x: 52, y: 67, width: 12, height: 4 },
+      { id: 'room2-chip-1', kind: 'chip', x: 68, y: 23, width: 5, height: 8 },
+      { id: 'room2-chip-2', kind: 'chip', x: 30, y: 75, width: 6, height: 5 },
+      { id: 'room2-rune-1', kind: 'rune', x: 43, y: 50, width: 5, height: 5 },
+      { id: 'room2-dust-1', kind: 'dust', x: 12, y: 46, width: 9, height: 9 },
+      { id: 'room2-shadow-1', kind: 'shadow', x: 37, y: 2, width: 15, height: 14 },
+      { id: 'room2-shadow-2', kind: 'shadow', x: 39, y: 82, width: 16, height: 15 },
+      { id: 'room2-tile-1', kind: 'tile', x: 58, y: 34, width: 7, height: 5 },
+      { id: 'room2-dust-2', kind: 'dust', x: 65, y: 73, width: 8, height: 7 },
+      { id: 'room2-chip-3', kind: 'chip', x: 17, y: 59, width: 5, height: 5 },
+      { id: 'room2-crack-3', kind: 'crack', x: 38, y: 38, width: 10, height: 3 },
+      { id: 'room2-crack-4', kind: 'crack', x: 63, y: 52, width: 8, height: 3 },
+      { id: 'room2-tile-2', kind: 'tile', x: 22, y: 70, width: 6, height: 4 },
+      { id: 'room2-rune-2', kind: 'rune', x: 69, y: 35, width: 4, height: 4 },
+      { id: 'room2-dust-3', kind: 'dust', x: 46, y: 20, width: 8, height: 6 },
+      { id: 'room2-chip-4', kind: 'chip', x: 42, y: 88, width: 5, height: 4 },
     ],
   },
   room2a: {
@@ -1338,7 +1427,36 @@ const CAMPAIGN_ROOMS: Record<CampaignRoomId, CampaignRoom> = {
       },
     ],
     signs: [
-      { id: 'sign-1', label: '1', x: 44, y: 50, text: 'Табличка 1: пока это тестовая надпись. Здесь можно написать подсказку или сюжет.' },
+      {
+        id: 'sign-1',
+        label: '1',
+        x: 44,
+        y: 50,
+        text: 'Табличка 1: Путь открыт. Приготовься к бою.',
+        encounter: 'bag-battle',
+      },
+    ],
+    details: [
+      { id: 'room2a-crack-1', kind: 'crack', x: 10, y: 65, width: 12, height: 4 },
+      { id: 'room2a-crack-2', kind: 'crack', x: 74, y: 68, width: 11, height: 4 },
+      { id: 'room2a-chip-1', kind: 'chip', x: 25, y: 32, width: 5, height: 6 },
+      { id: 'room2a-chip-2', kind: 'chip', x: 88, y: 36, width: 4, height: 7 },
+      { id: 'room2a-dust-1', kind: 'dust', x: 49, y: 25, width: 10, height: 10 },
+      { id: 'room2a-rune-1', kind: 'rune', x: 16, y: 22, width: 5, height: 5 },
+      { id: 'room2a-rune-2', kind: 'rune', x: 92, y: 20, width: 5, height: 5 },
+      { id: 'room2a-tile-1', kind: 'tile', x: 60, y: 54, width: 7, height: 5 },
+      { id: 'room2a-shadow-1', kind: 'shadow', x: 5, y: 7, width: 90, height: 10 },
+      { id: 'room2a-dust-2', kind: 'dust', x: 35, y: 70, width: 9, height: 7 },
+      { id: 'room2a-chip-3', kind: 'chip', x: 52, y: 37, width: 4, height: 5 },
+      { id: 'room2a-tile-2', kind: 'tile', x: 80, y: 54, width: 6, height: 4 },
+      { id: 'room2a-crack-3', kind: 'crack', x: 31, y: 45, width: 10, height: 3 },
+      { id: 'room2a-crack-4', kind: 'crack', x: 84, y: 69, width: 8, height: 3 },
+      { id: 'room2a-tile-3', kind: 'tile', x: 12, y: 52, width: 6, height: 4 },
+      { id: 'room2a-tile-4', kind: 'tile', x: 68, y: 26, width: 5, height: 4 },
+      { id: 'room2a-dust-3', kind: 'dust', x: 21, y: 72, width: 7, height: 6 },
+      { id: 'room2a-dust-4', kind: 'dust', x: 91, y: 58, width: 6, height: 6 },
+      { id: 'room2a-chip-4', kind: 'chip', x: 43, y: 62, width: 4, height: 4 },
+      { id: 'room2a-rune-3', kind: 'rune', x: 56, y: 69, width: 4, height: 4 },
     ],
   },
   'side-room': {
@@ -1350,19 +1468,32 @@ const CAMPAIGN_ROOMS: Record<CampaignRoomId, CampaignRoom> = {
     transitions: [
       { rect: { x: 95, y: 40, width: 5, height: 18 }, target: 'room2', position: { x: 8, y: 49 } },
     ],
+    details: [
+      { id: 'side-crack-1', kind: 'crack', x: 14, y: 50, width: 16, height: 4 },
+      { id: 'side-crack-2', kind: 'crack', x: 62, y: 47, width: 14, height: 4 },
+      { id: 'side-chip-1', kind: 'chip', x: 45, y: 42, width: 5, height: 5 },
+      { id: 'side-dust-1', kind: 'dust', x: 78, y: 43, width: 10, height: 10 },
+      { id: 'side-rune-1', kind: 'rune', x: 8, y: 51, width: 5, height: 5 },
+      { id: 'side-dust-2', kind: 'dust', x: 34, y: 53, width: 8, height: 5 },
+      { id: 'side-chip-2', kind: 'chip', x: 88, y: 49, width: 4, height: 4 },
+      { id: 'side-crack-3', kind: 'crack', x: 42, y: 51, width: 10, height: 3 },
+      { id: 'side-tile-1', kind: 'tile', x: 55, y: 43, width: 6, height: 4 },
+      { id: 'side-dust-3', kind: 'dust', x: 22, y: 43, width: 7, height: 5 },
+      { id: 'side-chip-3', kind: 'chip', x: 70, y: 53, width: 4, height: 4 },
+    ],
     npcs: [
       {
         id: 'npc-e1',
         label: 'E1',
         x: 32,
-        y: 43,
-        width: 15,
-        height: 13,
+        y: 49,
+        width: 14,
+        height: 24,
         hitbox: CAMPAIGN_ROOM_2A_NPC_BAG_HITBOX,
         text: '',
         idleSprite: campaignNpcSideBagIdleSprite,
         talkSprite: campaignNpcSideBagTalkSprite,
-        talkOffsetY: -18,
+        talkOffsetY: 0,
         encounter: 'bag-battle',
       },
     ],
@@ -1427,6 +1558,70 @@ function writeCampaignSaves(saves: CampaignSaveData[]) {
   } catch {
     // If storage is blocked, the game still works for the current session.
   }
+}
+
+function readOnlineNickname() {
+  try {
+    const savedNickname = window.localStorage.getItem(ONLINE_NICKNAME_STORAGE_KEY)?.trim();
+    if (savedNickname) return savedNickname.slice(0, 14);
+  } catch {
+    // Local storage can be unavailable in private contexts.
+  }
+
+  return `Игрок ${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+}
+
+function cleanOnlineNickname(nickname: string) {
+  const cleanNickname = nickname.trim().replace(/\s+/g, ' ').slice(0, 14);
+  return cleanNickname || 'Игрок';
+}
+
+function getNicknameKey(nickname: string) {
+  return cleanOnlineNickname(nickname).toLocaleLowerCase('ru-RU');
+}
+
+type LocalAuthAccount = {
+  nickname: string;
+  passwordHash: string;
+  createdAt: number;
+};
+
+function hashLocalAuthPassword(password: string) {
+  let hash = 2166136261;
+
+  for (const letter of password) {
+    hash ^= letter.codePointAt(0) ?? 0;
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(36);
+}
+
+function readLocalAuthAccounts(): Record<string, LocalAuthAccount> {
+  if (typeof window === 'undefined') return {};
+
+  try {
+    const saved = window.localStorage.getItem(LOCAL_AUTH_ACCOUNTS_STORAGE_KEY);
+    if (!saved) return {};
+    const parsed = JSON.parse(saved);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, LocalAuthAccount> : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLocalAuthAccounts(accounts: Record<string, LocalAuthAccount>) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(LOCAL_AUTH_ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+  } catch {
+    // Local account saving is best-effort.
+  }
+}
+
+function getFighterById(fighterId: string) {
+  return fighters.find((fighter) => fighter.id === fighterId) ?? fighters[0];
 }
 
 function getCampaignSaveLabel(save: CampaignSaveData) {
@@ -1670,12 +1865,19 @@ function loadControlBindings(): Record<GameInput, string> {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('title');
+  const [screen, setScreen] = useState<Screen>('auth');
+  const [authSession, setAuthSession] = useState<Session | null>(null);
+  const [authMessage, setAuthMessage] = useState('Выбери, как зайти в игру.');
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [authView, setAuthView] = useState<AuthView>('home');
+  const [authNickname, setAuthNickname] = useState(readOnlineNickname);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
   const [showTitleInfo, setShowTitleInfo] = useState(false);
   const [doorTransitionMode, setDoorTransitionMode] = useState<ArenaMode | null>(null);
   const [isScreenRevealing, setIsScreenRevealing] = useState(false);
   const [selectedFighterId, setSelectedFighterId] = useState(fighters[0].id);
-  const [selectedOpponentId, setSelectedOpponentId] = useState(fighters[4].id);
+  const [selectedOpponentId, setSelectedOpponentId] = useState('queen');
   const [selectTarget, setSelectTarget] = useState<SelectTarget>('player');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('normal');
   const [selectedStageId, setSelectedStageId] = useState(stages[0].id);
@@ -1689,6 +1891,7 @@ export default function App() {
   const [isCampaignBagDefeated, setIsCampaignBagDefeated] = useState(false);
   const [isCampaignBagCollected, setIsCampaignBagCollected] = useState(false);
   const [campaignBossCutsceneStep, setCampaignBossCutsceneStep] = useState<number | null>(null);
+  const [campaignBossDialogueVisibleChars, setCampaignBossDialogueVisibleChars] = useState(0);
   const [campaignBossCutscenePhase, setCampaignBossCutscenePhase] =
     useState<CampaignBossCutscenePhase>('talking');
   const [campaignSaves, setCampaignSaves] = useState<CampaignSaveData[]>(readCampaignSaves);
@@ -1704,9 +1907,18 @@ export default function App() {
   const [isBagBattleBossShooting, setIsBagBattleBossShooting] = useState(false);
   const [bagBattleBossShotLane, setBagBattleBossShotLane] = useState<BagBattleProjectile['lane']>('mid');
   const [bagBattleBossPattern, setBagBattleBossPattern] = useState<BagBattleBossPattern>('shooting');
+  const [bagBattleWallReduction, setBagBattleWallReduction] = useState(0);
   const [isBagBattleIntro, setIsBagBattleIntro] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [joinRoomCode, setJoinRoomCode] = useState('');
+  const [onlineNickname, setOnlineNickname] = useState(readOnlineNickname);
+  const [onlinePeerNickname, setOnlinePeerNickname] = useState('');
+  const [onlineRoomsView, setOnlineRoomsView] = useState<OnlineRoomsView>('menu');
+  const [onlineRoomCodeCopied, setOnlineRoomCodeCopied] = useState(false);
+  const [onlineRoomVisibility, setOnlineRoomVisibility] = useState<OnlineRoomVisibility>('private');
+  const [publicOnlineRooms, setPublicOnlineRooms] = useState<OnlinePublicRoom[]>([]);
+  const [onlinePauseOwnerId, setOnlinePauseOwnerId] = useState<string | null>(null);
+  const [onlinePauseOwnerName, setOnlinePauseOwnerName] = useState('');
   const [onlineRole, setOnlineRole] = useState<OnlineRole | null>(null);
   const [onlineRoomStatus, setOnlineRoomStatus] = useState<OnlineRoomStatus>('idle');
   const [onlineRoomMessage, setOnlineRoomMessage] = useState('Создай комнату или введи код друга.');
@@ -1948,14 +2160,28 @@ export default function App() {
   const bagBattleBossPatternRef = useRef<BagBattleBossPattern>('shooting');
   const bagBattleBossRunPrepUntilRef = useRef(0);
   const bagBattleBossRunHitRef = useRef(false);
-  const bagBattleBossNextPatternRef = useRef<BagBattleBossPattern>('shooting');
+  const bagBattleBossNextPatternRef = useRef<BagBattleBossPattern>('spade-rain');
+  const bagBattleBossSpadeRainUntilRef = useRef(0);
+  const bagBattleBossLastSpadeDropRef = useRef(0);
+  const bagBattleBossCrossfireUntilRef = useRef(0);
+  const bagBattleBossLastCrossfireRef = useRef(0);
+  const bagBattleBossCrossfireVolleyRef = useRef(0);
+  const bagBattleWallReductionRef = useRef(0);
+  const bagBattleWallRestReductionRef = useRef(0);
   const bagBattleJumpsRemainingRef = useRef(BAG_BATTLE_MAX_JUMPS);
   const bagBattleIntroUntilRef = useRef(0);
+  const bagBattleSourceRef = useRef<BagBattleSource>('bag-npc');
   const remotePressedKeys = useRef(new Set<string>());
+  const screenRef = useRef<Screen>(screen);
+  const arenaModeRef = useRef<ArenaMode>(arenaMode);
   const onlineChannelRef = useRef<RealtimeChannel | null>(null);
+  const onlineLobbyChannelRef = useRef<RealtimeChannel | null>(null);
   const onlinePlayerIdRef = useRef(`p-${Math.random().toString(36).slice(2, 10)}`);
   const onlineRoleRef = useRef<OnlineRole | null>(null);
   const onlineRoomStatusRef = useRef<OnlineRoomStatus>('idle');
+  const onlineNicknameRef = useRef(onlineNickname);
+  const onlineRoomVisibilityRef = useRef<OnlineRoomVisibility>('private');
+  const onlinePublicAnnounceTimer = useRef<number | null>(null);
   const lastOnlineSnapshotAt = useRef(0);
   const onlineInputSequenceRef = useRef(0);
   const onlineSnapshotSequenceRef = useRef(0);
@@ -2481,7 +2707,7 @@ export default function App() {
   const selectedFighter =
     fighters.find((fighter) => fighter.id === selectedFighterId) ?? fighters[0];
   const selectedOpponent =
-    fighters.find((fighter) => fighter.id === selectedOpponentId) ?? fighters[4];
+    fighters.find((fighter) => fighter.id === selectedOpponentId) ?? fighters[1];
   const selectedStage = stages.find((stage) => stage.id === selectedStageId) ?? stages[0];
   const player = lockedFighter ?? selectedFighter;
   const opponent = lockedOpponent ?? selectedOpponent;
@@ -3013,6 +3239,58 @@ export default function App() {
   }, [roundTimeLeft]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+      setAuthSession(data.session);
+      setIsAuthLoading(false);
+      if (data.session) {
+        const nickname = cleanOnlineNickname(
+          data.session.user.user_metadata?.nickname ||
+            data.session.user.user_metadata?.full_name ||
+            data.session.user.email ||
+            authNickname,
+        );
+        setAuthNickname(nickname);
+        setOnlineNickname(nickname);
+        setAuthMessage('Ты вошел в аккаунт.');
+        setScreen('title');
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthSession(session);
+      setIsAuthLoading(false);
+      if (session) {
+        const nickname = cleanOnlineNickname(
+          session.user.user_metadata?.nickname ||
+            session.user.user_metadata?.full_name ||
+            session.user.email ||
+            authNickname,
+        );
+        setAuthNickname(nickname);
+        setOnlineNickname(nickname);
+        setAuthMessage('Ты вошел в аккаунт.');
+        setScreen('title');
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    screenRef.current = screen;
+  }, [screen]);
+
+  useEffect(() => {
+    arenaModeRef.current = arenaMode;
+  }, [arenaMode]);
+
+  useEffect(() => {
     playerSpecialShootingRef.current = playerSpecialShooting;
     opponentSpecialShootingRef.current = opponentSpecialShooting;
     playerSpecialSpriteOverrideRef.current = playerSpecialSpriteOverride;
@@ -3051,6 +3329,104 @@ export default function App() {
   useEffect(() => {
     onlineRoomStatusRef.current = onlineRoomStatus;
   }, [onlineRoomStatus]);
+
+  useEffect(() => {
+    const cleanNickname = cleanOnlineNickname(onlineNickname);
+    onlineNicknameRef.current = cleanNickname;
+    try {
+      window.localStorage.setItem(ONLINE_NICKNAME_STORAGE_KEY, cleanNickname);
+    } catch {
+      // Nicknames are optional if local storage is unavailable.
+    }
+  }, [onlineNickname]);
+
+  useEffect(() => {
+    onlineRoomVisibilityRef.current = onlineRoomVisibility;
+    if (onlinePublicAnnounceTimer.current) {
+      window.clearInterval(onlinePublicAnnounceTimer.current);
+      onlinePublicAnnounceTimer.current = null;
+    }
+    if (onlineRoomVisibility === 'private') {
+      broadcastPublicRoomClosed(roomCode);
+    }
+    if (
+      onlineRoomVisibility === 'public' &&
+      onlineRoleRef.current === 'host' &&
+      onlineRoomStatusRef.current !== 'playing' &&
+      roomCode
+    ) {
+      broadcastPublicOnlineRoom(roomCode);
+      onlinePublicAnnounceTimer.current = window.setInterval(
+        () => broadcastPublicOnlineRoom(roomCode),
+        ONLINE_PUBLIC_ROOM_ANNOUNCE_MS,
+      );
+    }
+  }, [onlineRoomVisibility, roomCode]);
+
+  useEffect(() => {
+    if (
+      screen === 'rooms' &&
+      onlineRoleRef.current === 'host' &&
+      onlineRoomVisibilityRef.current === 'public' &&
+      onlineRoomStatusRef.current !== 'playing' &&
+      roomCode
+    ) {
+      broadcastPublicOnlineRoom(roomCode);
+    }
+  }, [roomCode, screen, selectedFighter.id, selectedStage.id]);
+
+  useEffect(() => {
+    if (screen !== 'select' || arenaMode !== 'online' || !onlineChannelRef.current) return;
+    broadcastOnlineSelection();
+  }, [arenaMode, screen, selectedFighterId, selectedOpponentId, selectedStageId]);
+
+  useEffect(() => {
+    if (screen !== 'rooms') return;
+
+    const lobbyChannel = supabase.channel(ONLINE_LOBBY_CHANNEL, {
+      config: { broadcast: { self: false } },
+    });
+
+    lobbyChannel
+      .on('broadcast', { event: 'public-room' }, ({ payload }) => {
+        const room = payload as OnlinePublicRoom;
+        if (!room?.code || room.playerId === onlinePlayerIdRef.current) return;
+
+        setPublicOnlineRooms((currentRooms) => {
+          const now = Date.now();
+          const activeRooms = currentRooms.filter(
+            (currentRoom) =>
+              now - currentRoom.updatedAt < ONLINE_PUBLIC_ROOM_TTL_MS && currentRoom.code !== room.code,
+          );
+
+          return [...activeRooms, room].sort((first, second) => second.updatedAt - first.updatedAt);
+        });
+      })
+      .on('broadcast', { event: 'public-room-closed' }, ({ payload }) => {
+        const room = payload as { playerId?: string; code?: string };
+        if (!room?.code) return;
+        setPublicOnlineRooms((currentRooms) =>
+          currentRooms.filter((currentRoom) => currentRoom.code !== room.code || currentRoom.playerId !== room.playerId),
+        );
+      })
+      .subscribe();
+
+    onlineLobbyChannelRef.current = lobbyChannel;
+    const cleanupTimer = window.setInterval(() => {
+      const now = Date.now();
+      setPublicOnlineRooms((currentRooms) =>
+        currentRooms.filter((room) => now - room.updatedAt < ONLINE_PUBLIC_ROOM_TTL_MS),
+      );
+    }, 1000);
+
+    return () => {
+      window.clearInterval(cleanupTimer);
+      if (onlineLobbyChannelRef.current === lobbyChannel) {
+        onlineLobbyChannelRef.current = null;
+      }
+      void supabase.removeChannel(lobbyChannel);
+    };
+  }, [screen]);
 
   useEffect(() => {
     campaignPositionRef.current = campaignPosition;
@@ -3094,6 +3470,10 @@ export default function App() {
   }, [bagBattleBoss]);
 
   useEffect(() => {
+    bagBattleWallReductionRef.current = bagBattleWallReduction;
+  }, [bagBattleWallReduction]);
+
+  useEffect(() => {
     bagBattleProjectilesRef.current = bagBattleProjectiles;
   }, [bagBattleProjectiles]);
 
@@ -3109,6 +3489,14 @@ export default function App() {
   }
 
   function advanceCampaignBossCutscene() {
+    if (campaignBossCutscenePhase === 'talking' && campaignBossCutsceneStep !== null) {
+      const line = CAMPAIGN_BOSS_CUTSCENE_LINES[campaignBossCutsceneStep];
+      if (campaignBossDialogueVisibleChars < line.length) {
+        setCampaignBossDialogueVisibleChars(line.length);
+        return;
+      }
+    }
+
     setCampaignBossCutsceneStep((step) => {
       if (step === null) return step;
       if (step >= CAMPAIGN_BOSS_CUTSCENE_LINES.length - 1) {
@@ -3120,7 +3508,8 @@ export default function App() {
     });
   }
 
-  function startBagBattle() {
+  function startBagBattle(source: BagBattleSource = 'bag-npc') {
+    bagBattleSourceRef.current = source;
     campaignPressedKeys.current.clear();
     bagBattlePressedKeys.current.clear();
     bagBattlePlayerRef.current = BAG_BATTLE_PLAYER_START;
@@ -3144,11 +3533,19 @@ export default function App() {
     bagBattleBossPatternRef.current = 'shooting';
     bagBattleBossRunPrepUntilRef.current = 0;
     bagBattleBossRunHitRef.current = false;
-    bagBattleBossNextPatternRef.current = 'shooting';
+    bagBattleBossNextPatternRef.current = source === 'campaign-sign' ? 'spade-rain' : 'shooting';
+    bagBattleBossSpadeRainUntilRef.current = 0;
+    bagBattleBossLastSpadeDropRef.current = 0;
+    bagBattleBossCrossfireUntilRef.current = 0;
+    bagBattleBossLastCrossfireRef.current = 0;
+    bagBattleBossCrossfireVolleyRef.current = 0;
+    bagBattleWallReductionRef.current = 0;
+    bagBattleWallRestReductionRef.current = 0;
     bagBattleJumpsRemainingRef.current = BAG_BATTLE_MAX_JUMPS;
     bagBattleIntroUntilRef.current = window.performance.now() + BAG_BATTLE_INTRO_MS;
     setBagBattlePlayer(BAG_BATTLE_PLAYER_START);
     setBagBattleBoss(BAG_BATTLE_BOSS_START);
+    setBagBattleWallReduction(0);
     setBagBattleProjectiles([]);
     setBagBattleResult('playing');
     setBagBattleAttack('idle');
@@ -3185,6 +3582,28 @@ export default function App() {
 
     return () => window.clearInterval(intervalId);
   }, [campaignDialogue, screen]);
+
+  useEffect(() => {
+    if (screen !== 'campaign' || campaignBossCutsceneStep === null || campaignBossCutscenePhase !== 'talking') {
+      setCampaignBossDialogueVisibleChars(0);
+      return undefined;
+    }
+
+    const line = CAMPAIGN_BOSS_CUTSCENE_LINES[campaignBossCutsceneStep];
+    setCampaignBossDialogueVisibleChars(0);
+    const intervalId = window.setInterval(() => {
+      setCampaignBossDialogueVisibleChars((visibleChars) => {
+        if (visibleChars >= line.length) {
+          window.clearInterval(intervalId);
+          return visibleChars;
+        }
+
+        return visibleChars + 1;
+      });
+    }, CAMPAIGN_DIALOGUE_TYPE_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [campaignBossCutscenePhase, campaignBossCutsceneStep, screen]);
 
   useEffect(() => {
     if (screen !== 'campaign') {
@@ -3245,7 +3664,7 @@ export default function App() {
           campaignPressedKeys.current.clear();
           setCampaignActiveNpcId('idleSprite' in interaction ? interaction.id : null);
           if ('encounter' in interaction && interaction.encounter === 'bag-battle') {
-            window.setTimeout(startBagBattle, 180);
+            window.setTimeout(() => startBagBattle('bag-npc'), 180);
             return;
           }
           if (interaction.text.trim()) {
@@ -3402,6 +3821,34 @@ export default function App() {
       setScreen('campaign');
     };
 
+    const getBagBattlePlayerMinX = () =>
+      bagBattleSourceRef.current === 'campaign-sign' &&
+      bagBattleWallReductionRef.current < BAG_BATTLE_WALL_MAX_REDUCTION
+        ? BAG_BATTLE_PLAYER_WALL_MIN_X
+        : BAG_BATTLE_PLAYER_ARENA_MIN_X;
+
+    const enterBagBattleGroundPhase = (boss: BagBattleActor) => {
+      const groundedBoss = { ...boss, x: BAG_BATTLE_BOSS_GROUND_X };
+
+      if (bagBattleBossPatternRef.current !== 'ground') {
+        bagBattleBossPatternRef.current = 'ground';
+        bagBattleBossNextPatternRef.current = 'ground';
+        bagBattleBossRestUntilRef.current = 0;
+        bagBattleBossVulnerableUntilRef.current = Number.POSITIVE_INFINITY;
+        bagBattleBossSpadeRainUntilRef.current = 0;
+        bagBattleBossCrossfireUntilRef.current = 0;
+        bagBattleProjectilesRef.current = [];
+        setBagBattleProjectiles([]);
+        setBagBattleBossPattern('ground');
+        setIsBagBattleBossVulnerable(true);
+        setIsBagBattleBossShooting(false);
+      }
+
+      bagBattleBossRef.current = groundedBoss;
+      setBagBattleBoss(groundedBoss);
+      return groundedBoss;
+    };
+
     const triggerBagBattleAttack = (button: 'punch' | 'kick') => {
       const now = window.performance.now();
       if (now < bagBattleAttackReadyAtRef.current || bagBattleAttackTimer.current) return;
@@ -3430,7 +3877,36 @@ export default function App() {
       setBagBattleAttack(nextAttack);
       setIsBagBattleBlocking(false);
 
+      const isBossRestingBetweenKingAttacks =
+        bagBattleSourceRef.current === 'campaign-sign' &&
+        bagBattleBossPatternRef.current === 'shooting' &&
+        (bagBattleBossNextPatternRef.current === 'spade-rain' ||
+          bagBattleBossNextPatternRef.current === 'spade-crossfire') &&
+        now < bagBattleBossRestUntilRef.current;
+      const wallCanBeHit =
+        isBossRestingBetweenKingAttacks &&
+        bagBattlePlayerRef.current.x <= BAG_BATTLE_PLAYER_WALL_MIN_X + range * 0.55 &&
+        bagBattleWallRestReductionRef.current < BAG_BATTLE_WALL_REST_REDUCTION_CAP;
+
+      if (wallCanBeHit) {
+        const reduction = Math.min(
+          BAG_BATTLE_WALL_HIT_REDUCTION,
+          BAG_BATTLE_WALL_REST_REDUCTION_CAP - bagBattleWallRestReductionRef.current,
+          BAG_BATTLE_WALL_MAX_REDUCTION - bagBattleWallReductionRef.current,
+        );
+        if (reduction > 0) {
+          const nextWallReduction = bagBattleWallReductionRef.current + reduction;
+          bagBattleWallReductionRef.current = nextWallReduction;
+          bagBattleWallRestReductionRef.current += reduction;
+          setBagBattleWallReduction(nextWallReduction);
+          if (nextWallReduction >= BAG_BATTLE_WALL_MAX_REDUCTION) {
+            enterBagBattleGroundPhase(bagBattleBossRef.current);
+          }
+        }
+      }
+
       if (
+        !wallCanBeHit &&
         bagBattleBossVulnerableUntilRef.current > now &&
         Math.abs(bagBattleBossRef.current.x - bagBattlePlayerRef.current.x) <= range &&
         Math.abs(hitY - bossY) <= (nextAttack === 'uppercut' ? 22 : 15)
@@ -3536,6 +4012,8 @@ export default function App() {
       let nextBoss = bagBattleBossRef.current;
       let nextProjectiles = bagBattleProjectilesRef.current;
       let playerWasHit = false;
+      const isKingBattle = bagBattleSourceRef.current === 'campaign-sign';
+      const isWallFullyBroken = isKingBattle && bagBattleWallReductionRef.current >= BAG_BATTLE_WALL_MAX_REDUCTION;
 
       let horizontal = 0;
       const isBlockingNow = bagBattlePressedKeys.current.has('block');
@@ -3548,7 +4026,11 @@ export default function App() {
 
       nextPlayer = {
         ...nextPlayer,
-        x: clamp(nextPlayer.x + horizontal * BAG_BATTLE_PLAYER_SPEED * deltaScale, 26, 94),
+        x: clamp(
+          nextPlayer.x + horizontal * BAG_BATTLE_PLAYER_SPEED * deltaScale,
+          getBagBattlePlayerMinX(),
+          BAG_BATTLE_PLAYER_MAX_X,
+        ),
         y: Math.max(0, nextPlayer.y + nextPlayer.vy * deltaScale),
         vy: nextPlayer.vy - BAG_BATTLE_GRAVITY * deltaScale,
       };
@@ -3560,7 +4042,13 @@ export default function App() {
         nextPlayer.y <= 0.01 && isCrouchingInput,
       );
 
+      if (isWallFullyBroken && bagBattleBossPatternRef.current !== 'ground') {
+        nextBoss = enterBagBattleGroundPhase(nextBoss);
+        nextProjectiles = [];
+      }
+
       if (
+        !isKingBattle &&
         bagBattleBossPatternRef.current === 'shooting' &&
         bagBattleBossNextPatternRef.current === 'running' &&
         frameTime >= bagBattleBossRestUntilRef.current
@@ -3573,6 +4061,39 @@ export default function App() {
         setIsBagBattleBossVulnerable(false);
         setIsBagBattleBossShooting(false);
         nextProjectiles = [];
+      }
+
+      if (
+        isKingBattle &&
+        bagBattleBossPatternRef.current === 'shooting' &&
+        bagBattleBossNextPatternRef.current === 'spade-rain' &&
+        frameTime >= bagBattleBossRestUntilRef.current
+      ) {
+        bagBattleBossPatternRef.current = 'spade-rain';
+        bagBattleBossSpadeRainUntilRef.current = frameTime + BAG_BATTLE_BOSS_SPADE_RAIN_DURATION_MS;
+        bagBattleBossLastSpadeDropRef.current = frameTime - BAG_BATTLE_BOSS_SPADE_RAIN_INTERVAL_MS;
+        bagBattleBossVulnerableUntilRef.current = 0;
+        setBagBattleBossPattern('spade-rain');
+        setIsBagBattleBossVulnerable(false);
+        setIsBagBattleBossShooting(false);
+        nextProjectiles = nextProjectiles.filter((projectile) => projectile.kind === 'spade');
+      }
+
+      if (
+        isKingBattle &&
+        bagBattleBossPatternRef.current === 'shooting' &&
+        bagBattleBossNextPatternRef.current === 'spade-crossfire' &&
+        frameTime >= bagBattleBossRestUntilRef.current
+      ) {
+        bagBattleBossPatternRef.current = 'spade-crossfire';
+        bagBattleBossCrossfireUntilRef.current = frameTime + BAG_BATTLE_BOSS_CROSSFIRE_DURATION_MS;
+        bagBattleBossLastCrossfireRef.current = frameTime - BAG_BATTLE_BOSS_CROSSFIRE_INTERVAL_MS;
+        bagBattleBossCrossfireVolleyRef.current = 0;
+        bagBattleBossVulnerableUntilRef.current = 0;
+        setBagBattleBossPattern('spade-crossfire');
+        setIsBagBattleBossVulnerable(false);
+        setIsBagBattleBossShooting(false);
+        nextProjectiles = nextProjectiles.filter((projectile) => projectile.kind === 'spade');
       }
 
       if (bagBattleBossPatternRef.current === 'run-prep' && frameTime >= bagBattleBossRunPrepUntilRef.current) {
@@ -3597,7 +4118,7 @@ export default function App() {
           nextPlayer = {
             ...nextPlayer,
             health: Math.max(0, nextPlayer.health - BAG_BATTLE_BOSS_RUN_DAMAGE),
-            x: clamp(nextPlayer.x + 4.2, 26, 94),
+            x: clamp(nextPlayer.x + 4.2, getBagBattlePlayerMinX(), BAG_BATTLE_PLAYER_MAX_X),
             vy: Math.max(nextPlayer.vy, 0.42),
           };
           playerWasHit = true;
@@ -3627,6 +4148,83 @@ export default function App() {
         }
       }
 
+      if (bagBattleBossPatternRef.current === 'spade-rain') {
+        nextBoss = { ...nextBoss, x: BAG_BATTLE_BOSS_START.x };
+        if (frameTime - bagBattleBossLastSpadeDropRef.current >= BAG_BATTLE_BOSS_SPADE_RAIN_INTERVAL_MS) {
+          bagBattleBossLastSpadeDropRef.current = frameTime;
+          nextProjectiles = [
+            ...nextProjectiles,
+            {
+              id: ++bagBattleProjectileIdRef.current,
+              x: 30 + Math.random() * 64,
+              y: BAG_BATTLE_PROJECTILE_CEILING_Y,
+              vx: (Math.random() - 0.5) * 0.03,
+              vy: -(0.34 + Math.random() * 0.08),
+              owner: 'boss',
+              kind: 'spade',
+            },
+          ];
+        }
+
+        if (frameTime >= bagBattleBossSpadeRainUntilRef.current) {
+          bagBattleBossPatternRef.current = 'shooting';
+          bagBattleBossNextPatternRef.current = 'spade-crossfire';
+          bagBattleBossRestUntilRef.current = frameTime + BAG_BATTLE_BOSS_SPADE_RAIN_REST_MS;
+          bagBattleBossVulnerableUntilRef.current = bagBattleBossRestUntilRef.current;
+          bagBattleLastBossShotRef.current = frameTime;
+          bagBattleBossSpadeRainUntilRef.current = 0;
+          bagBattleWallRestReductionRef.current = 0;
+          setBagBattleBossPattern('shooting');
+          setIsBagBattleBossVulnerable(true);
+        }
+      }
+
+      if (bagBattleBossPatternRef.current === 'spade-crossfire') {
+        nextBoss = { ...nextBoss, x: BAG_BATTLE_BOSS_START.x };
+        if (frameTime - bagBattleBossLastCrossfireRef.current >= BAG_BATTLE_BOSS_CROSSFIRE_INTERVAL_MS) {
+          bagBattleBossLastCrossfireRef.current = frameTime;
+          const volley = bagBattleBossCrossfireVolleyRef.current;
+          bagBattleBossCrossfireVolleyRef.current += 1;
+          const laneY = BAG_BATTLE_BOSS_CROSSFIRE_LANES[volley % BAG_BATTLE_BOSS_CROSSFIRE_LANES.length];
+          const baseSpeed =
+            BAG_BATTLE_BOSS_CROSSFIRE_SPEEDS[(volley + Math.floor(volley / 3)) % BAG_BATTLE_BOSS_CROSSFIRE_SPEEDS.length];
+          const speedOffset = (volley % 2) * 0.025;
+          nextProjectiles = [
+            ...nextProjectiles,
+            {
+              id: ++bagBattleProjectileIdRef.current,
+              x: -4,
+              y: laneY,
+              vx: baseSpeed + speedOffset,
+              vy: 0,
+              owner: 'boss',
+              kind: 'spade',
+            },
+            {
+              id: ++bagBattleProjectileIdRef.current,
+              x: 104,
+              y: laneY,
+              vx: -(baseSpeed + 0.04 - speedOffset),
+              vy: 0,
+              owner: 'boss',
+              kind: 'spade',
+            },
+          ];
+        }
+
+        if (frameTime >= bagBattleBossCrossfireUntilRef.current) {
+          bagBattleBossPatternRef.current = 'shooting';
+          bagBattleBossNextPatternRef.current = 'spade-rain';
+          bagBattleBossRestUntilRef.current = frameTime + BAG_BATTLE_BOSS_CROSSFIRE_REST_MS;
+          bagBattleBossVulnerableUntilRef.current = bagBattleBossRestUntilRef.current;
+          bagBattleLastBossShotRef.current = frameTime;
+          bagBattleBossCrossfireUntilRef.current = 0;
+          bagBattleWallRestReductionRef.current = 0;
+          setBagBattleBossPattern('shooting');
+          setIsBagBattleBossVulnerable(true);
+        }
+      }
+
       if (
         bagBattleBossPatternRef.current === 'shooting' &&
         bagBattleBossNextPatternRef.current === 'shooting' &&
@@ -3639,7 +4237,7 @@ export default function App() {
           bagBattleBossBurstShotsRef.current = 0;
           bagBattleBossRestUntilRef.current = frameTime + BAG_BATTLE_BOSS_BURST_REST_MS;
           bagBattleBossRestDamageRef.current = 0;
-          bagBattleBossNextPatternRef.current = 'running';
+          bagBattleBossNextPatternRef.current = isKingBattle ? 'spade-rain' : 'running';
         }
         bagBattleBossVulnerableUntilRef.current = Math.max(
           frameTime + BAG_BATTLE_BOSS_VULNERABLE_MS,
@@ -3682,7 +4280,12 @@ export default function App() {
           y: projectile.y + projectile.vy * deltaScale,
         };
 
-        if (movedProjectile.x < -6 || movedProjectile.x > 106 || movedProjectile.y < -8 || movedProjectile.y > 76) {
+        if (
+          movedProjectile.x < -6 ||
+          movedProjectile.x > 106 ||
+          movedProjectile.y < -8 ||
+          movedProjectile.y > BAG_BATTLE_PROJECTILE_CEILING_Y + 4
+        ) {
           continue;
         }
 
@@ -3690,6 +4293,26 @@ export default function App() {
           nextPlayer.y <= 0.01 &&
           (bagBattlePressedKeys.current.has('s') || bagBattlePressedKeys.current.has('arrowdown'));
         const bossProjectileLane = movedProjectile.lane ?? 'mid';
+        if (movedProjectile.kind === 'spade') {
+          const spadeHitPlayer =
+            movedProjectile.owner === 'boss' &&
+            Math.abs(movedProjectile.x - nextPlayer.x) < 4.8 &&
+            movedProjectile.y >= nextPlayer.y + 1 &&
+            movedProjectile.y <= nextPlayer.y + 22;
+
+          if (spadeHitPlayer) {
+            if (isBlockingNow) {
+              nextPlayer = { ...nextPlayer, health: Math.max(0, nextPlayer.health - 1) };
+            } else {
+              nextPlayer = { ...nextPlayer, health: Math.max(0, nextPlayer.health - BAG_BATTLE_BOSS_SPADE_DAMAGE) };
+              playerWasHit = true;
+            }
+            continue;
+          }
+
+          keptProjectiles.push(movedProjectile);
+          continue;
+        }
         const isPlayerInLane =
           bossProjectileLane === 'high'
             ? nextPlayer.y >= 8
@@ -3711,7 +4334,11 @@ export default function App() {
       }
 
       if (playerWasHit) {
-        nextPlayer = { ...nextPlayer, x: clamp(nextPlayer.x + 2.6, 26, 94), vy: Math.max(nextPlayer.vy, 0.28) };
+        nextPlayer = {
+          ...nextPlayer,
+          x: clamp(nextPlayer.x + 2.6, getBagBattlePlayerMinX(), BAG_BATTLE_PLAYER_MAX_X),
+          vy: Math.max(nextPlayer.vy, 0.28),
+        };
       }
       if (bagBattleBossPatternRef.current === 'shooting') {
         nextBoss = { ...nextBoss, x: BAG_BATTLE_BOSS_START.x + Math.sin(frameTime / 700) * 1.6 };
@@ -7448,7 +8075,7 @@ export default function App() {
       if (key === 'escape') {
         event.preventDefault();
         if (!event.repeat) {
-          setSettingsOpen((isOpen) => !isOpen);
+          toggleArenaPause();
         }
         return;
       }
@@ -9547,9 +10174,14 @@ export default function App() {
   }
 
   function cleanupOnlineRoom() {
+    broadcastPublicRoomClosed();
     if (onlineChannelRef.current) {
       void supabase.removeChannel(onlineChannelRef.current);
       onlineChannelRef.current = null;
+    }
+    if (onlinePublicAnnounceTimer.current) {
+      window.clearInterval(onlinePublicAnnounceTimer.current);
+      onlinePublicAnnounceTimer.current = null;
     }
     remotePressedKeys.current.clear();
     onlineInputSequenceRef.current = 0;
@@ -9559,6 +10191,10 @@ export default function App() {
     lastOnlineSnapshotAt.current = 0;
     setOnlinePeerReady(false);
     setOnlineRole(null);
+    setOnlinePeerNickname('');
+    setOnlinePauseOwnerId(null);
+    setOnlinePauseOwnerName('');
+    setOnlineRoomsView('menu');
     setOnlineRoomStatus('idle');
     setOnlineRoomMessage('Создай комнату или введи код друга.');
   }
@@ -9661,6 +10297,45 @@ export default function App() {
     setProjectiles(snapshot.projectiles);
   }
 
+  function broadcastPublicOnlineRoom(code = roomCode) {
+    if (
+      !onlineLobbyChannelRef.current ||
+      onlineRoomVisibilityRef.current !== 'public' ||
+      onlineRoleRef.current !== 'host' ||
+      onlineRoomStatusRef.current === 'playing' ||
+      !code
+    ) {
+      return;
+    }
+
+    void onlineLobbyChannelRef.current.send({
+      type: 'broadcast',
+      event: 'public-room',
+      payload: {
+        playerId: onlinePlayerIdRef.current,
+        code,
+        hostName: onlineNicknameRef.current,
+        fighterName: selectedFighter.name,
+        stageName: selectedStage.name,
+        status: onlineRoomStatusRef.current,
+        updatedAt: Date.now(),
+      } satisfies OnlinePublicRoom,
+    });
+  }
+
+  function broadcastPublicRoomClosed(code = roomCode) {
+    if (!onlineLobbyChannelRef.current || onlineRoleRef.current !== 'host' || !code) return;
+
+    void onlineLobbyChannelRef.current.send({
+      type: 'broadcast',
+      event: 'public-room-closed',
+      payload: {
+        playerId: onlinePlayerIdRef.current,
+        code,
+      },
+    });
+  }
+
   function createOnlineChannel(code: string, role: OnlineRole) {
     cleanupOnlineRoom();
     setRoomCode(code);
@@ -9674,34 +10349,78 @@ export default function App() {
 
     channel
       .on('broadcast', { event: 'peer-ready' }, ({ payload }) => {
-        const message = payload as { playerId?: string };
+        const message = payload as { playerId?: string; nickname?: string };
         if (message.playerId === onlinePlayerIdRef.current) return;
+        setOnlinePeerNickname(cleanOnlineNickname(message.nickname ?? 'Гость'));
         setOnlinePeerReady(true);
         setOnlineRoomStatus('ready');
-        setOnlineRoomMessage(role === 'host' ? 'Игрок подключился. Можно начинать бой.' : 'Комната готова. Ждем старт от хоста.');
+        setOnlineRoomMessage(
+          role === 'host'
+            ? `${cleanOnlineNickname(message.nickname ?? 'Гость')} подключился. Можно начинать бой.`
+            : 'Комната готова. Ждем старт от хоста.',
+        );
         if (role === 'host') {
           void channel.send({
             type: 'broadcast',
             event: 'host-ready',
-            payload: { playerId: onlinePlayerIdRef.current },
+            payload: { playerId: onlinePlayerIdRef.current, nickname: onlineNicknameRef.current },
           });
         }
       })
       .on('broadcast', { event: 'host-ready' }, ({ payload }) => {
-        const message = payload as { playerId?: string };
+        const message = payload as { playerId?: string; nickname?: string };
         if (message.playerId === onlinePlayerIdRef.current) return;
+        setOnlinePeerNickname(cleanOnlineNickname(message.nickname ?? 'Хост'));
         setOnlinePeerReady(true);
         setOnlineRoomStatus('ready');
-        setOnlineRoomMessage('Комната готова. Ждем старт от хоста.');
+        setOnlineRoomMessage(`Комната ${code} готова. Хост: ${cleanOnlineNickname(message.nickname ?? 'Хост')}.`);
       })
-      .on('broadcast', { event: 'start' }, ({ payload }) => {
-        const message = payload as { playerId?: string; stageId?: string; fighterId?: string; opponentId?: string };
+      .on('broadcast', { event: 'open-select' }, ({ payload }) => {
+        const message = payload as { playerId?: string; stageId?: string; hostFighterId?: string; guestFighterId?: string };
         if (message.playerId === onlinePlayerIdRef.current) return;
         if (message.stageId) setSelectedStageId(message.stageId);
-        if (message.fighterId) setSelectedFighterId(message.fighterId);
-        if (message.opponentId) setSelectedOpponentId(message.opponentId);
+        if (message.hostFighterId) setSelectedFighterId(message.hostFighterId);
+        if (message.guestFighterId) setSelectedOpponentId(message.guestFighterId);
+        setArenaMode('online');
+        setSelectTarget(role === 'host' ? 'player' : 'opponent');
+        setOnlineRoomStatus('ready');
+        setOnlineRoomMessage(role === 'host' ? 'Выбери бойца и карту.' : 'Выбери своего бойца. Карту выбирает хост.');
+        setScreen('select');
+      })
+      .on('broadcast', { event: 'selection' }, ({ payload }) => {
+        const message = payload as OnlineSelectionMessage;
+        if (message.playerId === onlinePlayerIdRef.current) return;
+        setOnlinePeerNickname(cleanOnlineNickname(message.nickname));
+        if (message.role === 'host') {
+          setSelectedFighterId(message.fighterId);
+          if (message.stageId) setSelectedStageId(message.stageId);
+        } else {
+          setSelectedOpponentId(message.fighterId);
+        }
+      })
+      .on('broadcast', { event: 'start' }, ({ payload }) => {
+        const message = payload as {
+          playerId?: string;
+          stageId?: string;
+          fighterId?: string;
+          opponentId?: string;
+          hostFighterId?: string;
+          guestFighterId?: string;
+          nickname?: string;
+        };
+        if (message.playerId === onlinePlayerIdRef.current) return;
+        if (message.nickname) setOnlinePeerNickname(cleanOnlineNickname(message.nickname));
+        if (message.stageId) setSelectedStageId(message.stageId);
+        const hostFighterId = message.hostFighterId ?? message.fighterId ?? selectedFighterId;
+        const guestFighterId = message.guestFighterId ?? message.opponentId ?? selectedOpponentId;
+        setSelectedFighterId(hostFighterId);
+        setSelectedOpponentId(guestFighterId);
+        setLockedFighter(getFighterById(hostFighterId));
+        setLockedOpponent(getFighterById(guestFighterId));
         setArenaMode('online');
         setOnlineRoomStatus('playing');
+        setOnlinePauseOwnerId(null);
+        setOnlinePauseOwnerName('');
         resetFight();
         playFightStartSound();
         setScreen('arena');
@@ -9713,18 +10432,43 @@ export default function App() {
         lastRemoteInputSequenceRef.current = message.sequence;
         handleOnlineOpponentInput(message.key, message.isDown);
       })
+      .on('broadcast', { event: 'pause' }, ({ payload }) => {
+        const message = payload as OnlinePauseMessage;
+        if (message.playerId === onlinePlayerIdRef.current) return;
+        setOnlinePauseOwnerId(message.isPaused ? message.playerId : null);
+        setOnlinePauseOwnerName(message.isPaused ? cleanOnlineNickname(message.nickname) : '');
+        setSettingsOpen(message.isPaused);
+        if (!message.isPaused) setControlsSettingsOpen(false);
+      })
+      .on('broadcast', { event: 'leave' }, ({ payload }) => {
+        finishOnlineMatchFromPeerLeave(payload as OnlineLeaveMessage);
+      })
       .on('broadcast', { event: 'snapshot' }, ({ payload }) => {
         applyOnlineSnapshot(payload as OnlineSnapshotMessage);
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setOnlineRoomStatus(role === 'host' ? 'waiting' : 'waiting');
-          setOnlineRoomMessage(role === 'host' ? `Комната ${code} создана. Ждем второго игрока.` : `Подключились к ${code}.`);
+          setOnlineRoomMessage(
+            role === 'host'
+              ? `Комната ${code} создана. ${onlineRoomVisibilityRef.current === 'public' ? 'Она видна в списке.' : 'Вход только по коду.'}`
+              : `Подключились к ${code}.`,
+          );
           void channel.send({
             type: 'broadcast',
             event: role === 'host' ? 'host-ready' : 'peer-ready',
-            payload: { playerId: onlinePlayerIdRef.current },
+            payload: { playerId: onlinePlayerIdRef.current, nickname: onlineNicknameRef.current },
           });
+          if (role === 'host' && onlineRoomVisibilityRef.current === 'public') {
+            broadcastPublicOnlineRoom(code);
+            if (onlinePublicAnnounceTimer.current) {
+              window.clearInterval(onlinePublicAnnounceTimer.current);
+            }
+            onlinePublicAnnounceTimer.current = window.setInterval(
+              () => broadcastPublicOnlineRoom(code),
+              ONLINE_PUBLIC_ROOM_ANNOUNCE_MS,
+            );
+          }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setOnlineRoomStatus('error');
           setOnlineRoomMessage('Не получилось подключиться к комнате.');
@@ -9735,7 +10479,9 @@ export default function App() {
   }
 
   function createOnlineRoom() {
+    setOnlineNickname(cleanOnlineNickname(onlineNickname));
     createOnlineChannel(makeRoomCode(), 'host');
+    setOnlineRoomsView('create');
   }
 
   function joinOnlineRoom() {
@@ -9745,7 +10491,235 @@ export default function App() {
       setOnlineRoomMessage('Введи код комнаты.');
       return;
     }
+    setOnlineNickname(cleanOnlineNickname(onlineNickname));
     createOnlineChannel(code, 'guest');
+    setOnlineRoomsView('join');
+  }
+
+  function joinPublicOnlineRoom(room: OnlinePublicRoom) {
+    setJoinRoomCode(room.code);
+    setOnlineNickname(cleanOnlineNickname(onlineNickname));
+    createOnlineChannel(room.code, 'guest');
+    setOnlineRoomsView('public');
+  }
+
+  function continueAsGuest() {
+    const cleanNickname = cleanOnlineNickname(authNickname);
+    setAuthNickname(cleanNickname);
+    setOnlineNickname(cleanNickname);
+    setAuthMessage('Ты играешь как гость.');
+    setScreen('title');
+  }
+
+  async function signUpWithPassword() {
+    const cleanNickname = cleanOnlineNickname(authNickname);
+    const nicknameKey = getNicknameKey(cleanNickname);
+    const typedEmail = authEmail.trim();
+
+    if (authPassword.length < 6) {
+      setAuthMessage('Введи пароль минимум 6 символов. Email можно не указывать.');
+      return;
+    }
+
+    if (!typedEmail) {
+      const localAccounts = readLocalAuthAccounts();
+
+      if (localAccounts[nicknameKey]) {
+        setAuthMessage('Такой ник уже занят. Выбери другой.');
+        return;
+      }
+
+      writeLocalAuthAccounts({
+        ...localAccounts,
+        [nicknameKey]: {
+          nickname: cleanNickname,
+          passwordHash: hashLocalAuthPassword(authPassword),
+          createdAt: Date.now(),
+        },
+      });
+      setAuthNickname(cleanNickname);
+      setOnlineNickname(cleanNickname);
+      setAuthMessage('Аккаунт создан.');
+      setScreen('title');
+      return;
+    }
+
+    setIsAuthLoading(true);
+    setAuthMessage('Создаем аккаунт...');
+    const { data, error } = await supabase.auth.signUp({
+      email: typedEmail,
+      password: authPassword,
+      options: {
+        data: {
+          nickname: cleanNickname,
+          nickname_key: nicknameKey,
+          full_name: cleanNickname,
+          visible_email: typedEmail,
+          generated_email: false,
+        },
+      },
+    });
+
+    if (error) {
+      setIsAuthLoading(false);
+      const message = error.message.toLowerCase();
+      setAuthMessage(
+        message.includes('registered') || message.includes('already') || message.includes('exists')
+          ? 'Такой email уже зарегистрирован.'
+          : error.message || 'Не получилось зарегистрироваться.',
+      );
+      return;
+    }
+
+    if (data.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: data.user.id,
+            nickname: cleanNickname,
+            nickname_key: nicknameKey,
+          },
+          { onConflict: 'id' },
+        );
+
+      if (profileError?.code === '23505') {
+        setIsAuthLoading(false);
+        setAuthMessage('Такой ник уже занят. Выбери другой.');
+        return;
+      }
+    }
+
+    setIsAuthLoading(false);
+    setAuthNickname(cleanNickname);
+    setOnlineNickname(cleanNickname);
+    setAuthMessage('Аккаунт создан.');
+    setScreen('title');
+  }
+
+  async function signInWithPassword() {
+    const cleanNickname = cleanOnlineNickname(authNickname);
+    const nicknameKey = getNicknameKey(cleanNickname);
+    const typedEmail = authEmail.trim();
+    if (!authPassword) {
+      setAuthMessage('Введи пароль. Если email не указан, вход будет по нику.');
+      return;
+    }
+
+    if (!typedEmail) {
+      const localAccount = readLocalAuthAccounts()[nicknameKey];
+
+      if (!localAccount || localAccount.passwordHash !== hashLocalAuthPassword(authPassword)) {
+        setAuthMessage('Ник или пароль неправильный.');
+        return;
+      }
+
+      setAuthNickname(localAccount.nickname);
+      setOnlineNickname(localAccount.nickname);
+      setAuthMessage('Ты вошел в аккаунт.');
+      setScreen('title');
+      return;
+    }
+
+    setIsAuthLoading(true);
+    setAuthMessage('Входим в аккаунт...');
+    const { error } = await supabase.auth.signInWithPassword({
+      email: typedEmail,
+      password: authPassword,
+    });
+    setIsAuthLoading(false);
+    if (error) {
+      setAuthMessage(error.message || 'Не получилось войти.');
+      return;
+    }
+    setAuthNickname(cleanNickname);
+    setOnlineNickname(cleanNickname);
+    setScreen('title');
+  }
+
+  async function signInWithGoogle(mode: 'sign-up' | 'sign-in') {
+    const cleanNickname = cleanOnlineNickname(authNickname);
+    setAuthNickname(cleanNickname);
+    setOnlineNickname(cleanNickname);
+    setIsAuthLoading(true);
+    setAuthMessage(mode === 'sign-up' ? 'Открываем регистрацию через Google...' : 'Открываем вход через Google...');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: mode === 'sign-up' ? { prompt: 'select_account' } : undefined,
+      },
+    });
+    if (error) {
+      setIsAuthLoading(false);
+      setAuthMessage(error.message || 'Не получилось открыть Google-вход.');
+    }
+  }
+
+  async function signOutOfAccount() {
+    await supabase.auth.signOut();
+    setAuthSession(null);
+    setAuthMessage('Ты вышел из аккаунта.');
+    setScreen('auth');
+  }
+
+  async function copyOnlineRoomCode() {
+    if (!roomCode) return;
+    try {
+      await window.navigator.clipboard.writeText(roomCode);
+    } catch {
+      const copyInput = document.createElement('input');
+      copyInput.value = roomCode;
+      copyInput.style.position = 'fixed';
+      copyInput.style.left = '-9999px';
+      document.body.appendChild(copyInput);
+      copyInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(copyInput);
+    }
+    setOnlineRoomCodeCopied(true);
+    window.setTimeout(() => setOnlineRoomCodeCopied(false), 1600);
+  }
+
+  function broadcastOnlineSelection() {
+    if (!onlineChannelRef.current || arenaMode !== 'online' || !onlineRoleRef.current) return;
+    const role = onlineRoleRef.current;
+    void onlineChannelRef.current.send({
+      type: 'broadcast',
+      event: 'selection',
+      payload: {
+        playerId: onlinePlayerIdRef.current,
+        nickname: onlineNicknameRef.current,
+        role,
+        fighterId: role === 'host' ? selectedFighterId : selectedOpponentId,
+        ...(role === 'host' ? { stageId: selectedStageId } : {}),
+      } satisfies OnlineSelectionMessage,
+    });
+  }
+
+  function openOnlineSelectMenu() {
+    if (!onlineChannelRef.current || onlineRole !== 'host' || !onlinePeerReady) return;
+    broadcastPublicRoomClosed();
+    if (onlinePublicAnnounceTimer.current) {
+      window.clearInterval(onlinePublicAnnounceTimer.current);
+      onlinePublicAnnounceTimer.current = null;
+    }
+    setArenaMode('online');
+    setOnlineRoomStatus('ready');
+    setOnlineRoomMessage('Выбери бойца и карту.');
+    setSelectTarget('player');
+    setScreen('select');
+    void onlineChannelRef.current.send({
+      type: 'broadcast',
+      event: 'open-select',
+      payload: {
+        playerId: onlinePlayerIdRef.current,
+        stageId: selectedStageId,
+        hostFighterId: selectedFighterId,
+        guestFighterId: selectedOpponentId,
+      },
+    });
+    broadcastOnlineSelection();
   }
 
   function startOnlineRoomMatch() {
@@ -9759,7 +10733,10 @@ export default function App() {
       event: 'start',
       payload: {
         playerId: onlinePlayerIdRef.current,
+        nickname: onlineNicknameRef.current,
         stageId: selectedStageId,
+        hostFighterId: selectedFighter.id,
+        guestFighterId: selectedOpponent.id,
         fighterId: selectedFighter.id,
         opponentId: selectedOpponent.id,
       },
@@ -9782,6 +10759,72 @@ export default function App() {
         sentAt: window.performance.now(),
       } satisfies OnlineInputMessage,
     });
+  }
+
+  async function broadcastOnlineLeave() {
+    if (arenaModeRef.current !== 'online' || !onlineChannelRef.current) return;
+    await onlineChannelRef.current.send({
+      type: 'broadcast',
+      event: 'leave',
+      payload: {
+        playerId: onlinePlayerIdRef.current,
+        nickname: onlineNicknameRef.current,
+      } satisfies OnlineLeaveMessage,
+    });
+  }
+
+  function finishOnlineMatchFromPeerLeave(message: OnlineLeaveMessage) {
+    if (message.playerId === onlinePlayerIdRef.current || arenaModeRef.current !== 'online') return;
+    const remainingSide: FighterSide = onlineRoleRef.current === 'guest' ? 'right' : 'left';
+
+    cleanupOnlineRoom();
+    setSettingsOpen(false);
+    setControlsSettingsOpen(false);
+    setOnlineRoomMessage(`${cleanOnlineNickname(message.nickname)} вышел. Ты победил.`);
+
+    if (screenRef.current !== 'arena' || roundResolvedRef.current) return;
+
+    if (remainingSide === 'left') {
+      setPlayerRoundWins(1);
+      setOpponentRoundWins(0);
+      opponentHealthRef.current = 0;
+      setOpponentHealth(0);
+    } else {
+      setPlayerRoundWins(0);
+      setOpponentRoundWins(1);
+      playerHealthRef.current = 0;
+      setPlayerHealth(0);
+    }
+  }
+
+  function setArenaPauseOpen(isPaused: boolean) {
+    if (arenaMode !== 'online' || !onlineChannelRef.current) {
+      setSettingsOpen(isPaused);
+      if (!isPaused) setControlsSettingsOpen(false);
+      return;
+    }
+
+    const isOwner = onlinePauseOwnerId === onlinePlayerIdRef.current;
+    if (!isPaused && onlinePauseOwnerId && !isOwner) return;
+
+    const nextOwnerId = isPaused ? onlinePlayerIdRef.current : null;
+    setOnlinePauseOwnerId(nextOwnerId);
+    setOnlinePauseOwnerName(isPaused ? onlineNicknameRef.current : '');
+    setSettingsOpen(isPaused);
+    if (!isPaused) setControlsSettingsOpen(false);
+    void onlineChannelRef.current.send({
+      type: 'broadcast',
+      event: 'pause',
+      payload: {
+        playerId: onlinePlayerIdRef.current,
+        nickname: onlineNicknameRef.current,
+        isPaused,
+      } satisfies OnlinePauseMessage,
+    });
+  }
+
+  function toggleArenaPause() {
+    setArenaPauseOpen(!settingsOpen);
   }
 
   function openRoomsScreen() {
@@ -9858,6 +10901,18 @@ export default function App() {
     if (arenaMode === 'online') cleanupOnlineRoom();
     resetFight();
     setArenaMode('fight');
+    setLockedFighter(null);
+    setLockedOpponent(null);
+    setScreen('menu');
+  }
+
+  async function exitOnlineMatch() {
+    await broadcastOnlineLeave();
+    cleanupOnlineRoom();
+    resetFight();
+    setArenaMode('fight');
+    setSettingsOpen(false);
+    setControlsSettingsOpen(false);
     setLockedFighter(null);
     setLockedOpponent(null);
     setScreen('menu');
@@ -10015,7 +11070,13 @@ export default function App() {
         type="button"
         aria-expanded={settingsOpen}
         aria-label="Настройки"
-        onClick={() => setSettingsOpen((isOpen) => !isOpen)}
+        onClick={() => {
+          if (screen === 'arena') {
+            toggleArenaPause();
+            return;
+          }
+          setSettingsOpen((isOpen) => !isOpen);
+        }}
       >
         <img src={settingsIcon} alt="" aria-hidden="true" />
       </button>
@@ -10089,11 +11150,26 @@ export default function App() {
         />
       </label>
       {controlsSettings}
-      <button className="confirm-button arena-pause-menu__button" onClick={() => setSettingsOpen(false)} type="button">
+      {arenaMode === 'online' && onlinePauseOwnerId && onlinePauseOwnerId !== onlinePlayerIdRef.current && (
+        <p className="arena-pause-menu__notice">
+          Пауза открыта игроком {onlinePauseOwnerName || 'соперник'}
+        </p>
+      )}
+      <button
+        className="confirm-button arena-pause-menu__button"
+        disabled={arenaMode === 'online' && Boolean(onlinePauseOwnerId) && onlinePauseOwnerId !== onlinePlayerIdRef.current}
+        onClick={() => setArenaPauseOpen(false)}
+        type="button"
+      >
         Продолжить
       </button>
-      <button className="back-button arena-pause-menu__button" onClick={backToSelect} type="button">
-        Выбор бойца
+      <button
+        className="back-button arena-pause-menu__button"
+        disabled={arenaMode === 'online' && Boolean(onlinePauseOwnerId) && onlinePauseOwnerId !== onlinePlayerIdRef.current}
+        onClick={arenaMode === 'online' ? exitOnlineMatch : backToSelect}
+        type="button"
+      >
+        {arenaMode === 'online' ? 'Выйти' : 'Выбор бойца'}
       </button>
     </div>
   ) : null;
@@ -10120,6 +11196,219 @@ export default function App() {
             <button className="back-button" onClick={backToSelect} type="button">
               Выбор бойца
             </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (screen === 'auth') {
+    const accountName =
+      authSession?.user.user_metadata?.full_name ||
+      authSession?.user.email ||
+      'аккаунт';
+
+    return (
+      <main className="game-shell game-shell--title">
+        <section className="auth-gate" aria-labelledby="auth-gate-title">
+          <img
+            className="title-menu__backdrop"
+            src={deltafightTitleBg}
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="auth-gate__panel">
+            <p className="eyebrow">DeltaFight</p>
+            <h1 id="auth-gate-title">
+              {authView === 'login'
+                ? 'Вход'
+                : authView === 'signup'
+                  ? 'Регистрация'
+                  : authView === 'profile'
+                    ? 'Аккаунт'
+                    : 'Вход в игру'}
+            </h1>
+            <p className="auth-gate__copy">
+              {authView === 'login'
+                ? 'Введи ник и пароль. Email нужен только если ты указывал его при регистрации.'
+                : authView === 'signup'
+                  ? 'Нужны никнейм и пароль. Email можно оставить пустым.'
+                  : authView === 'profile'
+                    ? 'Здесь можно продолжить игру или выйти из аккаунта.'
+                    : 'Выбери, как зайти в игру.'}
+            </p>
+            {authSession && (
+              <p className="auth-gate__account">
+                Сейчас выбран {accountName}
+              </p>
+            )}
+
+            {authView === 'home' && (
+              <>
+                <div className="auth-gate__form auth-gate__form--single">
+                  <label className="auth-gate__field">
+                    <span>Никнейм</span>
+                    <input
+                      maxLength={14}
+                      onBlur={() => setAuthNickname(cleanOnlineNickname(authNickname))}
+                      onChange={(event) => setAuthNickname(event.currentTarget.value)}
+                      placeholder="Игрок"
+                      value={authNickname}
+                    />
+                  </label>
+                </div>
+                <div className="auth-gate__actions auth-gate__actions--home">
+                  <button className="title-menu__button" onClick={continueAsGuest} type="button">
+                    Играть гостем
+                  </button>
+                  <button className="title-menu__button title-menu__button--ghost" onClick={() => setAuthView('login')} type="button">
+                    Войти
+                  </button>
+                  <button className="title-menu__button title-menu__button--ghost" onClick={() => setAuthView('signup')} type="button">
+                    Регистрация
+                  </button>
+                  {authSession && (
+                    <button className="title-menu__button title-menu__button--google" onClick={() => setAuthView('profile')} type="button">
+                      Профиль
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
+            {authView === 'login' && (
+              <>
+                <div className="auth-gate__form">
+                  <label className="auth-gate__field">
+                    <span>Никнейм</span>
+                    <input
+                      maxLength={14}
+                      onBlur={() => setAuthNickname(cleanOnlineNickname(authNickname))}
+                      onChange={(event) => setAuthNickname(event.currentTarget.value)}
+                      placeholder="Игрок"
+                      value={authNickname}
+                    />
+                  </label>
+                  <label className="auth-gate__field">
+                    <span>Email</span>
+                    <input
+                      autoComplete="email"
+                      inputMode="email"
+                      onChange={(event) => setAuthEmail(event.currentTarget.value)}
+                      placeholder="можно оставить пустым"
+                      type="email"
+                      value={authEmail}
+                    />
+                  </label>
+                  <label className="auth-gate__field">
+                    <span>Пароль</span>
+                    <input
+                      autoComplete="current-password"
+                      onChange={(event) => setAuthPassword(event.currentTarget.value)}
+                      placeholder="минимум 6 символов"
+                      type="password"
+                      value={authPassword}
+                    />
+                  </label>
+                </div>
+                <div className="auth-gate__actions auth-gate__actions--stack">
+                  <button
+                    className="title-menu__button"
+                    disabled={isAuthLoading}
+                    onClick={signInWithPassword}
+                    type="button"
+                  >
+                    Войти по паролю
+                  </button>
+                  <button
+                    className="title-menu__button title-menu__button--google"
+                    disabled={isAuthLoading}
+                    onClick={() => signInWithGoogle('sign-in')}
+                    type="button"
+                  >
+                    Войти через Google
+                  </button>
+                  <button className="title-menu__button title-menu__button--ghost" onClick={() => setAuthView('home')} type="button">
+                    Назад
+                  </button>
+                </div>
+              </>
+            )}
+
+            {authView === 'signup' && (
+              <>
+                <div className="auth-gate__form">
+                  <label className="auth-gate__field">
+                    <span>Никнейм</span>
+                    <input
+                      maxLength={14}
+                      onBlur={() => setAuthNickname(cleanOnlineNickname(authNickname))}
+                      onChange={(event) => setAuthNickname(event.currentTarget.value)}
+                      placeholder="Игрок"
+                      value={authNickname}
+                    />
+                  </label>
+                  <label className="auth-gate__field">
+                    <span>Email</span>
+                    <input
+                      autoComplete="email"
+                      inputMode="email"
+                      onChange={(event) => setAuthEmail(event.currentTarget.value)}
+                      placeholder="не обязательно"
+                      type="email"
+                      value={authEmail}
+                    />
+                  </label>
+                  <label className="auth-gate__field">
+                    <span>Пароль</span>
+                    <input
+                      autoComplete="new-password"
+                      onChange={(event) => setAuthPassword(event.currentTarget.value)}
+                      placeholder="минимум 6 символов"
+                      type="password"
+                      value={authPassword}
+                    />
+                  </label>
+                </div>
+                <div className="auth-gate__actions auth-gate__actions--stack">
+                  <button
+                    className="title-menu__button"
+                    disabled={isAuthLoading}
+                    onClick={signUpWithPassword}
+                    type="button"
+                  >
+                    Создать аккаунт
+                  </button>
+                  <button
+                    className="title-menu__button title-menu__button--google"
+                    disabled={isAuthLoading}
+                    onClick={() => signInWithGoogle('sign-up')}
+                    type="button"
+                  >
+                    Регистрация через Google
+                  </button>
+                  <button className="title-menu__button title-menu__button--ghost" onClick={() => setAuthView('home')} type="button">
+                    Назад
+                  </button>
+                </div>
+              </>
+            )}
+
+            {authView === 'profile' && (
+              <div className="auth-gate__actions auth-gate__actions--stack">
+                <button className="title-menu__button" onClick={() => setScreen('title')} type="button">
+                  Продолжить
+                </button>
+                <button className="title-menu__button title-menu__button--ghost" onClick={signOutOfAccount} type="button">
+                  Выйти из аккаунта
+                </button>
+                <button className="title-menu__button title-menu__button--ghost" onClick={() => setAuthView('home')} type="button">
+                  Назад
+                </button>
+              </div>
+            )}
+
+            <p className="auth-gate__status">{isAuthLoading ? 'Проверяем вход...' : authMessage}</p>
           </div>
         </section>
       </main>
@@ -10155,6 +11444,15 @@ export default function App() {
                 DeltaFight - пиксельный файтинг с бойцами, спецприемами, раундами и тренировочным режимом.
               </p>
             )}
+            <button
+              className="auth-profile-button"
+              onClick={authSession ? () => { setAuthView('profile'); setScreen('auth'); } : () => setScreen('auth')}
+              type="button"
+            >
+              {authSession
+                ? `Аккаунт: ${authSession.user.user_metadata?.full_name || authSession.user.email || 'Google'}`
+                : 'Войти / гость'}
+            </button>
           </div>
         </section>
       </main>
@@ -10178,6 +11476,19 @@ export default function App() {
                   top: `${rect.y}%`,
                   width: `${rect.width}%`,
                   height: `${rect.height}%`,
+                }}
+              />
+            ))}
+            {campaignRoom.details?.map((detail) => (
+              <span
+                className={`campaign-room-detail campaign-room-detail--${detail.kind}`}
+                aria-hidden="true"
+                key={detail.id}
+                style={{
+                  left: `${detail.x}%`,
+                  top: `${detail.y}%`,
+                  width: `${detail.width}%`,
+                  height: `${detail.height}%`,
                 }}
               />
             ))}
@@ -10223,6 +11534,9 @@ export default function App() {
                 onClick={() => {
                   setCampaignDialogue(sign.text);
                   setCampaignActiveNpcId(null);
+                  if (sign.encounter === 'bag-battle') {
+                    window.setTimeout(() => startBagBattle('campaign-sign'), 520);
+                  }
                 }}
                 style={{ left: `${sign.x}%`, top: `${sign.y}%` }}
                 type="button"
@@ -10235,16 +11549,7 @@ export default function App() {
                 className={`campaign-defeated-bag${
                   campaignBossCutscenePhase === 'leaving' ? ' campaign-defeated-bag--collected' : ''
                 }`}
-                src={campaignNpcSideBagVictorySprite}
-                alt=""
-              />
-            )}
-            {campaignRoomId === 'side-room' && campaignBossCutsceneStep !== null && campaignBossCutsceneStep > 0 && (
-              <img
-                className={`campaign-room-boss-emerge${
-                  campaignBossCutscenePhase === 'leaving' ? ' campaign-room-boss-emerge--leaving' : ''
-                }`}
-                src={campaignBossPlaceholderSprite}
+                src={campaignNpcSideBagTalkSprite}
                 alt=""
               />
             )}
@@ -10284,7 +11589,12 @@ export default function App() {
               type="button"
             >
               <span className="campaign-boss-cutscene__dialogue">
-                {CAMPAIGN_BOSS_CUTSCENE_LINES[campaignBossCutsceneStep]}
+                {campaignBossCutscenePhase === 'leaving'
+                  ? CAMPAIGN_BOSS_CUTSCENE_LINES[campaignBossCutsceneStep]
+                  : CAMPAIGN_BOSS_CUTSCENE_LINES[campaignBossCutsceneStep].slice(
+                      0,
+                      campaignBossDialogueVisibleChars,
+                    )}
               </span>
             </button>
           )}
@@ -10319,18 +11629,53 @@ export default function App() {
   }
 
   if (screen === 'bag-battle') {
+    const isKingBattle = bagBattleSourceRef.current === 'campaign-sign';
     const playerHealthPercent = Math.max(0, bagBattlePlayer.health);
     const bossHealthPercent = (Math.max(0, bagBattleBoss.health) / BAG_BATTLE_BOSS_START.health) * 100;
+    const isBagBattleWallBroken = isKingBattle && bagBattleWallReduction >= BAG_BATTLE_WALL_MAX_REDUCTION;
+    const bagBattleWallHeight = BAG_BATTLE_WALL_BASE_HEIGHT * (1 - bagBattleWallReduction / 100);
+    const bagBattleBossBottom = isKingBattle
+      ? isBagBattleWallBroken
+        ? BAG_BATTLE_WALL_BOTTOM
+        : BAG_BATTLE_WALL_BOTTOM + bagBattleWallHeight - 4
+      : 10;
     const bagBattleBossSprite =
-      bagBattleResult === 'won'
+      !isKingBattle && bagBattleResult === 'won'
         ? campaignNpcSideBagVictorySprite
+      : !isKingBattle && bagBattleBossPattern === 'run-prep'
+        ? campaignNpcSideBagRunPrepSprite
+      : !isKingBattle && isBagBattleBossShooting
+        ? campaignNpcSideBagShootSprite
+      : !isKingBattle
+        ? campaignNpcSideBagIdleSprite
+      : bagBattleResult === 'won'
+        ? campaignKingBossSprite
       : bagBattleResult !== 'playing'
-        ? campaignNpcSideBagTalkSprite
+        ? campaignKingBossSprite
+        : bagBattleBossPattern === 'spade-rain' || bagBattleBossPattern === 'spade-crossfire'
+          ? campaignKingAttackOneSprite
         : bagBattleBossPattern === 'run-prep'
-          ? campaignNpcSideBagRunPrepSprite
+          ? campaignKingBossSprite
         : isBagBattleBossShooting
-          ? campaignNpcSideBagShootSprite
-          : campaignNpcSideBagTalkSprite;
+          ? campaignKingBossSprite
+          : campaignKingBossSprite;
+    const bagBattleBossClassName = `bag-battle-boss${isBagBattleBossVulnerable ? ' bag-battle-boss--vulnerable' : ''}${
+      isBagBattleBossShooting ? ' bag-battle-boss--shooting' : ''
+    }${isBagBattleBossShooting && bagBattleBossShotLane === 'high' ? ' bag-battle-boss--shoot-high' : ''}${
+      isBagBattleBossShooting && bagBattleBossShotLane === 'low' ? ' bag-battle-boss--shoot-low' : ''
+    }${bagBattleResult === 'won' ? ' bag-battle-boss--victory' : ''}${
+      bagBattleResult !== 'playing' ? ' bag-battle-boss--result' : ''
+    }${bagBattleBossPattern === 'run-prep' ? ' bag-battle-boss--run-prep' : ''}${
+      bagBattleBossPattern === 'spade-rain' || bagBattleBossPattern === 'spade-crossfire'
+        ? ' bag-battle-boss--spade-rain'
+        : ''
+    }${
+      bagBattleBossPattern === 'running' || bagBattleBossPattern === 'returning'
+        ? ' bag-battle-boss--running'
+        : ''
+    }${!isKingBattle ? ' bag-battle-boss--bag' : ''}${
+      bagBattleBossPattern === 'ground' ? ' bag-battle-boss--ground' : ''
+    }`;
 
     return (
       <main className="game-shell game-shell--bag-battle">
@@ -10345,12 +11690,27 @@ export default function App() {
               <i style={{ width: `${playerHealthPercent}%` }} />
             </div>
             <div className="bag-battle-health bag-battle-health--boss">
-              <span>BAG</span>
+              <span>{isKingBattle ? 'KING' : 'BAG'}</span>
               <strong>{Math.ceil(bagBattleBoss.health)}</strong>
               <i style={{ width: `${bossHealthPercent}%` }} />
             </div>
           </div>
-          <div className="bag-battle-arena">
+          <div className={`bag-battle-arena${isKingBattle ? ' bag-battle-arena--king' : ' bag-battle-arena--bag'}`}>
+            <div className="bag-battle-card-wall" aria-hidden="true">
+              <span>♣</span>
+              <span>♠</span>
+              <span>♦</span>
+              <span>♥</span>
+            </div>
+            <span
+              className="bag-battle-boss-platform"
+              aria-hidden="true"
+              style={{
+                bottom: `${BAG_BATTLE_WALL_BOTTOM}%`,
+                display: !isKingBattle || isBagBattleWallBroken ? 'none' : undefined,
+                height: `${bagBattleWallHeight}%`,
+              }}
+            />
             <div
               className={`bag-battle-player bag-battle-player--${bagBattleAttack}${
                 isBagBattleCrouching ? ' bag-battle-player--crouch' : ''
@@ -10371,34 +11731,62 @@ export default function App() {
                 <span className="stick-leg stick-leg--back" />
               </span>
             </div>
-            <img
-              className={`bag-battle-boss${isBagBattleBossVulnerable ? ' bag-battle-boss--vulnerable' : ''}${
-                isBagBattleBossShooting ? ' bag-battle-boss--shooting' : ''
-              }${isBagBattleBossShooting && bagBattleBossShotLane === 'high' ? ' bag-battle-boss--shoot-high' : ''}${
-                isBagBattleBossShooting && bagBattleBossShotLane === 'low' ? ' bag-battle-boss--shoot-low' : ''
-              }${bagBattleResult === 'won' ? ' bag-battle-boss--victory' : ''}${
-                bagBattleResult !== 'playing' ? ' bag-battle-boss--result' : ''
-              }${bagBattleBossPattern === 'run-prep' ? ' bag-battle-boss--run-prep' : ''}${
-                bagBattleBossPattern === 'running' || bagBattleBossPattern === 'returning'
-                  ? ' bag-battle-boss--running'
-                  : ''
-              }`}
-              src={bagBattleBossSprite}
-              alt=""
-              style={{ left: `${bagBattleBoss.x}%` }}
-            />
-            {bagBattleProjectiles.map((projectile) => (
+            {isKingBattle &&
+            (bagBattleBossPattern === 'spade-rain' || bagBattleBossPattern === 'spade-crossfire') &&
+            bagBattleResult === 'playing' ? (
               <span
-                className={`bag-battle-projectile bag-battle-projectile--${projectile.owner}${
-                  projectile.lane ? ` bag-battle-projectile--${projectile.lane}` : ''
-                }`}
-                key={projectile.id}
+                aria-hidden="true"
+                className={bagBattleBossClassName}
                 style={{
-                  left: `${projectile.x}%`,
-                  bottom: `${14 + projectile.y}%`,
+                  left: `${bagBattleBoss.x}%`,
+                  bottom: `${bagBattleBossBottom + 1}%`,
+                  backgroundImage: `url(${bagBattleBossSprite})`,
                 }}
               />
-            ))}
+            ) : (
+              <img
+                className={bagBattleBossClassName}
+                src={bagBattleBossSprite}
+                alt=""
+                style={{ left: `${bagBattleBoss.x}%`, bottom: `${bagBattleBossBottom}%` }}
+              />
+            )}
+            {bagBattleProjectiles.map((projectile) => {
+              if (projectile.kind === 'spade') {
+                const isSideSpade = Math.abs(projectile.vx) > Math.abs(projectile.vy);
+                const sideSpadeClass = isSideSpade
+                  ? ` bag-battle-projectile--spade-side bag-battle-projectile--dir-${
+                      projectile.vx > 0 ? 'right' : 'left'
+                    }`
+                  : '';
+
+                return (
+                <img
+                  className={`bag-battle-projectile bag-battle-projectile--boss bag-battle-projectile--spade${sideSpadeClass}`}
+                  key={projectile.id}
+                  src={jevilChaosProjectileThreeSprite}
+                  alt=""
+                  style={{
+                    left: `${projectile.x}%`,
+                    bottom: `${14 + projectile.y}%`,
+                  }}
+                />
+                );
+              }
+
+              return (
+                <span
+                  className={`bag-battle-projectile bag-battle-projectile--${projectile.owner}${
+                    projectile.lane ? ` bag-battle-projectile--${projectile.lane}` : ''
+                  }`}
+                  key={projectile.id}
+                  style={{
+                    left: `${projectile.x}%`,
+                    bottom: `${14 + projectile.y}%`,
+                  }}
+                />
+              );
+            })}
             {bagBattleResult === 'won' && (
               <div className="bag-battle-knockout" aria-hidden="true">
                 KNOCKOUT!
@@ -10410,16 +11798,25 @@ export default function App() {
                 onClick={() => {
                   bagBattlePressedKeys.current.clear();
                   if (bagBattleResult === 'won') {
-                    const returnPosition = { x: 68, y: 49 };
-                    setIsCampaignBagDefeated(true);
-                    setIsCampaignBagCollected(false);
-                    setCampaignRoomId('side-room');
-                    setCampaignPosition(returnPosition);
-                    campaignPositionRef.current = returnPosition;
-                    setCampaignDialogue(null);
-                    setCampaignActiveNpcId(null);
-                    setCampaignBossCutscenePhase('talking');
-                    setCampaignBossCutsceneStep(0);
+                    if (bagBattleSourceRef.current === 'campaign-sign') {
+                      const returnPosition = { x: 44, y: 58 };
+                      setCampaignRoomId('room2a');
+                      setCampaignPosition(returnPosition);
+                      campaignPositionRef.current = returnPosition;
+                      setCampaignDialogue(null);
+                      setCampaignActiveNpcId(null);
+                    } else {
+                      const returnPosition = { x: 68, y: 49 };
+                      setIsCampaignBagDefeated(true);
+                      setIsCampaignBagCollected(false);
+                      setCampaignRoomId('side-room');
+                      setCampaignPosition(returnPosition);
+                      campaignPositionRef.current = returnPosition;
+                      setCampaignDialogue(null);
+                      setCampaignActiveNpcId(null);
+                      setCampaignBossCutscenePhase('talking');
+                      setCampaignBossCutsceneStep(0);
+                    }
                   }
                   setScreen('campaign');
                 }}
@@ -10437,6 +11834,17 @@ export default function App() {
 
   if (screen === 'rooms') {
     const canStartOnline = onlineRole === 'host' && onlinePeerReady && onlineRoomStatus !== 'connecting';
+    const activePublicRooms = publicOnlineRooms.filter(
+      (room) => room.code !== roomCode && room.status !== 'playing',
+    );
+    const showRoomSession =
+      onlineRoomsView !== 'menu' &&
+      (Boolean(roomCode) || onlineRoomStatus === 'connecting' || onlinePeerReady || onlineRole !== null);
+    const closeRoomsScreen = () => {
+      cleanupOnlineRoom();
+      setOnlineRoomsView('menu');
+      setScreen('menu');
+    };
 
     return (
       <main className="game-shell game-shell--menu-bg">
@@ -10450,45 +11858,179 @@ export default function App() {
             <span className="header-rule" />
           </div>
 
-          <div className="rooms-panel">
-            <div className="room-card">
-              <span className="room-card__label">Твоя комната</span>
-              <strong className="room-code">{roomCode || '----'}</strong>
-              <button className="confirm-button" onClick={createOnlineRoom} type="button">
-                Создать
+          {onlineRoomsView === 'menu' && (
+            <div className="rooms-choice-menu">
+              <button className="room-choice-button" onClick={() => setOnlineRoomsView('create')} type="button">
+                <span>Создать комнату</span>
+                <small>Открыть комнату и дать код другу</small>
+              </button>
+              <button className="room-choice-button" onClick={() => setOnlineRoomsView('join')} type="button">
+                <span>Присоединиться к комнате</span>
+                <small>Ввести код комнаты друга</small>
+              </button>
+              <button className="room-choice-button" onClick={() => setOnlineRoomsView('public')} type="button">
+                <span>Найти комнату</span>
+                <small>Показать свободные публичные комнаты</small>
               </button>
             </div>
+          )}
 
-            <div className="room-card">
-              <span className="room-card__label">Код друга</span>
-              <input
-                className="room-input"
-                maxLength={8}
-                onChange={(event) => setJoinRoomCode(event.currentTarget.value.toUpperCase())}
-                placeholder="ABCD"
-                value={joinRoomCode}
-              />
-              <button className="confirm-button" onClick={joinOnlineRoom} type="button">
-                Подключиться
-              </button>
+          {onlineRoomsView === 'create' && (
+            <>
+              <div className="room-settings">
+                <label className="room-field">
+                  <span className="room-card__label">Твой ник</span>
+                  <input
+                    className="room-input room-input--nickname"
+                    maxLength={14}
+                    onChange={(event) => setOnlineNickname(event.currentTarget.value)}
+                    onBlur={() => setOnlineNickname(cleanOnlineNickname(onlineNickname))}
+                    placeholder="Игрок"
+                    value={onlineNickname}
+                  />
+                </label>
+                <div className="room-visibility" role="group" aria-label="Доступ комнаты">
+                  <span className="room-card__label">Доступ</span>
+                  <div className="room-segmented">
+                    <button
+                      className={onlineRoomVisibility === 'private' ? 'room-segmented__button is-active' : 'room-segmented__button'}
+                      disabled={onlineRoomStatus === 'playing'}
+                      onClick={() => setOnlineRoomVisibility('private')}
+                      type="button"
+                    >
+                      Частная
+                    </button>
+                    <button
+                      className={onlineRoomVisibility === 'public' ? 'room-segmented__button is-active' : 'room-segmented__button'}
+                      disabled={onlineRoomStatus === 'playing'}
+                      onClick={() => setOnlineRoomVisibility('public')}
+                      type="button"
+                    >
+                      Публичная
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="rooms-panel rooms-panel--single">
+                <div className="room-card">
+                  <span className="room-card__label">Твоя комната</span>
+                  <div className="room-code-row">
+                  <strong className="room-code">{roomCode || '----'}</strong>
+                  <button
+                    aria-label={onlineRoomCodeCopied ? 'Код скопирован' : 'Скопировать код'}
+                    className="room-copy-code-button"
+                    disabled={!roomCode}
+                    onClick={copyOnlineRoomCode}
+                    title={onlineRoomCodeCopied ? 'Код скопирован' : 'Скопировать код'}
+                    type="button"
+                  >
+                    {onlineRoomCodeCopied ? 'Скопировано' : 'Скопировать код'}
+                  </button>
+                  </div>
+                  <span className="room-card__hint">
+                    {onlineRoomVisibility === 'public' ? 'Будет видна другим игрокам' : 'Друг должен ввести код'}
+                  </span>
+                  <button className="confirm-button" onClick={createOnlineRoom} type="button">
+                    Создать
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {onlineRoomsView === 'join' && (
+            <>
+              <div className="room-settings room-settings--single">
+                <label className="room-field">
+                  <span className="room-card__label">Твой ник</span>
+                  <input
+                    className="room-input room-input--nickname"
+                    maxLength={14}
+                    onChange={(event) => setOnlineNickname(event.currentTarget.value)}
+                    onBlur={() => setOnlineNickname(cleanOnlineNickname(onlineNickname))}
+                    placeholder="Игрок"
+                    value={onlineNickname}
+                  />
+                </label>
+              </div>
+              <div className="rooms-panel rooms-panel--single">
+                <div className="room-card">
+                  <span className="room-card__label">Код друга</span>
+                  <input
+                    className="room-input"
+                    maxLength={8}
+                    onChange={(event) => setJoinRoomCode(event.currentTarget.value.toUpperCase())}
+                    placeholder="ABCD"
+                    value={joinRoomCode}
+                  />
+                  <button className="confirm-button" onClick={joinOnlineRoom} type="button">
+                    Присоединиться
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {showRoomSession && (
+            <div className="room-players">
+              <div className="room-player">
+                <span>Ты</span>
+                <strong>{cleanOnlineNickname(onlineNickname)}</strong>
+              </div>
+              <div className="room-player">
+                <span>Соперник</span>
+                <strong>{onlinePeerNickname || (onlinePeerReady ? 'Подключен' : 'Ждем игрока')}</strong>
+              </div>
             </div>
-          </div>
+          )}
+
+          {onlineRoomsView === 'public' && (
+            <div className="public-rooms public-rooms--standalone">
+              <div className="public-rooms__header">
+                <span className="room-card__label">Публичные комнаты</span>
+                <small>{activePublicRooms.length ? 'Можно подключиться сразу' : 'Пока пусто'}</small>
+              </div>
+              {activePublicRooms.length > 0 ? (
+                <div className="public-rooms__list">
+                  {activePublicRooms.map((room) => (
+                    <button
+                      className="public-room"
+                      key={`${room.playerId}-${room.code}`}
+                      onClick={() => joinPublicOnlineRoom(room)}
+                      type="button"
+                    >
+                      <span className="public-room__code">{room.code}</span>
+                      <span className="public-room__host">{room.hostName}</span>
+                      <span className="public-room__meta">{room.fighterName} / {room.stageName}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="public-rooms__empty">Свободных публичных комнат сейчас нет.</p>
+              )}
+            </div>
+          )}
 
           <p className={`room-status room-status--${onlineRoomStatus}`}>{onlineRoomMessage}</p>
 
           <div className="room-actions">
-            <button className="confirm-button" disabled={!canStartOnline} onClick={startOnlineRoomMatch} type="button">
-              Начать бой
-            </button>
-            <button
-              className="back-button"
-              onClick={() => {
-                cleanupOnlineRoom();
-                setScreen('menu');
-              }}
-              type="button"
-            >
-              Назад
+            {showRoomSession && (
+              <button
+                className="confirm-button"
+                disabled={!canStartOnline}
+                onClick={openOnlineSelectMenu}
+                type="button"
+              >
+                Начать бой
+              </button>
+            )}
+            {onlineRoomsView !== 'menu' && (
+              <button className="back-button" onClick={() => setOnlineRoomsView('menu')} type="button">
+                Назад
+              </button>
+            )}
+            <button className="back-button" onClick={closeRoomsScreen} type="button">
+              Выйти
             </button>
           </div>
         </section>
@@ -10609,7 +12151,13 @@ export default function App() {
             <div className="arena-hud">
               <FighterBadge
                 fighter={player}
-                label="P1"
+                label={
+                  arenaMode === 'online'
+                    ? onlineRole === 'host'
+                      ? cleanOnlineNickname(onlineNickname)
+                      : onlinePeerNickname || 'HOST'
+                    : 'P1'
+                }
                 health={playerHealth}
                 gersonAirHitCount={playerGersonAirLandingHits}
               />
@@ -10620,7 +12168,15 @@ export default function App() {
               </span>
               <FighterBadge
                 fighter={opponent}
-                label={arenaMode === 'sandbox' ? 'DUMMY' : 'CPU'}
+                label={
+                  arenaMode === 'online'
+                    ? onlineRole === 'host'
+                      ? onlinePeerNickname || 'GUEST'
+                      : cleanOnlineNickname(onlineNickname)
+                    : arenaMode === 'sandbox'
+                      ? 'DUMMY'
+                      : 'CPU'
+                }
                 health={opponentHealth}
                 gersonAirHitCount={opponentGersonAirLandingHits}
                 alignRight
@@ -11051,6 +12607,15 @@ export default function App() {
     );
   }
 
+  const isOnlineSelect = arenaMode === 'online' && screen === 'select';
+  const onlineCanEditPlayer = !isOnlineSelect || onlineRole === 'host';
+  const onlineCanEditOpponent = !isOnlineSelect || onlineRole === 'guest';
+  const onlineCanEditStage = !isOnlineSelect || onlineRole === 'host';
+  const onlineSelectionStatus =
+    onlineRole === 'host'
+      ? `${cleanOnlineNickname(onlineNickname)}: ${selectedFighter.name} / ${onlinePeerNickname || 'Гость'}: ${selectedOpponent.name}`
+      : `${onlinePeerNickname || 'Хост'}: ${selectedFighter.name} / ${cleanOnlineNickname(onlineNickname)}: ${selectedOpponent.name}`;
+
   return (
     <main className={`game-shell game-shell--menu-bg${isScreenRevealing ? ' game-shell--screen-reveal' : ''}`}>
       <section className="select-screen" aria-labelledby="screen-title">
@@ -11064,28 +12629,35 @@ export default function App() {
         </div>
 
         <div className="combatants">
-          <FighterPanel fighter={selectedFighter} label="Игрок 1" side="left" />
+          <FighterPanel
+            fighter={selectedFighter}
+            label={isOnlineSelect ? onlinePeerNickname && onlineRole === 'guest' ? onlinePeerNickname : cleanOnlineNickname(onlineNickname) : 'Игрок 1'}
+            side="left"
+            muted={isOnlineSelect && onlineRole === 'guest'}
+          />
 
           <div className="versus">
             <span aria-hidden="true">VS</span>
             <div className="select-actions">
               <div className="select-targets" aria-label="Select side">
                 <button
-                  className={`target-button${selectTarget === 'player' ? ' target-button--active' : ''}`}
+                  className={`target-button${(isOnlineSelect ? onlineRole === 'host' : selectTarget === 'player') ? ' target-button--active' : ''}`}
+                  disabled={isOnlineSelect}
                   onClick={() => setSelectTarget('player')}
                   type="button"
                 >
-                  P1
+                  {isOnlineSelect ? 'Хост' : 'P1'}
                 </button>
                 <button
-                  className={`target-button${selectTarget === 'opponent' ? ' target-button--active' : ''}`}
+                  className={`target-button${(isOnlineSelect ? onlineRole === 'guest' : selectTarget === 'opponent') ? ' target-button--active' : ''}`}
+                  disabled={isOnlineSelect}
                   onClick={() => setSelectTarget('opponent')}
                   type="button"
                 >
-                  CPU
+                  {isOnlineSelect ? 'Гость' : 'CPU'}
                 </button>
               </div>
-              <div className="difficulty-select" aria-label="Difficulty">
+              {!isOnlineSelect && <div className="difficulty-select" aria-label="Difficulty">
                 {(['easy', 'normal', 'hard'] as Difficulty[]).map((difficulty) => (
                   <button
                     className={`difficulty-button${
@@ -11098,9 +12670,14 @@ export default function App() {
                     {AI_CONFIG[difficulty].label}
                   </button>
                 ))}
-              </div>
-              <button className="confirm-button" onClick={startFight} type="button">
-                В бой
+              </div>}
+              <button
+                className="confirm-button"
+                disabled={isOnlineSelect && onlineRole !== 'host'}
+                onClick={isOnlineSelect ? startOnlineRoomMatch : startFight}
+                type="button"
+              >
+                {isOnlineSelect && onlineRole !== 'host' ? 'Ждем хоста' : 'В бой'}
               </button>
               <button className="sandbox-button" onClick={backToMainMenu} type="button">
                 Main Menu
@@ -11108,23 +12685,38 @@ export default function App() {
             </div>
           </div>
 
-          <FighterPanel fighter={opponent} label="CPU" side="right" muted />
+          <FighterPanel
+            fighter={opponent}
+            label={isOnlineSelect ? onlineRole === 'guest' ? cleanOnlineNickname(onlineNickname) : onlinePeerNickname || 'Гость' : 'CPU'}
+            side="right"
+            muted={!isOnlineSelect || onlineRole === 'host'}
+          />
         </div>
 
         <div className="selection-deck">
           <div className="roster" aria-label="Ростер персонажей">
             {fighters.map((fighter) => {
               const isSelected =
-                selectTarget === 'player'
+                (isOnlineSelect ? onlineRole === 'host' : selectTarget === 'player')
                   ? fighter.id === selectedFighter.id
                   : fighter.id === selectedOpponent.id;
 
               return (
                 <button
                   className={`fighter-tile${isSelected ? ' fighter-tile--selected' : ''}`}
+                  disabled={
+                    isOnlineSelect &&
+                    ((onlineRole === 'host' && !onlineCanEditPlayer) || (onlineRole === 'guest' && !onlineCanEditOpponent))
+                  }
                   key={fighter.id}
                   onClick={() => {
-                    if (selectTarget === 'player') {
+                    if (isOnlineSelect) {
+                      if (onlineRole === 'host') {
+                        setSelectedFighterId(fighter.id);
+                      } else {
+                        setSelectedOpponentId(fighter.id);
+                      }
+                    } else if (selectTarget === 'player') {
                       setSelectedFighterId(fighter.id);
                     } else {
                       setSelectedOpponentId(fighter.id);
@@ -11145,21 +12737,23 @@ export default function App() {
           <div className="select-actions">
             <div className="select-targets" aria-label="Select side">
               <button
-                className={`target-button${selectTarget === 'player' ? ' target-button--active' : ''}`}
+                className={`target-button${(isOnlineSelect ? onlineRole === 'host' : selectTarget === 'player') ? ' target-button--active' : ''}`}
+                disabled={isOnlineSelect}
                 onClick={() => setSelectTarget('player')}
                 type="button"
               >
-                P1
+                {isOnlineSelect ? 'Хост' : 'P1'}
               </button>
               <button
-                className={`target-button${selectTarget === 'opponent' ? ' target-button--active' : ''}`}
+                className={`target-button${(isOnlineSelect ? onlineRole === 'guest' : selectTarget === 'opponent') ? ' target-button--active' : ''}`}
+                disabled={isOnlineSelect}
                 onClick={() => setSelectTarget('opponent')}
                 type="button"
               >
-                CPU
+                {isOnlineSelect ? 'Гость' : 'CPU'}
               </button>
             </div>
-            <div className="difficulty-select" aria-label="Difficulty">
+            {!isOnlineSelect && <div className="difficulty-select" aria-label="Difficulty">
               {(['easy', 'normal', 'hard'] as Difficulty[]).map((difficulty) => (
                 <button
                   className={`difficulty-button${
@@ -11172,19 +12766,47 @@ export default function App() {
                   {AI_CONFIG[difficulty].label}
                 </button>
               ))}
-            </div>
-            <button className="confirm-button" onClick={startFight} type="button">
-              В бой
+            </div>}
+            <button
+              className="confirm-button"
+              disabled={isOnlineSelect && onlineRole !== 'host'}
+              onClick={isOnlineSelect ? startOnlineRoomMatch : startFight}
+              type="button"
+            >
+              {isOnlineSelect && onlineRole !== 'host' ? 'Ждем хоста' : 'В бой'}
             </button>
             <button className="sandbox-button" onClick={backToMainMenu} type="button">
               Main Menu
             </button>
             <p className="selection-status">
-              P1: {selectedFighter.name} / CPU: {selectedOpponent.name} /{' '}
-              {arenaMode === 'sandbox' ? 'Sandbox' : AI_CONFIG[selectedDifficulty].label}
+              {isOnlineSelect
+                ? `${onlineSelectionStatus} / ${selectedStage.name}`
+                : `P1: ${selectedFighter.name} / CPU: ${selectedOpponent.name} / ${
+                    arenaMode === 'sandbox' ? 'Sandbox' : AI_CONFIG[selectedDifficulty].label
+                  }`}
             </p>
           </div>
         </div>
+        {isOnlineSelect && (
+          <div className="stage-grid stage-grid--online-select" aria-label="Выбор карты">
+            {stages.map((stage) => (
+              <button
+                className={`stage-card${stage.id === selectedStage.id ? ' stage-card--selected' : ''}`}
+                disabled={!onlineCanEditStage}
+                key={`online-stage-${stage.id}`}
+                onClick={() => setSelectedStageId(stage.id)}
+                type="button"
+              >
+                <span
+                  className="stage-card__preview"
+                  style={{ backgroundImage: `url(${stage.image})` }}
+                  aria-hidden="true"
+                />
+                <span className="stage-card__name">{stage.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );
