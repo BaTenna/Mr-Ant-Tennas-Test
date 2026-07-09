@@ -23,6 +23,7 @@ import campaignNpcSideBagTalkSprite from './assets/campaign-npc-side-bag-talk.pn
 import campaignNpcSideBagVictorySprite from './assets/campaign-npc-side-bag-victory.png';
 import campaignKingAttackOneSprite from './assets/campaign-king-attack1-strip.png';
 import campaignKingBossSprite from './assets/campaign-king-boss.png';
+import campaignKingChainTossSprite from './assets/campaign-king-chain-toss-strip.png';
 import gersonBoomBattleSprite from './assets/gerson-boom-battle-strip.png';
 import gersonAirCounterIcon from './assets/gerson-air-counter-icon.png';
 import gersonBoomBackScarfSprite from './assets/gerson-boom-back-scarf-strip.png';
@@ -158,7 +159,9 @@ import coldPlaceMusic from './assets/knight.ogg';
 import queenMansionMusic from './assets/queen_boss.ogg';
 import tennaStageMusic from './assets/tenna_battle_old.ogg';
 import deltafightTitleBg from './assets/deltafight-title-bg.png';
+import campaignSignSprite from './assets/campaign-sign.png';
 import settingsIcon from './assets/settings-icon.png';
+import tobyFoxSprite from './assets/toby-fox.png';
 import stageTennaArena from './assets/arena-tenna-stage.png';
 import stageCouchCliffs from './assets/stage-couch-cliffs.webp';
 import stageColdPlace from './assets/stage-cold-place.png';
@@ -197,6 +200,7 @@ const PRELOAD_IMAGE_SOURCES = [
   campaignNpcSideBagVictorySprite,
   campaignKingAttackOneSprite,
   campaignKingBossSprite,
+  campaignKingChainTossSprite,
   gersonBoomBattleSprite,
   gersonAirCounterIcon,
   gersonBoomBackScarfSprite,
@@ -279,7 +283,9 @@ const PRELOAD_IMAGE_SOURCES = [
   ...knightChargeReleaseFrameSprites,
   healPlusFiveSprite,
   deltafightTitleBg,
+  campaignSignSprite,
   settingsIcon,
+  tobyFoxSprite,
   stageTennaArena,
   stageCouchCliffs,
   stageColdPlace,
@@ -369,6 +375,7 @@ type Fighter = {
 };
 
 type Screen =
+  | 'device'
   | 'auth'
   | 'title'
   | 'menu'
@@ -381,6 +388,8 @@ type Screen =
   | 'arena'
   | 'victory';
 type AuthView = 'home' | 'login' | 'signup' | 'profile';
+type DeviceMode = 'pc' | 'phone';
+type Language = 'ru' | 'en';
 type Attack = 'idle' | 'punch' | 'kick';
 type HitLevel = 'high' | 'mid' | 'low';
 type HitEffect = 'none' | 'sweep' | 'uppercut';
@@ -422,7 +431,8 @@ type BagBattleProjectile = {
   vy: number;
   owner: 'player' | 'boss';
   lane?: 'high' | 'mid' | 'low';
-  kind?: 'shot' | 'spade';
+  kind?: 'shot' | 'spade' | 'chain';
+  startAt?: number;
 };
 type BagBattleAttack = 'idle' | 'punch' | 'kick' | 'uppercut' | 'sweep';
 type BagBattleBossPattern =
@@ -432,14 +442,17 @@ type BagBattleBossPattern =
   | 'returning'
   | 'spade-rain'
   | 'spade-crossfire'
-  | 'ground';
+  | 'ground'
+  | 'ground-chain';
 type BagBattleSource = 'bag-npc' | 'campaign-sign';
-type CampaignRoomId = 'room1' | 'room2' | 'room2a' | 'side-room';
+type CampaignRoomId = 'room1' | 'room2' | 'room2a' | 'side-room' | 'crossroads' | 'archive' | 'switch-room' | 'story-gate';
+type CampaignPuzzleFlags = Record<string, boolean>;
 type CampaignRect = { x: number; y: number; width: number; height: number };
 type CampaignTransition = {
   rect: CampaignRect;
   target: CampaignRoomId;
   position: Position;
+  requiresPuzzle?: string;
 };
 type CampaignNpc = {
   id: string;
@@ -467,6 +480,7 @@ type CampaignSign = {
   y: number;
   text: string;
   encounter?: 'bag-battle';
+  puzzleAction?: 'archive-hint' | 'left-rune' | 'right-rune' | 'open-rune-gate' | 'reset-runes';
 };
 type CampaignRoomDetail = {
   id: string;
@@ -485,16 +499,30 @@ type CampaignRoom = {
   signs?: CampaignSign[];
   details?: CampaignRoomDetail[];
 };
+type CampaignWeaponId = 'training-stick' | 'rusty-blade' | 'echo-spear';
+type CampaignArmorId = 'cloth-vest' | 'guard-plate' | 'shadow-cloak';
+type CampaignEquipment = {
+  weapon: CampaignWeaponId;
+  armor: CampaignArmorId;
+};
+type CampaignEquipmentItem<T extends string> = {
+  id: T;
+  name: string;
+  description: string;
+};
 type CampaignSaveData = {
   slot: number;
   roomId: CampaignRoomId;
   position: Position;
   isBagDefeated: boolean;
   isBagCollected: boolean;
+  puzzleFlags: CampaignPuzzleFlags;
+  equipment: CampaignEquipment;
   updatedAt: number | null;
 };
 type CampaignBossCutscenePhase = 'talking' | 'leaving';
 type GameInput = 'w' | 'a' | 's' | 'd' | 'arrowleft' | 'arrowright' | 'arrowdown' | 'arrowup' | 'block';
+type VirtualInput = GameInput | 'enter' | 'escape';
 type OnlineInputMessage = {
   playerId: string;
   key: string;
@@ -920,6 +948,22 @@ const stages: Stage[] = [
   },
 ];
 
+const FIGHTER_RU_NAMES: Record<string, string> = {
+  'mister-ant-tenna': 'Мистер Ант Тенна',
+  jevil: 'Джевил',
+  'gerson-boom': 'Герсон Бум',
+  queen: 'Королева',
+  'roaring-knight': 'Ревущий Рыцарь',
+};
+
+const STAGE_RU_NAMES: Record<string, string> = {
+  'tenna-stage': 'Сцена Тенны',
+  'couch-cliffs': 'Диванные скалы',
+  'cold-place': 'Холодное место',
+  'dark-sanctuaries': 'Темные святилища',
+  'queens-mansion': 'Особняк королевы',
+};
+
 const attackSoundVolumes: Record<AttackSoundId, number> = {
   attackPunch: 0.78,
   attackKick: 0.82,
@@ -1227,8 +1271,12 @@ function isCampaignPositionAllowed(room: CampaignRoom, position: Position) {
   return !isTouchingNpc;
 }
 
-function getCampaignTransition(room: CampaignRoom, position: Position) {
-  return room.transitions.find((transition) => isPointInCampaignRect(position, transition.rect));
+function getCampaignTransition(room: CampaignRoom, position: Position, puzzleFlags: CampaignPuzzleFlags = {}) {
+  return room.transitions.find(
+    (transition) =>
+      (!transition.requiresPuzzle || puzzleFlags[transition.requiresPuzzle]) &&
+      isPointInCampaignRect(position, transition.rect),
+  );
 }
 
 function getCampaignInteraction(room: CampaignRoom, position: Position) {
@@ -1370,6 +1418,83 @@ const ONLINE_PUBLIC_ROOM_TTL_MS = 8000;
 const ONLINE_PUBLIC_ROOM_ANNOUNCE_MS = 2500;
 const ONLINE_NICKNAME_STORAGE_KEY = 'deltafight-online-nickname';
 const LOCAL_AUTH_ACCOUNTS_STORAGE_KEY = 'deltafight-local-auth-accounts';
+const LANGUAGE_STORAGE_KEY = 'deltafight-language';
+const UI_TEXT: Record<Language, Record<string, string>> = {
+  ru: {
+    language: 'Язык',
+    russian: 'Русский',
+    english: 'English',
+    settings: 'Настройки',
+    soundSettings: 'Настройки звука',
+    pause: 'ПАУЗА',
+    effects: 'Эффекты',
+    music: 'Музыка',
+    controls: 'Управление',
+    controlsBack: 'Назад',
+    controlsReset: 'Сброс',
+    startGame: 'Начать играть',
+    whatGame: 'Что это за игра',
+    titleInfo: 'DeltaFight - пиксельный файтинг с бойцами, спецприемами, раундами и тренировочным режимом.',
+    signInGuest: 'Войти / гость',
+    account: 'Аккаунт',
+    chooseMode: 'Выберите режим',
+    campaign: 'Кампания',
+    localFights: 'Локальные бои',
+    training: 'Тренировка',
+    rooms: 'Комнаты',
+    openCredits: 'Открыть кредиты',
+    closeCredits: 'Закрыть кредиты',
+    pauseOpenedBy: 'Пауза открыта игроком',
+    opponent: 'соперник',
+    continue: 'Продолжить',
+    exit: 'Выйти',
+    fighterSelect: 'Выбор бойца',
+    equipment: 'Снаряжение',
+    toMenu: 'В меню',
+    credits: 'Кредиты',
+    spritesCredit: 'Спрайты: Темми Чанг.',
+    soundtrackCredit: 'Саундтрек: Toby Fox.',
+    kingDesignCredit: 'Дизайн короля: Kanotypes.',
+    close: 'Закрыть',
+  },
+  en: {
+    language: 'Language',
+    russian: 'Русский',
+    english: 'English',
+    settings: 'Settings',
+    soundSettings: 'Sound settings',
+    pause: 'PAUSE',
+    effects: 'Effects',
+    music: 'Music',
+    controls: 'Controls',
+    controlsBack: 'Back',
+    controlsReset: 'Reset',
+    startGame: 'Start game',
+    whatGame: 'What is this?',
+    titleInfo: 'DeltaFight is a pixel fighting game with fighters, special moves, rounds, and training mode.',
+    signInGuest: 'Sign in / guest',
+    account: 'Account',
+    chooseMode: 'Choose mode',
+    campaign: 'Campaign',
+    localFights: 'Local fights',
+    training: 'Training',
+    rooms: 'Rooms',
+    openCredits: 'Open credits',
+    closeCredits: 'Close credits',
+    pauseOpenedBy: 'Pause opened by',
+    opponent: 'opponent',
+    continue: 'Continue',
+    exit: 'Exit',
+    fighterSelect: 'Fighter select',
+    equipment: 'Equipment',
+    toMenu: 'To menu',
+    credits: 'Credits',
+    spritesCredit: 'Sprites: Temmie Chang.',
+    soundtrackCredit: 'Soundtrack: Toby Fox.',
+    kingDesignCredit: 'King design: Kanotypes.',
+    close: 'Close',
+  },
+};
 const CAMPAIGN_MOVE_SPEED = 24;
 const CAMPAIGN_INTERACTION_RANGE = 9;
 const CAMPAIGN_DIALOGUE_TYPE_INTERVAL_MS = 28;
@@ -1382,9 +1507,16 @@ const CAMPAIGN_ROOM_2A_NPC_FLOWER_WALL_Y = 18.1;
 const CAMPAIGN_ROOM_2A_NPC_BODY_HITBOX = { offsetX: 0, offsetY: 5.7, width: 14.2, height: 15.6 };
 const CAMPAIGN_ROOM_2A_NPC_FLOWER_BODY_HITBOX = { offsetX: 0, offsetY: 7.6, width: 14, height: 13.6 };
 const CAMPAIGN_ROOM_2A_NPC_BAG_HITBOX = { offsetX: 0, offsetY: 0.8, width: 14.8, height: 20.2 };
+const CAMPAIGN_SMALL_NPC_HITBOX = { offsetX: 0, offsetY: 4.8, width: 10.8, height: 13.4 };
 const BAG_BATTLE_PLAYER_START: BagBattleActor = { x: 82, y: 0, vy: 0, health: 100 };
 const BAG_BATTLE_BOSS_START: BagBattleActor = { x: 18, y: 0, vy: 0, health: 160 };
 const BAG_BATTLE_BOSS_GROUND_X = 31;
+const BAG_BATTLE_BOSS_CHAIN_COOLDOWN_MS = 2700;
+const BAG_BATTLE_BOSS_CHAIN_ATTACK_MS = 1180;
+const BAG_BATTLE_BOSS_CHAIN_RELEASE_MS = 620;
+const BAG_BATTLE_BOSS_CHAIN_SPEED = 0.62;
+const BAG_BATTLE_BOSS_CHAIN_DAMAGE = 10;
+const BAG_BATTLE_BOSS_CHAIN_PULL_MS = 560;
 const BAG_BATTLE_PLAYER_ARENA_MIN_X = 26;
 const BAG_BATTLE_PLAYER_WALL_MIN_X = 40;
 const BAG_BATTLE_PLAYER_MAX_X = 94;
@@ -1410,6 +1542,11 @@ const BAG_BATTLE_BOSS_SPADE_RAIN_DURATION_MS = 10000;
 const BAG_BATTLE_BOSS_SPADE_RAIN_INTERVAL_MS = 310;
 const BAG_BATTLE_BOSS_SPADE_RAIN_REST_MS = 2600;
 const BAG_BATTLE_BOSS_SPADE_DAMAGE = 6;
+const BAG_BATTLE_BOSS_PASSIVE_SPADE_INTERVAL_MS = 4000;
+const BAG_BATTLE_BOSS_PASSIVE_SPADE_WARNING_MS = 1000;
+const BAG_BATTLE_BOSS_PASSIVE_SPADE_COUNT = 3;
+const BAG_BATTLE_BOSS_PASSIVE_SPADE_WARNING_Y = 76;
+const BAG_BATTLE_BOSS_PASSIVE_SPADE_SPEED = 0.36;
 const BAG_BATTLE_BOSS_CROSSFIRE_DURATION_MS = 10000;
 const BAG_BATTLE_BOSS_CROSSFIRE_INTERVAL_MS = 720;
 const BAG_BATTLE_BOSS_CROSSFIRE_REST_MS = 2600;
@@ -1436,6 +1573,44 @@ const CAMPAIGN_BOSS_CUTSCENE_LINES = [
 const CAMPAIGN_SAVE_STORAGE_KEY = 'deltafight-campaign-saves-v1';
 const CAMPAIGN_SAVE_SLOTS = [1, 2, 3] as const;
 const CAMPAIGN_START_POSITION: Position = { x: 50, y: 70 };
+const DEFAULT_CAMPAIGN_EQUIPMENT: CampaignEquipment = {
+  weapon: 'training-stick',
+  armor: 'cloth-vest',
+};
+const CAMPAIGN_WEAPONS: CampaignEquipmentItem<CampaignWeaponId>[] = [
+  {
+    id: 'training-stick',
+    name: 'Учебная палка',
+    description: 'Простое оружие для начала пути. Без сюрпризов, зато честное.',
+  },
+  {
+    id: 'rusty-blade',
+    name: 'Ржавый клинок',
+    description: 'Бьет увереннее, но выглядит так, будто его нашли под ковром замка.',
+  },
+  {
+    id: 'echo-spear',
+    name: 'Эхо-копье',
+    description: 'Легкое оружие для осторожного бойца, который любит держать дистанцию.',
+  },
+];
+const CAMPAIGN_ARMOR: CampaignEquipmentItem<CampaignArmorId>[] = [
+  {
+    id: 'cloth-vest',
+    name: 'Тканевый жилет',
+    description: 'Почти не мешает двигаться. Почти не защищает. Баланс.',
+  },
+  {
+    id: 'guard-plate',
+    name: 'Пластина стража',
+    description: 'Тяжелее обычной брони, зато выглядит так, будто знает слово "защита".',
+  },
+  {
+    id: 'shadow-cloak',
+    name: 'Теневой плащ',
+    description: 'Мягкая броня для тех, кто предпочитает пережить удар красиво.',
+  },
+];
 const CAMPAIGN_ROOMS: Record<CampaignRoomId, CampaignRoom> = {
   room1: {
     id: 'room1',
@@ -1589,6 +1764,7 @@ const CAMPAIGN_ROOMS: Record<CampaignRoomId, CampaignRoom> = {
       { x: 0, y: 40, width: 100, height: 18 },
     ],
     transitions: [
+      { rect: { x: 0, y: 40, width: 5, height: 18 }, target: 'crossroads', position: { x: 90, y: 50 } },
       { rect: { x: 95, y: 40, width: 5, height: 18 }, target: 'room2', position: { x: 8, y: 49 } },
     ],
     details: [
@@ -1621,6 +1797,186 @@ const CAMPAIGN_ROOMS: Record<CampaignRoomId, CampaignRoom> = {
       },
     ],
   },
+  crossroads: {
+    id: 'crossroads',
+    title: 'Развилка',
+    allowed: [
+      { x: 18, y: 22, width: 64, height: 56 },
+      { x: 0, y: 43, width: 18, height: 14 },
+      { x: 82, y: 43, width: 18, height: 14 },
+      { x: 42, y: 0, width: 16, height: 22 },
+      { x: 42, y: 78, width: 16, height: 22 },
+    ],
+    transitions: [
+      { rect: { x: 0, y: 43, width: 5, height: 14 }, target: 'switch-room', position: { x: 92, y: 50 } },
+      { rect: { x: 95, y: 43, width: 5, height: 14 }, target: 'side-room', position: { x: 8, y: 49 } },
+      { rect: { x: 42, y: 95, width: 16, height: 5 }, target: 'archive', position: { x: 50, y: 10 } },
+      { rect: { x: 42, y: 0, width: 16, height: 5 }, target: 'story-gate', position: { x: 50, y: 92 }, requiresPuzzle: 'runeBridgeOpen' },
+    ],
+    npcs: [
+      {
+        id: 'npc-crossroads-guide',
+        label: 'G',
+        x: 25,
+        y: 32,
+        width: 10,
+        height: 18,
+        hitbox: CAMPAIGN_SMALL_NPC_HITBOX,
+        text: 'Путник: Развилка проверяет не скорость, а внимание. Если путь закрыт, ищи обходную комнату: там часто лежит подсказка, без которой механизм молчит.',
+        idleSprite: campaignNpcOneAIdleSprite,
+        talkSprite: campaignNpcOneATalkSprite,
+      },
+    ],
+    details: [
+      { id: 'crossroads-shadow-1', kind: 'shadow', x: 22, y: 26, width: 56, height: 8 },
+      { id: 'crossroads-crack-1', kind: 'crack', x: 32, y: 39, width: 12, height: 4 },
+      { id: 'crossroads-crack-2', kind: 'crack', x: 59, y: 62, width: 14, height: 4 },
+      { id: 'crossroads-rune-1', kind: 'rune', x: 48, y: 34, width: 5, height: 5 },
+      { id: 'crossroads-rune-2', kind: 'rune', x: 48, y: 72, width: 5, height: 5 },
+      { id: 'crossroads-dust-1', kind: 'dust', x: 22, y: 60, width: 9, height: 7 },
+      { id: 'crossroads-chip-1', kind: 'chip', x: 74, y: 44, width: 5, height: 7 },
+      { id: 'crossroads-tile-1', kind: 'tile', x: 41, y: 51, width: 7, height: 5 },
+    ],
+  },
+  archive: {
+    id: 'archive',
+    title: 'Тихий архив',
+    allowed: [
+      { x: 12, y: 14, width: 76, height: 62 },
+      { x: 42, y: 0, width: 16, height: 14 },
+    ],
+    transitions: [
+      { rect: { x: 42, y: 0, width: 16, height: 5 }, target: 'crossroads', position: { x: 50, y: 90 } },
+    ],
+    npcs: [
+      {
+        id: 'npc-archive-keeper',
+        label: 'A',
+        x: 73,
+        y: 31,
+        width: 10,
+        height: 18,
+        hitbox: CAMPAIGN_SMALL_NPC_HITBOX,
+        text: 'Архивариус: Необязательные комнаты не всегда дают награду сразу. Иногда они просто говорят тебе: не нажимай все подряд, сначала прочитай пыльную бумажку.',
+        idleSprite: campaignNpcOneBIdleSprite,
+        talkSprite: campaignNpcOneBTalkSprite,
+      },
+    ],
+    signs: [
+      {
+        id: 'archive-hint',
+        label: 'I',
+        x: 50,
+        y: 46,
+        text: 'В старой записи сказано: "Левая руна первая. Правая руна вторая. Центральная печать слушает последней".',
+        puzzleAction: 'archive-hint',
+      },
+    ],
+    details: [
+      { id: 'archive-shadow-1', kind: 'shadow', x: 14, y: 18, width: 72, height: 8 },
+      { id: 'archive-shadow-2', kind: 'shadow', x: 14, y: 67, width: 72, height: 6 },
+      { id: 'archive-tile-1', kind: 'tile', x: 20, y: 30, width: 10, height: 5 },
+      { id: 'archive-tile-2', kind: 'tile', x: 68, y: 32, width: 9, height: 5 },
+      { id: 'archive-rune-1', kind: 'rune', x: 43, y: 57, width: 5, height: 5 },
+      { id: 'archive-crack-1', kind: 'crack', x: 56, y: 64, width: 13, height: 4 },
+      { id: 'archive-dust-1', kind: 'dust', x: 78, y: 60, width: 9, height: 7 },
+      { id: 'archive-chip-1', kind: 'chip', x: 33, y: 24, width: 5, height: 6 },
+    ],
+  },
+  'switch-room': {
+    id: 'switch-room',
+    title: 'Комната рун',
+    allowed: [
+      { x: 8, y: 18, width: 84, height: 64 },
+      { x: 92, y: 43, width: 8, height: 14 },
+    ],
+    transitions: [
+      { rect: { x: 95, y: 43, width: 5, height: 14 }, target: 'crossroads', position: { x: 8, y: 50 } },
+    ],
+    npcs: [
+      {
+        id: 'npc-rune-keeper',
+        label: 'R',
+        x: 18,
+        y: 31,
+        width: 10,
+        height: 18,
+        hitbox: CAMPAIGN_SMALL_NPC_HITBOX,
+        text: 'Хранитель рун: У механизма есть порядок. Неверный шаг сбивает руны, но это не провал. Это просто способ сказать: попробуй умнее.',
+        idleSprite: campaignNpcOneDIdleSprite,
+        talkSprite: campaignNpcOneDTalkSprite,
+      },
+    ],
+    signs: [
+      {
+        id: 'switch-left-rune',
+        label: 'L',
+        x: 28,
+        y: 42,
+        text: 'Левая руна глухо щелкнула.',
+        puzzleAction: 'left-rune',
+      },
+      {
+        id: 'switch-right-rune',
+        label: 'R',
+        x: 72,
+        y: 42,
+        text: 'Правая руна ждет, пока первая руна проснется.',
+        puzzleAction: 'right-rune',
+      },
+      {
+        id: 'switch-center-gate',
+        label: 'O',
+        x: 50,
+        y: 61,
+        text: 'Центральная печать молчит. Кажется, ей нужен правильный порядок.',
+        puzzleAction: 'open-rune-gate',
+      },
+    ],
+    details: [
+      { id: 'switch-shadow-1', kind: 'shadow', x: 12, y: 22, width: 76, height: 8 },
+      { id: 'switch-rune-1', kind: 'rune', x: 25, y: 49, width: 8, height: 8 },
+      { id: 'switch-rune-2', kind: 'rune', x: 69, y: 49, width: 8, height: 8 },
+      { id: 'switch-rune-3', kind: 'rune', x: 47, y: 68, width: 8, height: 8 },
+      { id: 'switch-crack-1', kind: 'crack', x: 40, y: 39, width: 20, height: 4 },
+      { id: 'switch-dust-1', kind: 'dust', x: 18, y: 68, width: 10, height: 8 },
+      { id: 'switch-chip-1', kind: 'chip', x: 82, y: 62, width: 5, height: 7 },
+      { id: 'switch-tile-1', kind: 'tile', x: 46, y: 47, width: 8, height: 5 },
+    ],
+  },
+  'story-gate': {
+    id: 'story-gate',
+    title: 'Открытый проход',
+    allowed: [
+      { x: 24, y: 8, width: 52, height: 82 },
+      { x: 42, y: 90, width: 16, height: 10 },
+    ],
+    transitions: [
+      { rect: { x: 42, y: 95, width: 16, height: 5 }, target: 'crossroads', position: { x: 50, y: 8 } },
+    ],
+    npcs: [
+      {
+        id: 'npc-story-path',
+        label: 'S',
+        x: 62,
+        y: 58,
+        width: 10,
+        height: 18,
+        hitbox: CAMPAIGN_SMALL_NPC_HITBOX,
+        text: 'Странник: Это сюжетный проход. Если сюда дошел, значит развилка тебя признала. Дальше можно ставить нового босса, сцену или еще одну пакость с кнопками.',
+        idleSprite: campaignNpcOneCIdleSprite,
+        talkSprite: campaignNpcOneCTalkSprite,
+      },
+    ],
+    details: [
+      { id: 'story-shadow-1', kind: 'shadow', x: 28, y: 12, width: 44, height: 10 },
+      { id: 'story-rune-1', kind: 'rune', x: 47, y: 24, width: 7, height: 7 },
+      { id: 'story-crack-1', kind: 'crack', x: 36, y: 52, width: 18, height: 4 },
+      { id: 'story-crack-2', kind: 'crack', x: 50, y: 70, width: 16, height: 4 },
+      { id: 'story-dust-1', kind: 'dust', x: 60, y: 31, width: 10, height: 8 },
+      { id: 'story-chip-1', kind: 'chip', x: 34, y: 76, width: 5, height: 7 },
+    ],
+  },
 };
 
 function getCampaignRoomWithProgress(roomId: CampaignRoomId, isBagDefeated: boolean): CampaignRoom {
@@ -1633,6 +1989,19 @@ function getCampaignRoomWithProgress(roomId: CampaignRoomId, isBagDefeated: bool
   };
 }
 
+function normalizeCampaignEquipment(equipment?: Partial<CampaignEquipment>): CampaignEquipment {
+  const weaponCandidate = equipment?.weapon;
+  const armorCandidate = equipment?.armor;
+  const weapon = CAMPAIGN_WEAPONS.some((item) => item.id === weaponCandidate)
+    ? weaponCandidate as CampaignWeaponId
+    : DEFAULT_CAMPAIGN_EQUIPMENT.weapon;
+  const armor = CAMPAIGN_ARMOR.some((item) => item.id === armorCandidate)
+    ? armorCandidate as CampaignArmorId
+    : DEFAULT_CAMPAIGN_EQUIPMENT.armor;
+
+  return { weapon, armor };
+}
+
 function createEmptyCampaignSave(slot: number): CampaignSaveData {
   return {
     slot,
@@ -1640,6 +2009,8 @@ function createEmptyCampaignSave(slot: number): CampaignSaveData {
     position: CAMPAIGN_START_POSITION,
     isBagDefeated: false,
     isBagCollected: false,
+    puzzleFlags: {},
+    equipment: DEFAULT_CAMPAIGN_EQUIPMENT,
     updatedAt: null,
   };
 }
@@ -1667,6 +2038,8 @@ function readCampaignSaves(): CampaignSaveData[] {
             : CAMPAIGN_START_POSITION,
         isBagDefeated: Boolean(savedSlot.isBagDefeated),
         isBagCollected: Boolean(savedSlot.isBagCollected),
+        puzzleFlags: savedSlot.puzzleFlags && typeof savedSlot.puzzleFlags === 'object' ? savedSlot.puzzleFlags : {},
+        equipment: normalizeCampaignEquipment(savedSlot.equipment),
         updatedAt: savedSlot.updatedAt,
       };
     });
@@ -1750,8 +2123,13 @@ function getFighterById(fighterId: string) {
 function getCampaignSaveLabel(save: CampaignSaveData) {
   if (!save.updatedAt) return 'Пустое сохранение';
   if (save.isBagCollected) return 'Сделка с боссом';
+  if (save.roomId === 'story-gate') return 'Открытый проход';
+  if (save.puzzleFlags.runeBridgeOpen) return 'Развилка открыта';
+  if (save.roomId === 'switch-room') return 'Комната рун';
+  if (save.roomId === 'archive') return 'Тихий архив';
+  if (save.roomId === 'crossroads') return 'Развилка';
   if (save.isBagDefeated) return 'Мешок побежден';
-  if (save.roomId === 'side-room') return 'Боковой проход';
+  if (save.roomId === 'side-room') return 'Безымянный проход';
   if (save.roomId === 'room2a') return 'Комната с подсказками';
   if (save.roomId === 'room2') return 'Комната 2';
   return 'Начало кампании';
@@ -1987,8 +2365,15 @@ function loadControlBindings(): Record<GameInput, string> {
   }
 }
 
+function loadLanguage(): Language {
+  if (typeof window === 'undefined') return 'ru';
+  return window.localStorage.getItem(LANGUAGE_STORAGE_KEY) === 'en' ? 'en' : 'ru';
+}
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('auth');
+  const [screen, setScreen] = useState<Screen>('device');
+  const [deviceMode, setDeviceMode] = useState<DeviceMode | null>(null);
+  const [language, setLanguage] = useState<Language>(loadLanguage);
   const [authSession, setAuthSession] = useState<Session | null>(null);
   const [authMessage, setAuthMessage] = useState('Выбери, как зайти в игру.');
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -2011,8 +2396,11 @@ export default function App() {
   const [campaignDialogueVisibleChars, setCampaignDialogueVisibleChars] = useState(0);
   const [campaignActiveNpcId, setCampaignActiveNpcId] = useState<string | null>(null);
   const [isCampaignMenuOpen, setIsCampaignMenuOpen] = useState(false);
+  const [isCampaignEquipmentOpen, setIsCampaignEquipmentOpen] = useState(false);
   const [isCampaignBagDefeated, setIsCampaignBagDefeated] = useState(false);
   const [isCampaignBagCollected, setIsCampaignBagCollected] = useState(false);
+  const [campaignPuzzleFlags, setCampaignPuzzleFlags] = useState<CampaignPuzzleFlags>({});
+  const [campaignEquipment, setCampaignEquipment] = useState<CampaignEquipment>(DEFAULT_CAMPAIGN_EQUIPMENT);
   const [campaignBossCutsceneStep, setCampaignBossCutsceneStep] = useState<number | null>(null);
   const [campaignBossDialogueVisibleChars, setCampaignBossDialogueVisibleChars] = useState(0);
   const [campaignBossCutscenePhase, setCampaignBossCutscenePhase] =
@@ -2031,6 +2419,7 @@ export default function App() {
   const [bagBattleBossShotLane, setBagBattleBossShotLane] = useState<BagBattleProjectile['lane']>('mid');
   const [bagBattleBossPattern, setBagBattleBossPattern] = useState<BagBattleBossPattern>('shooting');
   const [bagBattleWallReduction, setBagBattleWallReduction] = useState(0);
+  const [isBagBattleChainPulling, setIsBagBattleChainPulling] = useState(false);
   const [isBagBattleIntro, setIsBagBattleIntro] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [joinRoomCode, setJoinRoomCode] = useState('');
@@ -2049,11 +2438,17 @@ export default function App() {
   const [lockedFighter, setLockedFighter] = useState<Fighter | null>(null);
   const [lockedOpponent, setLockedOpponent] = useState<Fighter | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [creditsOpen, setCreditsOpen] = useState(false);
   const [controlBindings, setControlBindings] = useState<Record<GameInput, string>>(() => loadControlBindings());
   const [rebindingAction, setRebindingAction] = useState<GameInput | null>(null);
   const [controlsSettingsOpen, setControlsSettingsOpen] = useState(false);
   const [effectsVolume, setEffectsVolume] = useState(0.85);
   const [musicVolume, setMusicVolume] = useState(0.55);
+  const text = UI_TEXT[language];
+  const getFighterDisplayName = (fighter: Fighter) =>
+    language === 'ru' ? FIGHTER_RU_NAMES[fighter.id] ?? fighter.name : fighter.name;
+  const getStageDisplayName = (stage: Stage) =>
+    language === 'ru' ? STAGE_RU_NAMES[stage.id] ?? stage.name : stage.name;
   const isArenaPaused = screen === 'arena' && settingsOpen;
   const [playerPosition, setPlayerPosition] = useState(START_POSITION);
   const [opponentPosition, setOpponentPosition] = useState(OPPONENT_POSITION);
@@ -2286,15 +2681,28 @@ export default function App() {
   const bagBattleBossNextPatternRef = useRef<BagBattleBossPattern>('spade-rain');
   const bagBattleBossSpadeRainUntilRef = useRef(0);
   const bagBattleBossLastSpadeDropRef = useRef(0);
+  const bagBattleBossLastPassiveSpadeRef = useRef(0);
   const bagBattleBossCrossfireUntilRef = useRef(0);
   const bagBattleBossLastCrossfireRef = useRef(0);
   const bagBattleBossCrossfireVolleyRef = useRef(0);
+  const bagBattleBossGroundDirectionRef = useRef(1);
+  const bagBattleBossChainReadyAtRef = useRef(0);
+  const bagBattleBossChainAttackUntilRef = useRef(0);
+  const bagBattleBossChainReleaseAtRef = useRef(0);
+  const bagBattleBossChainReleasedRef = useRef(false);
+  const bagBattleChainPullStartedAtRef = useRef(0);
+  const bagBattleChainPullUntilRef = useRef(0);
+  const bagBattleChainPullFromXRef = useRef(0);
+  const bagBattleChainPullToXRef = useRef(0);
+  const bagBattleChainPullBossXRef = useRef(0);
   const bagBattleWallReductionRef = useRef(0);
   const bagBattleWallRestReductionRef = useRef(0);
   const bagBattleJumpsRemainingRef = useRef(BAG_BATTLE_MAX_JUMPS);
   const bagBattleIntroUntilRef = useRef(0);
   const bagBattleSourceRef = useRef<BagBattleSource>('bag-npc');
   const remotePressedKeys = useRef(new Set<string>());
+  const deviceModeRef = useRef<DeviceMode | null>(deviceMode);
+  const virtualHeldInputsRef = useRef(new Set<VirtualInput>());
   const screenRef = useRef<Screen>(screen);
   const arenaModeRef = useRef<ArenaMode>(arenaMode);
   const onlineChannelRef = useRef<RealtimeChannel | null>(null);
@@ -2382,6 +2790,10 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem(CONTROL_BINDINGS_STORAGE_KEY, JSON.stringify(controlBindings));
   }, [controlBindings]);
+
+  useEffect(() => {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  }, [language]);
 
   useEffect(() => {
     if (!settingsOpen) {
@@ -3382,7 +3794,7 @@ export default function App() {
         setAuthNickname(nickname);
         setOnlineNickname(nickname);
         setAuthMessage('Ты вошел в аккаунт.');
-        setScreen('title');
+        if (deviceModeRef.current) setScreen('title');
       }
     });
 
@@ -3399,7 +3811,7 @@ export default function App() {
         setAuthNickname(nickname);
         setOnlineNickname(nickname);
         setAuthMessage('Ты вошел в аккаунт.');
-        setScreen('title');
+        if (deviceModeRef.current) setScreen('title');
       }
     });
 
@@ -3412,6 +3824,16 @@ export default function App() {
   useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
+
+  useEffect(() => {
+    deviceModeRef.current = deviceMode;
+  }, [deviceMode]);
+
+  useEffect(() => {
+    if (deviceMode !== 'phone' || !['arena', 'bag-battle', 'campaign'].includes(screen)) {
+      releaseAllVirtualInputs();
+    }
+  }, [deviceMode, screen]);
 
   useEffect(() => {
     arenaModeRef.current = arenaMode;
@@ -3571,6 +3993,8 @@ export default function App() {
               position: campaignPosition,
               isBagDefeated: isCampaignBagDefeated,
               isBagCollected: isCampaignBagCollected,
+              puzzleFlags: campaignPuzzleFlags,
+              equipment: campaignEquipment,
               updatedAt: Date.now(),
             }
           : save,
@@ -3581,12 +4005,75 @@ export default function App() {
     });
   }, [
     campaignPosition,
+    campaignEquipment,
+    campaignPuzzleFlags,
     campaignRoomId,
     isCampaignBagCollected,
     isCampaignBagDefeated,
     screen,
     selectedCampaignSaveSlot,
   ]);
+
+  function handleCampaignSignInteraction(sign: CampaignSign) {
+    setCampaignActiveNpcId(null);
+
+    if (sign.encounter === 'bag-battle') {
+      setCampaignDialogue(sign.text);
+      window.setTimeout(() => startBagBattle('campaign-sign'), 520);
+      return;
+    }
+
+    if (!sign.puzzleAction) {
+      setCampaignDialogue(sign.text);
+      return;
+    }
+
+    const nextFlags = { ...campaignPuzzleFlags };
+    let nextDialogue = sign.text;
+
+    if (sign.puzzleAction === 'archive-hint') {
+      nextFlags.archiveHint = true;
+      nextDialogue = 'Запись добавлена в память: левая руна, правая руна, центральная печать. Необязательная ветка оказалась полезной.';
+    }
+
+    if (sign.puzzleAction === 'left-rune') {
+      nextFlags.runeLeft = true;
+      nextFlags.runeRight = false;
+      nextDialogue = 'Левая руна загорелась. Теперь нужна правая.';
+    }
+
+    if (sign.puzzleAction === 'right-rune') {
+      if (campaignPuzzleFlags.runeLeft) {
+        nextFlags.runeRight = true;
+        nextDialogue = 'Правая руна ответила. Центральная печать теперь должна услышать обе.';
+      } else {
+        nextFlags.runeLeft = false;
+        nextFlags.runeRight = false;
+        nextDialogue = 'Правая руна щелкнула неправильно. Порядок сброшен.';
+      }
+    }
+
+    if (sign.puzzleAction === 'open-rune-gate') {
+      if (campaignPuzzleFlags.runeLeft && campaignPuzzleFlags.runeRight) {
+        nextFlags.runeBridgeOpen = true;
+        nextDialogue = 'Центральная печать открылась. Где-то в развилке поднялась невидимая решетка.';
+      } else if (campaignPuzzleFlags.archiveHint) {
+        nextDialogue = 'Печать дрожит, но не открывается. Вспомни запись из архива: левая, правая, центр.';
+      } else {
+        nextDialogue = 'Печать молчит. Наверное, где-то есть подсказка к порядку.';
+      }
+    }
+
+    if (sign.puzzleAction === 'reset-runes') {
+      nextFlags.runeLeft = false;
+      nextFlags.runeRight = false;
+      nextFlags.runeBridgeOpen = false;
+      nextDialogue = 'Руны погасли. Можно попробовать порядок заново.';
+    }
+
+    setCampaignPuzzleFlags(nextFlags);
+    setCampaignDialogue(nextDialogue);
+  }
 
   useEffect(() => {
     bagBattlePlayerRef.current = bagBattlePlayer;
@@ -3663,9 +4150,20 @@ export default function App() {
     bagBattleBossNextPatternRef.current = source === 'campaign-sign' ? 'spade-rain' : 'shooting';
     bagBattleBossSpadeRainUntilRef.current = 0;
     bagBattleBossLastSpadeDropRef.current = 0;
+    bagBattleBossLastPassiveSpadeRef.current = window.performance.now();
     bagBattleBossCrossfireUntilRef.current = 0;
     bagBattleBossLastCrossfireRef.current = 0;
     bagBattleBossCrossfireVolleyRef.current = 0;
+    bagBattleBossGroundDirectionRef.current = 1;
+    bagBattleBossChainReadyAtRef.current = 0;
+    bagBattleBossChainAttackUntilRef.current = 0;
+    bagBattleBossChainReleaseAtRef.current = 0;
+    bagBattleBossChainReleasedRef.current = false;
+    bagBattleChainPullStartedAtRef.current = 0;
+    bagBattleChainPullUntilRef.current = 0;
+    bagBattleChainPullFromXRef.current = 0;
+    bagBattleChainPullToXRef.current = 0;
+    bagBattleChainPullBossXRef.current = 0;
     bagBattleWallReductionRef.current = 0;
     bagBattleWallRestReductionRef.current = 0;
     bagBattleJumpsRemainingRef.current = BAG_BATTLE_MAX_JUMPS;
@@ -3680,6 +4178,7 @@ export default function App() {
     setIsBagBattleBlocking(false);
     setIsBagBattleBossVulnerable(false);
     setIsBagBattleBossShooting(false);
+    setIsBagBattleChainPulling(false);
     setBagBattleBossShotLane('mid');
     setBagBattleBossPattern('shooting');
     setIsBagBattleIntro(true);
@@ -3758,6 +4257,11 @@ export default function App() {
       if (event.key === 'Escape') {
         event.preventDefault();
         campaignPressedKeys.current.clear();
+        if (isCampaignEquipmentOpen) {
+          setIsCampaignEquipmentOpen(false);
+          setIsCampaignMenuOpen(true);
+          return;
+        }
         setIsCampaignMenuOpen((isOpen) => !isOpen);
         return;
       }
@@ -3791,8 +4295,12 @@ export default function App() {
           campaignPressedKeys.current.clear();
           const isNpcInteraction = 'idleSprite' in interaction;
           setCampaignActiveNpcId(isNpcInteraction ? interaction.id : null);
-          if ('encounter' in interaction && interaction.encounter === 'bag-battle') {
-            window.setTimeout(() => startBagBattle(isNpcInteraction ? 'bag-npc' : 'campaign-sign'), 180);
+          if (!isNpcInteraction) {
+            handleCampaignSignInteraction(interaction);
+            return;
+          }
+          if (interaction.encounter === 'bag-battle') {
+            window.setTimeout(() => startBagBattle('bag-npc'), 180);
             return;
           }
           if (interaction.text.trim()) {
@@ -3845,7 +4353,7 @@ export default function App() {
           y: clamp(position.y + dy * CAMPAIGN_MOVE_SPEED * diagonal * deltaScale * 0.01, 0, 100),
         };
 
-        const transition = getCampaignTransition(campaignRoom, intendedPosition);
+        const transition = getCampaignTransition(campaignRoom, intendedPosition, campaignPuzzleFlags);
         if (transition) {
           campaignPositionRef.current = transition.position;
           setCampaignRoomId(transition.target);
@@ -3892,6 +4400,8 @@ export default function App() {
     campaignBossCutsceneStep,
     campaignDialogue,
     campaignDialogueVisibleChars,
+    isCampaignEquipmentOpen,
+    campaignPuzzleFlags,
     campaignRoomId,
     controlBindings,
     isCampaignBagDefeated,
@@ -3966,6 +4476,12 @@ export default function App() {
         bagBattleBossSpadeRainUntilRef.current = 0;
         bagBattleBossCrossfireUntilRef.current = 0;
         bagBattleProjectilesRef.current = [];
+        bagBattleBossGroundDirectionRef.current =
+          bagBattlePlayerRef.current.x >= groundedBoss.x ? 1 : -1;
+        bagBattleBossChainReadyAtRef.current = window.performance.now() + 1300;
+        bagBattleBossChainAttackUntilRef.current = 0;
+        bagBattleBossChainReleaseAtRef.current = 0;
+        bagBattleBossChainReleasedRef.current = false;
         setBagBattleProjectiles([]);
         setBagBattleBossPattern('ground');
         setIsBagBattleBossVulnerable(true);
@@ -4142,12 +4658,13 @@ export default function App() {
       let playerWasHit = false;
       const isKingBattle = bagBattleSourceRef.current === 'campaign-sign';
       const isWallFullyBroken = isKingBattle && bagBattleWallReductionRef.current >= BAG_BATTLE_WALL_MAX_REDUCTION;
+      const isChainPullActiveAtFrame = frameTime < bagBattleChainPullUntilRef.current;
 
       let horizontal = 0;
       const isBlockingNow = bagBattlePressedKeys.current.has('block');
       const isCrouchingInput =
         bagBattlePressedKeys.current.has('s') || bagBattlePressedKeys.current.has('arrowdown');
-      if (!isBlockingNow && !(nextPlayer.y <= 0.01 && isCrouchingInput)) {
+      if (!isChainPullActiveAtFrame && !isBlockingNow && !(nextPlayer.y <= 0.01 && isCrouchingInput)) {
         if (bagBattlePressedKeys.current.has('a')) horizontal -= 1;
         if (bagBattlePressedKeys.current.has('d')) horizontal += 1;
       }
@@ -4166,11 +4683,39 @@ export default function App() {
         nextPlayer = { ...nextPlayer, y: 0, vy: 0 };
         bagBattleJumpsRemainingRef.current = BAG_BATTLE_MAX_JUMPS;
       }
+      if (isChainPullActiveAtFrame) {
+        const pullProgress = clamp(
+          (frameTime - bagBattleChainPullStartedAtRef.current) / BAG_BATTLE_BOSS_CHAIN_PULL_MS,
+          0,
+          1,
+        );
+        const easedPullProgress = 1 - Math.pow(1 - pullProgress, 3);
+        nextPlayer = {
+          ...nextPlayer,
+          x: clamp(
+            bagBattleChainPullFromXRef.current +
+              (bagBattleChainPullToXRef.current - bagBattleChainPullFromXRef.current) * easedPullProgress,
+            getBagBattlePlayerMinX(),
+            BAG_BATTLE_PLAYER_MAX_X,
+          ),
+          y: 0,
+          vy: 0,
+        };
+        bagBattleJumpsRemainingRef.current = BAG_BATTLE_MAX_JUMPS;
+      } else if (bagBattleChainPullUntilRef.current > 0) {
+        bagBattleChainPullStartedAtRef.current = 0;
+        bagBattleChainPullUntilRef.current = 0;
+        setIsBagBattleChainPulling(false);
+      }
       setIsBagBattleCrouching(
-        nextPlayer.y <= 0.01 && isCrouchingInput,
+        !isChainPullActiveAtFrame && nextPlayer.y <= 0.01 && isCrouchingInput,
       );
 
-      if (isWallFullyBroken && bagBattleBossPatternRef.current !== 'ground') {
+      if (
+        isWallFullyBroken &&
+        bagBattleBossPatternRef.current !== 'ground' &&
+        bagBattleBossPatternRef.current !== 'ground-chain'
+      ) {
         nextBoss = enterBagBattleGroundPhase(nextBoss);
         nextProjectiles = [];
       }
@@ -4353,6 +4898,51 @@ export default function App() {
         }
       }
 
+      if (bagBattleBossPatternRef.current === 'ground') {
+        nextBoss = { ...nextBoss, x: BAG_BATTLE_BOSS_GROUND_X };
+        if (frameTime >= bagBattleBossChainReadyAtRef.current) {
+          bagBattleBossPatternRef.current = 'ground-chain';
+          bagBattleBossChainAttackUntilRef.current = frameTime + BAG_BATTLE_BOSS_CHAIN_ATTACK_MS;
+          bagBattleBossChainReleaseAtRef.current = frameTime + BAG_BATTLE_BOSS_CHAIN_RELEASE_MS;
+          bagBattleBossChainReleasedRef.current = false;
+          bagBattleBossGroundDirectionRef.current = nextPlayer.x >= nextBoss.x ? 1 : -1;
+          setBagBattleBossPattern('ground-chain');
+        }
+      }
+
+      if (bagBattleBossPatternRef.current === 'ground-chain') {
+        const direction = bagBattleBossGroundDirectionRef.current;
+
+        if (!bagBattleBossChainReleasedRef.current && frameTime >= bagBattleBossChainReleaseAtRef.current) {
+          bagBattleBossChainReleasedRef.current = true;
+          nextProjectiles = [
+            ...nextProjectiles,
+            {
+              id: ++bagBattleProjectileIdRef.current,
+              x: nextBoss.x + direction * 6.5,
+              y: 15,
+              vx: direction * BAG_BATTLE_BOSS_CHAIN_SPEED,
+              vy: 0,
+              owner: 'boss',
+              lane: 'mid',
+              kind: 'chain',
+            },
+          ];
+        }
+
+        if (
+          frameTime >= bagBattleBossChainAttackUntilRef.current &&
+          frameTime >= bagBattleChainPullUntilRef.current
+        ) {
+          bagBattleBossPatternRef.current = 'ground';
+          bagBattleBossChainReadyAtRef.current = frameTime + BAG_BATTLE_BOSS_CHAIN_COOLDOWN_MS;
+          bagBattleBossChainAttackUntilRef.current = 0;
+          bagBattleBossChainReleaseAtRef.current = 0;
+          bagBattleBossChainReleasedRef.current = false;
+          setBagBattleBossPattern('ground');
+        }
+      }
+
       if (
         bagBattleBossPatternRef.current === 'shooting' &&
         bagBattleBossNextPatternRef.current === 'shooting' &&
@@ -4399,13 +4989,34 @@ export default function App() {
         setIsBagBattleBossVulnerable(false);
       }
 
+      if (
+        isKingBattle &&
+        frameTime - bagBattleBossLastPassiveSpadeRef.current >= BAG_BATTLE_BOSS_PASSIVE_SPADE_INTERVAL_MS
+      ) {
+        bagBattleBossLastPassiveSpadeRef.current = frameTime;
+        nextProjectiles = [
+          ...nextProjectiles,
+          ...Array.from({ length: BAG_BATTLE_BOSS_PASSIVE_SPADE_COUNT }, () => ({
+            id: ++bagBattleProjectileIdRef.current,
+            x: 28 + Math.random() * 66,
+            y: BAG_BATTLE_BOSS_PASSIVE_SPADE_WARNING_Y,
+            vx: 0,
+            vy: -BAG_BATTLE_BOSS_PASSIVE_SPADE_SPEED,
+            owner: 'boss' as const,
+            kind: 'spade' as const,
+            startAt: frameTime + BAG_BATTLE_BOSS_PASSIVE_SPADE_WARNING_MS,
+          })),
+        ];
+      }
+
       const keptProjectiles: BagBattleProjectile[] = [];
 
       for (const projectile of nextProjectiles) {
+        const projectileIsWaiting = projectile.startAt !== undefined && frameTime < projectile.startAt;
         const movedProjectile = {
           ...projectile,
-          x: projectile.x + projectile.vx * deltaScale,
-          y: projectile.y + projectile.vy * deltaScale,
+          x: projectile.x + (projectileIsWaiting ? 0 : projectile.vx * deltaScale),
+          y: projectile.y + (projectileIsWaiting ? 0 : projectile.vy * deltaScale),
         };
 
         if (
@@ -4421,6 +5032,47 @@ export default function App() {
           nextPlayer.y <= 0.01 &&
           (bagBattlePressedKeys.current.has('s') || bagBattlePressedKeys.current.has('arrowdown'));
         const bossProjectileLane = movedProjectile.lane ?? 'mid';
+        if (movedProjectile.kind === 'chain') {
+          const chainHitPlayer =
+            movedProjectile.owner === 'boss' &&
+            Math.abs(movedProjectile.x - nextPlayer.x) < 5.6 &&
+            nextPlayer.y < 13 &&
+            !playerIsCrouching;
+
+          if (chainHitPlayer) {
+            const pullDirection = nextBoss.x >= nextPlayer.x ? 1 : -1;
+            const pullTargetX = clamp(
+              nextBoss.x - pullDirection * 8.5,
+              getBagBattlePlayerMinX(),
+              BAG_BATTLE_PLAYER_MAX_X,
+            );
+            bagBattleChainPullStartedAtRef.current = frameTime;
+            bagBattleChainPullUntilRef.current = frameTime + BAG_BATTLE_BOSS_CHAIN_PULL_MS;
+            bagBattleChainPullFromXRef.current = nextPlayer.x;
+            bagBattleChainPullToXRef.current = pullTargetX;
+            bagBattleChainPullBossXRef.current = nextBoss.x;
+            bagBattleBossChainAttackUntilRef.current = Math.max(
+              bagBattleBossChainAttackUntilRef.current,
+              bagBattleChainPullUntilRef.current,
+            );
+            bagBattleBossPatternRef.current = 'ground-chain';
+            setBagBattleBossPattern('ground-chain');
+            setIsBagBattleChainPulling(true);
+            nextPlayer = {
+              ...nextPlayer,
+              health: Math.max(0, nextPlayer.health - BAG_BATTLE_BOSS_CHAIN_DAMAGE),
+              y: 0,
+              vy: 0,
+            };
+            bagBattleJumpsRemainingRef.current = BAG_BATTLE_MAX_JUMPS;
+            playerWasHit = true;
+            continue;
+          }
+
+          keptProjectiles.push(movedProjectile);
+          continue;
+        }
+
         if (movedProjectile.kind === 'spade') {
           const spadeHitPlayer =
             movedProjectile.owner === 'boss' &&
@@ -10443,8 +11095,8 @@ export default function App() {
         playerId: onlinePlayerIdRef.current,
         code,
         hostName: onlineNicknameRef.current,
-        fighterName: selectedFighter.name,
-        stageName: selectedStage.name,
+        fighterName: getFighterDisplayName(selectedFighter),
+        stageName: getStageDisplayName(selectedStage),
         status: onlineRoomStatusRef.current,
         updatedAt: Date.now(),
       } satisfies OnlinePublicRoom,
@@ -10629,6 +11281,123 @@ export default function App() {
     setOnlineNickname(cleanOnlineNickname(onlineNickname));
     createOnlineChannel(room.code, 'guest');
     setOnlineRoomsView('public');
+  }
+
+  function selectDeviceMode(mode: DeviceMode) {
+    setDeviceMode(mode);
+    deviceModeRef.current = mode;
+    setScreen(authSession ? 'title' : 'auth');
+  }
+
+  function getVirtualInputCode(input: VirtualInput) {
+    if (input === 'enter') return 'Enter';
+    if (input === 'escape') return 'Escape';
+    return controlBindings[input] ?? DEFAULT_CONTROL_BINDINGS[input];
+  }
+
+  function getVirtualInputKey(input: VirtualInput, code: string) {
+    if (input === 'enter') return 'Enter';
+    if (input === 'escape') return 'Escape';
+    if (code.startsWith('Key')) return code.slice(3).toLowerCase();
+    if (code.startsWith('Digit')) return code.slice(5);
+    if (code.startsWith('Arrow')) return code;
+    if (code.startsWith('Shift')) return 'Shift';
+    if (code === 'Space') return ' ';
+    return code;
+  }
+
+  function emitVirtualInput(input: VirtualInput, isDown: boolean) {
+    const code = getVirtualInputCode(input);
+    const key = getVirtualInputKey(input, code);
+    window.dispatchEvent(
+      new KeyboardEvent(isDown ? 'keydown' : 'keyup', {
+        bubbles: true,
+        cancelable: true,
+        code,
+        key,
+      }),
+    );
+  }
+
+  function pressVirtualInput(input: VirtualInput) {
+    if (virtualHeldInputsRef.current.has(input)) return;
+    virtualHeldInputsRef.current.add(input);
+    emitVirtualInput(input, true);
+  }
+
+  function releaseVirtualInput(input: VirtualInput) {
+    if (!virtualHeldInputsRef.current.has(input)) return;
+    virtualHeldInputsRef.current.delete(input);
+    emitVirtualInput(input, false);
+  }
+
+  function releaseAllVirtualInputs() {
+    Array.from(virtualHeldInputsRef.current).forEach((input) => releaseVirtualInput(input));
+  }
+
+  function getVirtualButtonHandlers(input: VirtualInput) {
+    return {
+      onPointerDown: (event: any) => {
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        pressVirtualInput(input);
+      },
+      onPointerUp: (event: any) => {
+        event.preventDefault();
+        releaseVirtualInput(input);
+      },
+      onPointerCancel: (event: any) => {
+        event.preventDefault();
+        releaseVirtualInput(input);
+      },
+      onPointerLeave: () => releaseVirtualInput(input),
+    };
+  }
+
+  function renderMobileButton(input: VirtualInput, label: string, className = '') {
+    return (
+      <button
+        aria-label={label}
+        className={`mobile-controls__button${className ? ` ${className}` : ''}`}
+        type="button"
+        {...getVirtualButtonHandlers(input)}
+      >
+        {label}
+      </button>
+    );
+  }
+
+  function renderMobileControls() {
+    if (deviceMode !== 'phone' || !['arena', 'bag-battle', 'campaign'].includes(screen)) return null;
+    const isCampaignControls = screen === 'campaign';
+
+    return (
+      <div className={`mobile-controls${isCampaignControls ? ' mobile-controls--campaign' : ''}`} aria-hidden="false">
+        <div className="mobile-controls__pad" aria-label="Движение">
+          {renderMobileButton('w', '▲', 'mobile-controls__button--up')}
+          {renderMobileButton('a', '◀', 'mobile-controls__button--left')}
+          {renderMobileButton('s', '▼', 'mobile-controls__button--down')}
+          {renderMobileButton('d', '▶', 'mobile-controls__button--right')}
+        </div>
+        <div className="mobile-controls__actions" aria-label="Действия">
+          {isCampaignControls ? (
+            <>
+              {renderMobileButton('enter', 'E', 'mobile-controls__button--large')}
+              {renderMobileButton('escape', 'ESC')}
+            </>
+          ) : (
+            <>
+              {renderMobileButton('arrowleft', 'У1')}
+              {renderMobileButton('arrowright', 'У2')}
+              {renderMobileButton('arrowup', '↑')}
+              {renderMobileButton('arrowdown', '↓')}
+              {renderMobileButton('block', 'B', 'mobile-controls__button--large')}
+              {renderMobileButton('escape', 'ESC')}
+            </>
+          )}
+        </div>
+      </div>
+    );
   }
 
   function continueAsGuest() {
@@ -10977,9 +11746,12 @@ export default function App() {
     setCampaignPosition(campaignSave.position);
     setIsCampaignBagDefeated(campaignSave.isBagDefeated);
     setIsCampaignBagCollected(campaignSave.isBagCollected);
+    setCampaignPuzzleFlags(campaignSave.puzzleFlags);
+    setCampaignEquipment(normalizeCampaignEquipment(campaignSave.equipment));
     setCampaignDialogue(null);
     setCampaignActiveNpcId(null);
     setIsCampaignMenuOpen(false);
+    setIsCampaignEquipmentOpen(false);
     setCampaignBossCutsceneStep(null);
     setCampaignBossCutscenePhase('talking');
     setScreen('campaign');
@@ -11129,11 +11901,11 @@ export default function App() {
     <div className="controls-settings">
       <div className="controls-settings__header">
         <button className="controls-back-button" onClick={() => setControlsSettingsOpen(false)} type="button">
-          Назад
+          {text.controlsBack}
         </button>
-        <span>Управление</span>
+        <span>{text.controls}</span>
         <button className="controls-reset-button" onClick={resetControlBindings} type="button">
-          Сброс
+          {text.controlsReset}
         </button>
       </div>
       <div className="controls-bindings">
@@ -11153,7 +11925,7 @@ export default function App() {
     </div>
   ) : (
     <button className="settings-menu-button" onClick={() => setControlsSettingsOpen(true)} type="button">
-      Управление
+      {text.controls}
     </button>
   );
 
@@ -11161,7 +11933,7 @@ export default function App() {
     <>
       <label className="settings-control">
         <span>
-          Эффекты
+          {text.effects}
           <strong>{Math.round(effectsVolume * 100)}%</strong>
         </span>
         <input
@@ -11174,7 +11946,7 @@ export default function App() {
       </label>
       <label className="settings-control">
         <span>
-          Музыка
+          {text.music}
           <strong>{Math.round(musicVolume * 100)}%</strong>
         </span>
         <input
@@ -11186,9 +11958,31 @@ export default function App() {
         />
       </label>
       <button className="settings-menu-button" onClick={() => setControlsSettingsOpen(true)} type="button">
-        Управление
+        {text.controls}
       </button>
     </>
+  );
+
+  const languageToggle = (
+    <div className="language-switch" role="group" aria-label={text.language}>
+      <span>{text.language}</span>
+      <div className="language-switch__options">
+        <button
+          className={language === 'ru' ? 'language-switch__button is-active' : 'language-switch__button'}
+          onClick={() => setLanguage('ru')}
+          type="button"
+        >
+          RU
+        </button>
+        <button
+          className={language === 'en' ? 'language-switch__button is-active' : 'language-switch__button'}
+          onClick={() => setLanguage('en')}
+          type="button"
+        >
+          EN
+        </button>
+      </div>
+    </div>
   );
 
   const settingsOverlay = (
@@ -11197,7 +11991,7 @@ export default function App() {
         className="settings-toggle"
         type="button"
         aria-expanded={settingsOpen}
-        aria-label="Настройки"
+        aria-label={text.settings}
         onClick={() => {
           if (screen === 'arena') {
             toggleArenaPause();
@@ -11212,12 +12006,12 @@ export default function App() {
         <div
           className={`settings-panel${controlsSettingsOpen ? ' settings-panel--controls' : ''}`}
           role="dialog"
-          aria-label="Настройки звука"
+          aria-label={text.soundSettings}
         >
-          {isArenaPaused && <div className="settings-panel__title">ПАУЗА</div>}
+          {isArenaPaused && <div className="settings-panel__title">{text.pause}</div>}
           <label className="settings-control">
             <span>
-              Эффекты
+              {text.effects}
               <strong>{Math.round(effectsVolume * 100)}%</strong>
             </span>
             <input
@@ -11230,7 +12024,7 @@ export default function App() {
           </label>
           <label className="settings-control">
             <span>
-              Музыка
+              {text.music}
               <strong>{Math.round(musicVolume * 100)}%</strong>
             </span>
             <input
@@ -11241,6 +12035,7 @@ export default function App() {
               onChange={(event) => setMusicVolume(Number(event.currentTarget.value) / 100)}
             />
           </label>
+          {languageToggle}
           {controlsSettings}
           {false ? soundSettings : null}
         </div>
@@ -11249,11 +12044,11 @@ export default function App() {
   );
 
   const arenaPauseMenu = isArenaPaused ? (
-    <div className="arena-pause-menu" role="dialog" aria-label="Пауза">
-      <div className="settings-panel__title">ПАУЗА</div>
+    <div className="arena-pause-menu" role="dialog" aria-label={text.pause}>
+      <div className="settings-panel__title">{text.pause}</div>
       <label className="settings-control">
         <span>
-          Эффекты
+          {text.effects}
           <strong>{Math.round(effectsVolume * 100)}%</strong>
         </span>
         <input
@@ -11266,7 +12061,7 @@ export default function App() {
       </label>
       <label className="settings-control">
         <span>
-          Музыка
+          {text.music}
           <strong>{Math.round(musicVolume * 100)}%</strong>
         </span>
         <input
@@ -11277,10 +12072,11 @@ export default function App() {
           onChange={(event) => setMusicVolume(Number(event.currentTarget.value) / 100)}
         />
       </label>
+      {languageToggle}
       {controlsSettings}
       {arenaMode === 'online' && onlinePauseOwnerId && onlinePauseOwnerId !== onlinePlayerIdRef.current && (
         <p className="arena-pause-menu__notice">
-          Пауза открыта игроком {onlinePauseOwnerName || 'соперник'}
+          {text.pauseOpenedBy} {onlinePauseOwnerName || text.opponent}
         </p>
       )}
       <button
@@ -11289,7 +12085,7 @@ export default function App() {
         onClick={() => setArenaPauseOpen(false)}
         type="button"
       >
-        Продолжить
+        {text.continue}
       </button>
       <button
         className="back-button arena-pause-menu__button"
@@ -11297,10 +12093,45 @@ export default function App() {
         onClick={arenaMode === 'online' ? exitOnlineMatch : backToSelect}
         type="button"
       >
-        {arenaMode === 'online' ? 'Выйти' : 'Выбор бойца'}
+        {arenaMode === 'online' ? text.exit : text.fighterSelect}
       </button>
     </div>
   ) : null;
+
+  if (screen === 'device') {
+    return (
+      <main className="game-shell game-shell--title">
+        <section className="device-gate" aria-labelledby="device-gate-title">
+          <img
+            className="title-menu__backdrop"
+            src={deltafightTitleBg}
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="device-gate__panel">
+            <p className="eyebrow">DeltaFight</p>
+            <h1 id="device-gate-title">На каком устройстве вы играете?</h1>
+            <p className="device-gate__copy">
+              На телефоне появятся полупрозрачные кнопки управления поверх боя.
+            </p>
+            <div className="device-gate__actions">
+              <button className="title-menu__button" onClick={() => selectDeviceMode('pc')} type="button">
+                <span>ПК</span>
+                <small>Рекомендовано</small>
+              </button>
+              <button
+                className="title-menu__button title-menu__button--ghost"
+                onClick={() => selectDeviceMode('phone')}
+                type="button"
+              >
+                Телефон
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   if (screen === 'victory') {
     const winner = winnerSide === 'left' ? player : opponent;
@@ -11309,18 +12140,18 @@ export default function App() {
     return (
       <main className="game-shell game-shell--menu-bg">
         <section className="victory-screen" aria-labelledby="victory-title">
-          <p className="eyebrow">Finish</p>
+          <p className="eyebrow">Финал</p>
           <h1 id="victory-title">{winnerLabel} победил</h1>
           <FighterPortrait fighter={winner} size="victory" />
-          <p className="victory-copy">{winner.name} забрал раунд. Можно сыграть реванш или выбрать другого бойца.</p>
-          <p className="victory-copy">Match score: {playerRoundWins}:{opponentRoundWins}</p>
+          <p className="victory-copy">{getFighterDisplayName(winner)} забрал раунд. Можно сыграть реванш или выбрать другого бойца.</p>
+          <p className="victory-copy">Счет матча: {playerRoundWins}:{opponentRoundWins}</p>
           <div className="victory-actions">
             <button className="confirm-button" onClick={rematch} type="button">
               Реванш
             </button>
             <span>Right Shift - блок</span>
-            <span>S + D + ←/→ - Special</span>
-            <span>Air A + D + left/right - Tenna Wave</span>
+            <span>S + D + ←/→ - спецприем</span>
+            <span>В воздухе A + D + влево/вправо - волна Тенны</span>
             <button className="back-button" onClick={backToSelect} type="button">
               Выбор бойца
             </button>
@@ -11457,7 +12288,7 @@ export default function App() {
                     Войти через Google
                   </button>
                   <button className="title-menu__button title-menu__button--ghost" onClick={() => setAuthView('home')} type="button">
-                    Назад
+                    {text.controlsBack}
                   </button>
                 </div>
               </>
@@ -11555,21 +12386,24 @@ export default function App() {
           />
           <div className="title-menu__content">
             <h1 id="title-menu-heading" className="title-menu__logo">DeltaFight</h1>
+            <div className="title-menu__language">
+              {languageToggle}
+            </div>
             <div className="title-menu__actions">
               <button className="title-menu__button" onClick={openModeMenu} type="button">
-                Начать играть
+                {text.startGame}
               </button>
               <button
                 className="title-menu__button title-menu__button--ghost"
                 onClick={() => setShowTitleInfo((value) => !value)}
                 type="button"
               >
-                Что это за игра
+                {text.whatGame}
               </button>
             </div>
             {showTitleInfo && (
               <p className="title-menu__info">
-                DeltaFight - пиксельный файтинг с бойцами, спецприемами, раундами и тренировочным режимом.
+                {text.titleInfo}
               </p>
             )}
             <button
@@ -11578,8 +12412,8 @@ export default function App() {
               type="button"
             >
               {authSession
-                ? `Аккаунт: ${authSession.user.user_metadata?.full_name || authSession.user.email || 'Google'}`
-                : 'Войти / гость'}
+                ? `${text.account}: ${authSession.user.user_metadata?.full_name || authSession.user.email || 'Google'}`
+                : text.signInGuest}
             </button>
           </div>
         </section>
@@ -11589,6 +12423,10 @@ export default function App() {
 
   if (screen === 'campaign') {
     const campaignRoom = getCampaignRoomWithProgress(campaignRoomId, isCampaignBagDefeated);
+    const selectedCampaignWeapon =
+      CAMPAIGN_WEAPONS.find((item) => item.id === campaignEquipment.weapon) ?? CAMPAIGN_WEAPONS[0];
+    const selectedCampaignArmor =
+      CAMPAIGN_ARMOR.find((item) => item.id === campaignEquipment.armor) ?? CAMPAIGN_ARMOR[0];
 
     return (
       <main className="game-shell game-shell--campaign">
@@ -11623,10 +12461,13 @@ export default function App() {
             {campaignRoom.npcs?.map((npc) => {
               const npcSize = getCampaignNpcSize(npc);
               const isNpcTalking = npc.id === campaignActiveNpcId && Boolean(npc.talkSprite);
+              const useCircleNpc = !npc.encounter;
 
               return (
                 <button
-                  className={`campaign-npc${npc.id === campaignActiveNpcId ? ' campaign-npc--talking' : ''}`}
+                  className={`campaign-npc${useCircleNpc ? ' campaign-npc--circle' : ''}${
+                    npc.id === campaignActiveNpcId ? ' campaign-npc--talking' : ''
+                  }`}
                   key={npc.id}
                   aria-label={npc.label}
                   style={{
@@ -11638,7 +12479,11 @@ export default function App() {
                   tabIndex={-1}
                   type="button"
                 >
-                  {npc.idleSprite ? (
+                  {useCircleNpc ? (
+                    <span className="campaign-npc-circle" aria-hidden="true">
+                      {npc.label}
+                    </span>
+                  ) : npc.idleSprite ? (
                     <img
                       className="campaign-npc-sprite"
                       src={isNpcTalking && npc.talkSprite ? npc.talkSprite : npc.idleSprite}
@@ -11657,19 +12502,19 @@ export default function App() {
             })}
             {campaignRoom.signs?.map((sign) => (
               <button
-                className="campaign-sign"
+                className={`campaign-sign${sign.puzzleAction ? ' campaign-sign--puzzle' : ''}${
+                  sign.puzzleAction === 'open-rune-gate' && campaignPuzzleFlags.runeBridgeOpen
+                    ? ' campaign-sign--solved'
+                    : ''
+                }`}
                 key={sign.id}
                 onClick={() => {
-                  setCampaignDialogue(sign.text);
-                  setCampaignActiveNpcId(null);
-                  if (sign.encounter === 'bag-battle') {
-                    window.setTimeout(() => startBagBattle('campaign-sign'), 520);
-                  }
+                  handleCampaignSignInteraction(sign);
                 }}
                 style={{ left: `${sign.x}%`, top: `${sign.y}%` }}
                 type="button"
               >
-                {sign.label}
+                <img className="campaign-sign__sprite" src={campaignSignSprite} alt="" aria-hidden="true" />
               </button>
             ))}
             {campaignRoomId === 'side-room' && isCampaignBagDefeated && !isCampaignBagCollected && (
@@ -11727,31 +12572,104 @@ export default function App() {
             </button>
           )}
           {isCampaignMenuOpen && (
-            <div className="campaign-pause-menu" role="dialog" aria-label="Меню кампании">
-              <div className="settings-panel__title">ПАУЗА</div>
-              <button
-                className="confirm-button campaign-pause-menu__button"
-                onClick={() => setIsCampaignMenuOpen(false)}
-                type="button"
-              >
-                Продолжить
-              </button>
-              <button
-                className="back-button campaign-pause-menu__button"
-                onClick={() => {
-                  campaignPressedKeys.current.clear();
-                  setCampaignDialogue(null);
-                  setCampaignActiveNpcId(null);
-                  setIsCampaignMenuOpen(false);
-                  setScreen('menu');
-                }}
-                type="button"
-              >
-                В меню
-              </button>
+            <div
+              className={`campaign-pause-menu${isCampaignEquipmentOpen ? ' campaign-pause-menu--equipment' : ''}`}
+              role="dialog"
+              aria-label="Меню кампании"
+            >
+              {isCampaignEquipmentOpen ? (
+                <>
+                  <div className="settings-panel__title">СНАРЯЖЕНИЕ</div>
+                  <div className="campaign-equipment-summary" aria-live="polite">
+                    <span>Оружие: <strong>{selectedCampaignWeapon.name}</strong></span>
+                    <span>Броня: <strong>{selectedCampaignArmor.name}</strong></span>
+                  </div>
+                  <div className="campaign-equipment">
+                    <section className="campaign-equipment__group" aria-label="Оружие">
+                      <h2>Оружие</h2>
+                      <div className="campaign-equipment__items">
+                        {CAMPAIGN_WEAPONS.map((weapon) => (
+                          <button
+                            className={`campaign-equipment-item${
+                              campaignEquipment.weapon === weapon.id ? ' campaign-equipment-item--selected' : ''
+                            }`}
+                            key={weapon.id}
+                            onClick={() => setCampaignEquipment((current) => ({ ...current, weapon: weapon.id }))}
+                            type="button"
+                          >
+                            <strong>{weapon.name}</strong>
+                            <span>{weapon.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                    <section className="campaign-equipment__group" aria-label="Броня">
+                      <h2>Броня</h2>
+                      <div className="campaign-equipment__items">
+                        {CAMPAIGN_ARMOR.map((armor) => (
+                          <button
+                            className={`campaign-equipment-item${
+                              campaignEquipment.armor === armor.id ? ' campaign-equipment-item--selected' : ''
+                            }`}
+                            key={armor.id}
+                            onClick={() => setCampaignEquipment((current) => ({ ...current, armor: armor.id }))}
+                            type="button"
+                          >
+                            <strong>{armor.name}</strong>
+                            <span>{armor.description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+                  <button
+                    className="back-button campaign-pause-menu__button"
+                    onClick={() => setIsCampaignEquipmentOpen(false)}
+                    type="button"
+                  >
+                    Назад
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="settings-panel__title">{text.pause}</div>
+                  <button
+                    className="confirm-button campaign-pause-menu__button"
+                    onClick={() => {
+                      setIsCampaignEquipmentOpen(false);
+                      setIsCampaignMenuOpen(false);
+                    }}
+                    type="button"
+                  >
+                    {text.continue}
+                  </button>
+                  <button
+                    className="confirm-button campaign-pause-menu__button"
+                    onClick={() => setIsCampaignEquipmentOpen(true)}
+                    type="button"
+                  >
+                    {text.equipment}
+                  </button>
+                  <button
+                    className="back-button campaign-pause-menu__button"
+                    onClick={() => {
+                      campaignPressedKeys.current.clear();
+                      setCampaignDialogue(null);
+                      setCampaignActiveNpcId(null);
+                      setIsCampaignMenuOpen(false);
+                      setIsCampaignEquipmentOpen(false);
+                      setScreen('menu');
+                    }}
+                    type="button"
+                  >
+                    {text.toMenu}
+                  </button>
+                </>
+              )}
             </div>
           )}
         </section>
+        {renderMobileControls()}
       </main>
     );
   }
@@ -11780,6 +12698,8 @@ export default function App() {
         ? campaignKingBossSprite
       : bagBattleResult !== 'playing'
         ? campaignKingBossSprite
+        : bagBattleBossPattern === 'ground-chain'
+          ? campaignKingChainTossSprite
         : bagBattleBossPattern === 'spade-rain' || bagBattleBossPattern === 'spade-crossfire'
           ? campaignKingAttackOneSprite
         : bagBattleBossPattern === 'run-prep'
@@ -11794,6 +12714,8 @@ export default function App() {
     }${bagBattleResult === 'won' ? ' bag-battle-boss--victory' : ''}${
       bagBattleResult !== 'playing' ? ' bag-battle-boss--result' : ''
     }${bagBattleBossPattern === 'run-prep' ? ' bag-battle-boss--run-prep' : ''}${
+      bagBattleBossPattern === 'ground-chain' ? ' bag-battle-boss--ground-chain' : ''
+    }${
       bagBattleBossPattern === 'spade-rain' || bagBattleBossPattern === 'spade-crossfire'
         ? ' bag-battle-boss--spade-rain'
         : ''
@@ -11809,7 +12731,7 @@ export default function App() {
       <main className="game-shell game-shell--bag-battle">
         <section
           className={`bag-battle-screen${isBagBattleIntro ? ' bag-battle-screen--intro' : ''}`}
-          aria-label="Р‘РѕР№ СЃ РјРµС€РєРѕРј"
+          aria-label="Бой с мешком"
         >
           <div className="bag-battle-hud">
             <div className="bag-battle-health">
@@ -11860,7 +12782,9 @@ export default function App() {
               </span>
             </div>
             {isKingBattle &&
-            (bagBattleBossPattern === 'spade-rain' || bagBattleBossPattern === 'spade-crossfire') &&
+            (bagBattleBossPattern === 'spade-rain' ||
+              bagBattleBossPattern === 'spade-crossfire' ||
+              bagBattleBossPattern === 'ground-chain') &&
             bagBattleResult === 'playing' ? (
               <span
                 aria-hidden="true"
@@ -11879,6 +12803,17 @@ export default function App() {
                 style={{ left: `${bagBattleBoss.x}%`, bottom: `${bagBattleBossBottom}%` }}
               />
             )}
+            {isBagBattleChainPulling && (
+              <span
+                className="bag-battle-chain-tether"
+                aria-hidden="true"
+                style={{
+                  left: `${Math.min(bagBattleChainPullBossXRef.current, bagBattlePlayer.x)}%`,
+                  width: `${Math.max(7, Math.abs(bagBattlePlayer.x - bagBattleChainPullBossXRef.current))}%`,
+                  bottom: `${29 + Math.min(8, bagBattlePlayer.y)}%`,
+                }}
+              />
+            )}
             {bagBattleProjectiles.map((projectile) => {
               if (projectile.kind === 'spade') {
                 const isSideSpade = Math.abs(projectile.vx) > Math.abs(projectile.vy);
@@ -11887,10 +12822,11 @@ export default function App() {
                       projectile.vx > 0 ? 'right' : 'left'
                     }`
                   : '';
+                const passiveSpadeClass = projectile.startAt ? ' bag-battle-projectile--spade-warning' : '';
 
                 return (
                 <img
-                  className={`bag-battle-projectile bag-battle-projectile--boss bag-battle-projectile--spade${sideSpadeClass}`}
+                  className={`bag-battle-projectile bag-battle-projectile--boss bag-battle-projectile--spade${sideSpadeClass}${passiveSpadeClass}`}
                   key={projectile.id}
                   src={jevilChaosProjectileThreeSprite}
                   alt=""
@@ -11899,6 +12835,21 @@ export default function App() {
                     bottom: `${14 + projectile.y}%`,
                   }}
                 />
+                );
+              }
+
+              if (projectile.kind === 'chain') {
+                return (
+                  <span
+                    className={`bag-battle-projectile bag-battle-projectile--chain bag-battle-projectile--dir-${
+                      projectile.vx > 0 ? 'right' : 'left'
+                    }`}
+                    key={projectile.id}
+                    style={{
+                      left: `${projectile.x}%`,
+                      bottom: `${14 + projectile.y}%`,
+                    }}
+                  />
                 );
               }
 
@@ -11956,6 +12907,7 @@ export default function App() {
             )}
           </div>
         </section>
+        {renderMobileControls()}
       </main>
     );
   }
@@ -11980,7 +12932,7 @@ export default function App() {
           <div className="select-header">
             <span className="header-rule" />
             <div>
-              <p className="eyebrow">Online</p>
+              <p className="eyebrow">Онлайн</p>
               <h1 id="rooms-title">Комнаты</h1>
             </div>
             <span className="header-rule" />
@@ -12191,7 +13143,7 @@ export default function App() {
                   style={{ backgroundImage: `url(${stage.image})` }}
                   aria-hidden="true"
                 />
-                <span className="stage-card__name">{stage.name}</span>
+                <span className="stage-card__name">{getStageDisplayName(stage)}</span>
               </button>
             ))}
           </div>
@@ -12279,6 +13231,7 @@ export default function App() {
             <div className="arena-hud">
               <FighterBadge
                 fighter={player}
+                displayName={getFighterDisplayName(player)}
                 label={
                   arenaMode === 'online'
                     ? onlineRole === 'host'
@@ -12296,6 +13249,7 @@ export default function App() {
               </span>
               <FighterBadge
                 fighter={opponent}
+                displayName={getFighterDisplayName(opponent)}
                 label={
                   arenaMode === 'online'
                     ? onlineRole === 'host'
@@ -12331,9 +13285,9 @@ export default function App() {
             )}
             {arenaWinnerSide && (
               <div className="fatality-window" role="status" aria-live="polite">
-                <span className="fatality-window__eyebrow">Finish</span>
+                <span className="fatality-window__eyebrow">Финал</span>
                 <strong>{arenaWinnerLabel} победил</strong>
-                <span>Round {roundNumber}: {arenaWinner.name}</span>
+                <span>Round {roundNumber}: {getFighterDisplayName(arenaWinner)}</span>
               </div>
             )}
             {roundCurtainPhase !== 'idle' && (
@@ -12627,9 +13581,12 @@ export default function App() {
           <div className="select-header">
             <span className="header-rule" />
             <div>
-              <h1 id="main-menu-title">Выберите режим</h1>
+              <h1 id="main-menu-title">{text.chooseMode}</h1>
             </div>
             <span className="header-rule" />
+          </div>
+          <div className="main-menu__language">
+            {languageToggle}
           </div>
 
           <div className="mode-menu mode-menu--doors">
@@ -12641,7 +13598,7 @@ export default function App() {
               type="button"
             >
               <span className="mode-door__panel" aria-hidden="true" />
-              <span className="mode-door__label">Кампания</span>
+              <span className="mode-door__label">{text.campaign}</span>
             </button>
             <button
               className="mode-door mode-door--local"
@@ -12651,7 +13608,7 @@ export default function App() {
               type="button"
             >
               <span className="mode-door__panel" aria-hidden="true" />
-              <span className="mode-door__label">Локальные бои</span>
+              <span className="mode-door__label">{text.localFights}</span>
             </button>
             <button
               className="mode-door mode-door--training"
@@ -12661,7 +13618,7 @@ export default function App() {
               type="button"
             >
               <span className="mode-door__panel" aria-hidden="true" />
-              <span className="mode-door__label">Тренировка</span>
+              <span className="mode-door__label">{text.training}</span>
             </button>
             <button
               className="mode-door mode-door--online"
@@ -12671,9 +13628,38 @@ export default function App() {
               type="button"
             >
               <span className="mode-door__panel" aria-hidden="true" />
-              <span className="mode-door__label">Комнаты</span>
+              <span className="mode-door__label">{text.rooms}</span>
             </button>
           </div>
+          <button
+            className="toby-credits-button"
+            onClick={() => setCreditsOpen(true)}
+            type="button"
+            aria-label={text.openCredits}
+          >
+            <span className="toby-credits-button__sprite">
+              <img src={tobyFoxSprite} alt="" aria-hidden="true" />
+            </span>
+          </button>
+          {creditsOpen && (
+            <div className="credits-modal" role="dialog" aria-modal="true" aria-labelledby="credits-title">
+              <button
+                className="credits-modal__backdrop"
+                onClick={() => setCreditsOpen(false)}
+                type="button"
+                aria-label={text.closeCredits}
+              />
+              <div className="credits-modal__panel">
+                <h2 id="credits-title">{text.credits}</h2>
+                <p>{text.spritesCredit}</p>
+                <p>{text.soundtrackCredit}</p>
+                <p>{text.kingDesignCredit}</p>
+                <button className="back-button" onClick={() => setCreditsOpen(false)} type="button">
+                  {text.close}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     );
@@ -12731,6 +13717,7 @@ export default function App() {
             </button>
           </div>
         </section>
+        {renderMobileControls()}
       </main>
     );
   }
@@ -12741,8 +13728,8 @@ export default function App() {
   const onlineCanEditStage = !isOnlineSelect || onlineRole === 'host';
   const onlineSelectionStatus =
     onlineRole === 'host'
-      ? `${cleanOnlineNickname(onlineNickname)}: ${selectedFighter.name} / ${onlinePeerNickname || 'Гость'}: ${selectedOpponent.name}`
-      : `${onlinePeerNickname || 'Хост'}: ${selectedFighter.name} / ${cleanOnlineNickname(onlineNickname)}: ${selectedOpponent.name}`;
+      ? `${cleanOnlineNickname(onlineNickname)}: ${getFighterDisplayName(selectedFighter)} / ${onlinePeerNickname || 'Гость'}: ${getFighterDisplayName(selectedOpponent)}`
+      : `${onlinePeerNickname || 'Хост'}: ${getFighterDisplayName(selectedFighter)} / ${cleanOnlineNickname(onlineNickname)}: ${getFighterDisplayName(selectedOpponent)}`;
 
   return (
     <main className={`game-shell game-shell--menu-bg${isScreenRevealing ? ' game-shell--screen-reveal' : ''}`}>
@@ -12762,12 +13749,13 @@ export default function App() {
             label={isOnlineSelect ? onlinePeerNickname && onlineRole === 'guest' ? onlinePeerNickname : cleanOnlineNickname(onlineNickname) : 'Игрок 1'}
             side="left"
             muted={isOnlineSelect && onlineRole === 'guest'}
+            displayName={getFighterDisplayName(selectedFighter)}
           />
 
           <div className="versus">
             <span aria-hidden="true">VS</span>
             <div className="select-actions">
-              <div className="select-targets" aria-label="Select side">
+              <div className="select-targets" aria-label="Выбор стороны">
                 <button
                   className={`target-button${(isOnlineSelect ? onlineRole === 'host' : selectTarget === 'player') ? ' target-button--active' : ''}`}
                   disabled={isOnlineSelect}
@@ -12785,7 +13773,7 @@ export default function App() {
                   {isOnlineSelect ? 'Гость' : 'CPU'}
                 </button>
               </div>
-              {!isOnlineSelect && <div className="difficulty-select" aria-label="Difficulty">
+              {!isOnlineSelect && <div className="difficulty-select" aria-label="Сложность">
                 {(['easy', 'normal', 'hard'] as Difficulty[]).map((difficulty) => (
                   <button
                     className={`difficulty-button${
@@ -12808,7 +13796,7 @@ export default function App() {
                 {isOnlineSelect && onlineRole !== 'host' ? 'Ждем хоста' : 'В бой'}
               </button>
               <button className="sandbox-button" onClick={backToMainMenu} type="button">
-                Main Menu
+                Главное меню
               </button>
             </div>
           </div>
@@ -12818,6 +13806,7 @@ export default function App() {
             label={isOnlineSelect ? onlineRole === 'guest' ? cleanOnlineNickname(onlineNickname) : onlinePeerNickname || 'Гость' : 'CPU'}
             side="right"
             muted={!isOnlineSelect || onlineRole === 'host'}
+            displayName={getFighterDisplayName(opponent)}
           />
         </div>
 
@@ -12856,14 +13845,14 @@ export default function App() {
                   aria-pressed={isSelected}
                 >
                   <FighterPortrait fighter={fighter} size="tile" />
-                  <span className="fighter-tile__name">{fighter.name}</span>
+                  <span className="fighter-tile__name">{getFighterDisplayName(fighter)}</span>
                 </button>
               );
             })}
           </div>
 
           <div className="select-actions">
-            <div className="select-targets" aria-label="Select side">
+            <div className="select-targets" aria-label="Выбор стороны">
               <button
                 className={`target-button${(isOnlineSelect ? onlineRole === 'host' : selectTarget === 'player') ? ' target-button--active' : ''}`}
                 disabled={isOnlineSelect}
@@ -12881,7 +13870,7 @@ export default function App() {
                 {isOnlineSelect ? 'Гость' : 'CPU'}
               </button>
             </div>
-            {!isOnlineSelect && <div className="difficulty-select" aria-label="Difficulty">
+            {!isOnlineSelect && <div className="difficulty-select" aria-label="Сложность">
               {(['easy', 'normal', 'hard'] as Difficulty[]).map((difficulty) => (
                 <button
                   className={`difficulty-button${
@@ -12904,13 +13893,13 @@ export default function App() {
               {isOnlineSelect && onlineRole !== 'host' ? 'Ждем хоста' : 'В бой'}
             </button>
             <button className="sandbox-button" onClick={backToMainMenu} type="button">
-              Main Menu
+              Главное меню
             </button>
             <p className="selection-status">
               {isOnlineSelect
-                ? `${onlineSelectionStatus} / ${selectedStage.name}`
-                : `P1: ${selectedFighter.name} / CPU: ${selectedOpponent.name} / ${
-                    arenaMode === 'sandbox' ? 'Sandbox' : AI_CONFIG[selectedDifficulty].label
+                ? `${onlineSelectionStatus} / ${getStageDisplayName(selectedStage)}`
+                : `Игрок 1: ${getFighterDisplayName(selectedFighter)} / CPU: ${getFighterDisplayName(selectedOpponent)} / ${
+                    arenaMode === 'sandbox' ? 'Тренировка' : AI_CONFIG[selectedDifficulty].label
                   }`}
             </p>
           </div>
@@ -12930,7 +13919,7 @@ export default function App() {
                   style={{ backgroundImage: `url(${stage.image})` }}
                   aria-hidden="true"
                 />
-                <span className="stage-card__name">{stage.name}</span>
+                <span className="stage-card__name">{getStageDisplayName(stage)}</span>
               </button>
             ))}
           </div>
@@ -12945,11 +13934,13 @@ function FighterPanel({
   label,
   side,
   muted = false,
+  displayName,
 }: {
   fighter: Fighter;
   label: string;
   side: FighterSide;
   muted?: boolean;
+  displayName?: string;
 }) {
   return (
     <article className={`fighter-panel fighter-panel--${side}${muted ? ' fighter-panel--muted' : ''}`}>
@@ -12958,6 +13949,7 @@ function FighterPanel({
         <FighterPortrait fighter={fighter} size="portrait" />
       </div>
       <div className="fighter-copy">
+        <h2 className="fighter-name">{displayName ?? fighter.name}</h2>
       </div>
     </article>
   );
@@ -12992,6 +13984,7 @@ function FighterPortrait({
 
 function FighterBadge({
   fighter,
+  displayName,
   label,
   health,
   infiniteHealth = false,
@@ -12999,6 +13992,7 @@ function FighterBadge({
   alignRight = false,
 }: {
   fighter: Fighter;
+  displayName?: string;
   label: string;
   health: number;
   infiniteHealth?: boolean;
@@ -13006,6 +14000,7 @@ function FighterBadge({
   alignRight?: boolean;
 }) {
   const visibleHealth = infiniteHealth ? MAX_HEALTH : health;
+  const name = displayName ?? fighter.name;
   const gersonAirCounterValue =
     fighter.id === 'gerson-boom' && gersonAirHitCount >= 5
       ? gersonAirHitCount - 4
@@ -13015,9 +14010,9 @@ function FighterBadge({
     <div className={`fighter-badge${alignRight ? ' fighter-badge--right' : ''}`}>
       <div className="badge-topline">
         <span className="badge-label">{label}</span>
-        <span className="badge-name">{fighter.name}</span>
+        <span className="badge-name">{name}</span>
       </div>
-      <div className="health-track" aria-label={`Здоровье ${fighter.name}: ${health}`}>
+      <div className="health-track" aria-label={`Здоровье ${name}: ${health}`}>
         <span className="health-fill" style={{ width: `${visibleHealth}%` }} />
         {infiniteHealth && <span className="health-infinity">?</span>}
       </div>
@@ -13716,3 +14711,5 @@ function getGameKey(event: KeyboardEvent, controlBindings: Record<GameInput, str
 
   return boundAction ?? event.key.toLowerCase();
 }
+
+
